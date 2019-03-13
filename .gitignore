@@ -1,5 +1,4 @@
-**/*.iml
-**/.idea
-**/.vscode
-**/*.class
-**/*.xml
+.idea
+.vscode
+*.class
+*.xml
