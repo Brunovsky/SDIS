@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# java EchoServer MULTI_PORT MULTI_ADDRESS ID [PORT [ADDRESS]]
+# java EchoClient MULTI_PORT MULTI_ADDRESS FILENAME [PORT [ADDRESS]]
+
+num="$1"
+mport="$2"
+maddress="$3"
+
+if [ -z "$2" ]
+then
+  mport="29500"
+fi
+
+if [ -z "$3" ]
+then
+  maddress="237.0.0.1"
+fi
+
+rm -rf d*
+
+for i in `seq 1 $num`;
+do
+  java EchoServer "$mport" "$maddress" "d$i" &
+  sleep 0.02
+done
