@@ -5,9 +5,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.SocketException;
 
 public class MulticastPeer {
-  public static final int timeout = 1000;
+  public static final int udpTimeout = 1000;
   public static final int multicastTimeout = 1000;
 
   private MulticastSocket multicastSocket;
@@ -22,7 +23,7 @@ public class MulticastPeer {
     initMulticast(mPort, mGroup);
 
     udpSocket = new DatagramSocket();
-    udpSocket.setSoTimeout(timeout);
+    udpSocket.setSoTimeout(udpTimeout);
     udpAddress = udpSocket.getLocalAddress();
     udpPort = udpSocket.getLocalPort();
   }
@@ -31,7 +32,7 @@ public class MulticastPeer {
     initMulticast(mPort, mGroup);
 
     udpSocket = new DatagramSocket(port);
-    udpSocket.setSoTimeout(timeout);
+    udpSocket.setSoTimeout(udpTimeout);
     udpAddress = udpSocket.getLocalAddress();
     udpPort = udpSocket.getLocalPort();
   }
@@ -41,7 +42,7 @@ public class MulticastPeer {
     initMulticast(mPort, mGroup);
 
     udpSocket = new DatagramSocket(port, address);
-    udpSocket.setSoTimeout(timeout);
+    udpSocket.setSoTimeout(udpTimeout);
     udpAddress = udpSocket.getLocalAddress();
     udpPort = udpSocket.getLocalPort();
   }
@@ -105,5 +106,21 @@ public class MulticastPeer {
 
   public InetAddress getMulticastGroup() {
     return multicastGroup;
+  }
+
+  public int getSoTimeout() throws SocketException {
+    return udpSocket.getSoTimeout();
+  }
+
+  public int getMulticastSoTimeout() throws SocketException {
+    return multicastSocket.getSoTimeout();
+  }
+
+  public void setSoTimeout(int timeout) throws SocketException {
+    udpSocket.setSoTimeout(timeout);
+  }
+
+  public void setMulticastSoTimeout(int timeout) throws SocketException {
+    multicastSocket.setSoTimeout(timeout);
   }
 }

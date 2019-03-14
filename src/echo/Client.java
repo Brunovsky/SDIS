@@ -9,8 +9,8 @@ import dbs.MulticastPeer;
 
 public class Client {
   private static MulticastPeer peer;
-
   private static String filename, echo;
+  private static int timeout = 1500;  // 1.5 seconds
 
   private static void usage() {
     System.out.println("usage:");
@@ -37,6 +37,8 @@ public class Client {
       InetAddress address = InetAddress.getByName(args[4]);
       peer = new MulticastPeer(mPort, mGroup, port, address);
     }
+
+    peer.setSoTimeout(timeout);
   }
 
   public static void main(String[] args) throws IOException {
@@ -44,7 +46,7 @@ public class Client {
 
     long count = 0;
     System.out.printf(echo + "Run %s on %s:%d / timeout %ds\n", filename,
-                      peer.getAddress(), peer.getPort(), MulticastPeer.timeout / 1000);
+                      peer.getAddress(), peer.getPort(), peer.getSoTimeout() / 1000);
 
     peer.sendMulticast(filename);
 
@@ -55,13 +57,13 @@ public class Client {
         String message = new String(packet.getData(), packet.getOffset(),
                                     packet.getLength());
 
-        System.out.println(echo + "Received echo " + message);
+        System.out.print(echo + "Received echo " + message + "\n");
         ++count;
       }
     } catch (SocketTimeoutException e) {
-      System.out.println(echo + "Timeout. Received " + count + " total echoes");
+      System.out.print(echo + "Timeout. Received " + count + " total echoes\n");
     } catch (IOException e) {
-      System.out.println(echo + "Socket IO Exception: " + e.getMessage());
+      System.out.print(echo + "Socket IO Exception: " + e.getMessage() + "\n");
       e.printStackTrace();
     }
 

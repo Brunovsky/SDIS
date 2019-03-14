@@ -1,4 +1,6 @@
 .idea
 .vscode
-*.class
+.settings/
+bin/
+test/
 *.xml
