@@ -2,97 +2,58 @@ package echo;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.MulticastSocket;
 import java.net.SocketTimeoutException;
 
-public class Client {
-  private static MulticastSocket multicast;
-  private static InetAddress group;
-  private static int mport;
+import dbs.MulticastPeer;
 
-  private static DatagramSocket socket;
+public class Client {
+  private static MulticastPeer peer;
 
   private static String filename, echo;
 
-  private static final int timeout = 1000;
-
   private static void usage() {
     System.out.println("usage:");
-    System.out.println("ECHO CLIENT :: java EchoClient MULTI_PORT MULTICAST FILENAME [SOCKET_PORT [ADDRESS]]");
+    System.out.println("java echo.Client MULTI_PORT MULTI_ADDR FILENAME [PORT [ADDR]]");
     System.exit(0);
   }
 
   private static void init(String[] args) throws IOException {
-    if (args.length < 3 || args.length > 5)
-      usage();
+    if (args.length < 3 || args.length > 5) usage();
 
-    mport = Integer.parseInt(args[0]);
-    group = InetAddress.getByName(args[1]);
-
-    multicast = new MulticastSocket(mport);
-    multicast.joinGroup(group);
-    multicast.setSoTimeout(timeout);
-    multicast.setTimeToLive(1);
+    int mPort = Integer.parseInt(args[0]);
+    InetAddress mGroup = InetAddress.getByName(args[1]);
 
     filename = args[2];
-    echo = "[EchoClient " + filename + "] ";
+    echo = "[echo.Client " + filename + "] ";
 
     if (args.length == 3) {
-      socket = new DatagramSocket();
+      peer = new MulticastPeer(mPort, mGroup);
     } else if (args.length == 4) {
-      socket = new DatagramSocket(Integer.parseInt(args[3]));
+      int port = Integer.parseInt(args[3]);
+      peer = new MulticastPeer(mPort, mGroup, port);
     } else {
-      socket = new DatagramSocket(Integer.parseInt(args[3]), InetAddress.getByName(args[4]));
+      int port = Integer.parseInt(args[3]);
+      InetAddress address = InetAddress.getByName(args[4]);
+      peer = new MulticastPeer(mPort, mGroup, port, address);
     }
-
-    socket.setSoTimeout(timeout);
-  }
-
-  private static void die() throws IOException {
-    multicast.leaveGroup(group);
-    multicast.close();
-    socket.close();
-  }
-
-  private static void sendSocket(String message, InetAddress destAddress, int destPort) throws IOException {
-    byte[] buffer = message.getBytes();
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, destAddress, destPort);
-    socket.send(packet);
-  }
-
-  private static DatagramPacket receiveSocket() throws IOException {
-    byte[] buffer = new byte[4096];
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    socket.receive(packet);
-    return packet;
-  }
-
-  private static void sendMulticast(String message) throws IOException {
-    sendSocket(message, group, mport);
-  }
-
-  private static DatagramPacket receiveMulticast() throws IOException {
-    byte[] buffer = new byte[4096];
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    multicast.receive(packet);
-    return packet;
   }
 
   public static void main(String[] args) throws IOException {
     init(args);
 
     long count = 0;
-    System.out.printf(echo + "Sending ECHO %s on %s:%d / timeout %ds\n", filename, group, mport, timeout / 1000);
+    System.out.printf(echo + "Run %s on %s:%d / timeout %ds\n", filename,
+                      peer.getAddress(), peer.getPort(), MulticastPeer.timeout / 1000);
 
-    sendMulticast(filename);
+    peer.sendMulticast(filename);
 
     // Receive responses
     try {
       while (true) {
-        DatagramPacket packet = receiveSocket();
-        String message = new String(packet.getData(), packet.getOffset(), packet.getLength());
+        DatagramPacket packet = peer.receive();
+        String message = new String(packet.getData(), packet.getOffset(),
+                                    packet.getLength());
 
         System.out.println(echo + "Received echo " + message);
         ++count;
@@ -104,6 +65,6 @@ public class Client {
       e.printStackTrace();
     }
 
-    die();
+    peer.die();
   }
 }

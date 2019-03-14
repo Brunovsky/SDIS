@@ -1,0 +1,78 @@
+# clang-format Style file (Java for MIEIC-SDIS)
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+---
+# Languages (Java)
+Language: Java
+BasedOnStyle: Google
+#
+AccessModifierOffset: 0
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBraces: Attach
+# BreakBeforeInheritanceComma: false
+BreakBeforeTernaryOperators: true
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: true
+ColumnLimit: 90
+Cpp11BracedListStyle: true
+CompactNamespaces: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ContinuationIndentWidth: 4
+DisableFormat: false
+IndentWidth: 2
+IndentCaseLabels: false
+IndentWrappedFunctionNames: false
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+PenaltyBreakAssignment: 5000
+PenaltyBreakBeforeFirstCallParameter: 1100
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 1500
+PenaltyBreakString: 6000
+PenaltyExcessCharacter: 200000
+PenaltyReturnTypeOnItsOwnLine: 2500
+ReflowComments: true
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+# StatementMacros:
+TabWidth: 4
+UseTab: Never
+---

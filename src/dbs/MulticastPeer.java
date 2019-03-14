@@ -8,52 +8,51 @@ import java.net.MulticastSocket;
 
 public class MulticastPeer {
   public static final int timeout = 1000;
+  public static final int multicastTimeout = 1000;
 
   private MulticastSocket multicastSocket;
   private InetAddress multicastGroup;
   private int multicastPort;
 
-  private DatagramSocket peerSocket;
-  private InetAddress peerAddress;
-  private int peerPort;
+  private DatagramSocket udpSocket;
+  private InetAddress udpAddress;
+  private int udpPort;
 
-  private long id;
+  public MulticastPeer(int mPort, InetAddress mGroup) throws IOException {
+    initMulticast(mPort, mGroup);
 
-  public MulticastPeer(int mPort, InetAddress mGroup, long id) throws IOException {
-    initMulticast(mPort, mGroup, id);
-
-    peerSocket = new DatagramSocket();
-    peerSocket.setSoTimeout(timeout);
-    peerAddress = peerSocket.getLocalAddress();
-    peerPort = peerSocket.getLocalPort();
+    udpSocket = new DatagramSocket();
+    udpSocket.setSoTimeout(timeout);
+    udpAddress = udpSocket.getLocalAddress();
+    udpPort = udpSocket.getLocalPort();
   }
 
-  public MulticastPeer(int mPort, InetAddress mGroup, long id, int port) throws IOException {
-    initMulticast(mPort, mGroup, id);
+  public MulticastPeer(int mPort, InetAddress mGroup, int port) throws IOException {
+    initMulticast(mPort, mGroup);
 
-    peerSocket = new DatagramSocket(port);
-    peerSocket.setSoTimeout(timeout);
-    peerAddress = peerSocket.getLocalAddress();
-    peerPort = peerSocket.getLocalPort();
+    udpSocket = new DatagramSocket(port);
+    udpSocket.setSoTimeout(timeout);
+    udpAddress = udpSocket.getLocalAddress();
+    udpPort = udpSocket.getLocalPort();
   }
 
-  public MulticastPeer(int mPort, InetAddress mGroup, long id, int port, InetAddress address) throws IOException {
-    initMulticast(mPort, mGroup, id);
+  public MulticastPeer(int mPort, InetAddress mGroup, int port, InetAddress address)
+      throws IOException {
+    initMulticast(mPort, mGroup);
 
-    peerSocket = new DatagramSocket(port, address);
-    peerSocket.setSoTimeout(timeout);
-    peerAddress = peerSocket.getLocalAddress();
-    peerPort = peerSocket.getLocalPort();
+    udpSocket = new DatagramSocket(port, address);
+    udpSocket.setSoTimeout(timeout);
+    udpAddress = udpSocket.getLocalAddress();
+    udpPort = udpSocket.getLocalPort();
   }
 
-  private void initMulticast(int mPort, InetAddress mGroup, long id) throws IOException {
+  private void initMulticast(int mPort, InetAddress mGroup) throws IOException {
     this.multicastPort = mPort;
     this.multicastGroup = mGroup;
-    this.id = id;
 
     multicastSocket = new MulticastSocket(multicastPort);
     multicastSocket.joinGroup(multicastGroup);
-    multicastSocket.setSoTimeout(timeout);
+    multicastSocket.setSoTimeout(multicastTimeout);
     multicastSocket.setTimeToLive(1);
   }
 
@@ -62,20 +61,22 @@ public class MulticastPeer {
     multicastSocket.close();
     multicastSocket = null;
 
-    peerSocket.close();
-    peerSocket = null;
+    udpSocket.close();
+    udpSocket = null;
   }
 
-  public void send(String message, InetAddress destAddress, int destPort) throws IOException {
+  public void send(String message, InetAddress destAddress, int destPort)
+      throws IOException {
     byte[] buffer = message.getBytes();
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, destAddress, destPort);
-    peerSocket.send(packet);
+    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, destAddress,
+                                               destPort);
+    udpSocket.send(packet);
   }
 
   public DatagramPacket receive() throws IOException {
     byte[] buffer = new byte[4096];
     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    peerSocket.receive(packet);
+    udpSocket.receive(packet);
     return packet;
   }
 
@@ -88,5 +89,21 @@ public class MulticastPeer {
     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
     multicastSocket.receive(packet);
     return packet;
+  }
+
+  public int getPort() {
+    return udpPort;
+  }
+
+  public InetAddress getAddress() {
+    return udpAddress;
+  }
+
+  public int getMulticastPort() {
+    return multicastPort;
+  }
+
+  public InetAddress getMulticastGroup() {
+    return multicastGroup;
   }
 }

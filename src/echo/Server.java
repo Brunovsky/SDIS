@@ -7,78 +7,38 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class Server {
-  private static MulticastSocket multicast;
-  private static InetAddress group;
-  private static int mport;
+import dbs.MulticastPeer;
 
-  private static DatagramSocket socket;
+public class Server {
+  private static MulticastPeer peer;
 
   private static String servername, echo;
 
-  private static final int timeout = 30000;
-
   private static void usage() {
     System.out.println("usage:");
-    System.out.println("ECHO SERVER :: java EchoServer MULTI_PORT MULTICAST FILENAME [SOCKET_PORT [ADDRESS]]");
+    System.out.println("java echo.Server MULTI_PORT MULTI_ADDR FILENAME [PORT [ADDR]]");
     System.exit(0);
   }
 
   private static void init(String[] args) throws IOException {
-    if (args.length < 3 || args.length > 5)
-      usage();
+    if (args.length < 3 || args.length > 5) usage();
 
-    mport = Integer.parseInt(args[0]);
-    group = InetAddress.getByName(args[1]);
-
-    multicast = new MulticastSocket(mport);
-    multicast.joinGroup(group);
-    multicast.setSoTimeout(timeout);
-    multicast.setTimeToLive(1);
+    int mPort = Integer.parseInt(args[0]);
+    InetAddress mGroup = InetAddress.getByName(args[1]);
 
     servername = args[2];
-    Files.createDirectories(Paths.get(servername));
-    echo = "[EchoServer " + servername + "] ";
+    echo = "[echo.Server " + servername + "] ";
 
     if (args.length == 3) {
-      socket = new DatagramSocket();
+      peer = new MulticastPeer(mPort, mGroup);
     } else if (args.length == 4) {
-      socket = new DatagramSocket(Integer.parseInt(args[3]));
+      int port = Integer.parseInt(args[3]);
+      peer = new MulticastPeer(mPort, mGroup, port);
     } else {
-      socket = new DatagramSocket(Integer.parseInt(args[3]), InetAddress.getByName(args[4]));
+      int port = Integer.parseInt(args[3]);
+      InetAddress address = InetAddress.getByName(args[4]);
+      peer = new MulticastPeer(mPort, mGroup, port, address);
     }
-
-    socket.setSoTimeout(timeout);
-  }
-
-  private static void die() throws IOException {
-    multicast.leaveGroup(group);
-    multicast.close();
-    socket.close();
-  }
-
-  private static void sendSocket(String message, InetAddress destAddress, int destPort) throws IOException {
-    byte[] buffer = message.getBytes();
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length, destAddress, destPort);
-    socket.send(packet);
-  }
-
-  private static DatagramPacket receiveSocket() throws IOException {
-    byte[] buffer = new byte[4096];
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    socket.receive(packet);
-    return packet;
-  }
-
-  private static void sendMulticast(String message) throws IOException {
-    sendSocket(message, group, mport);
-  }
-
-  private static DatagramPacket receiveMulticast() throws IOException {
-    byte[] buffer = new byte[4096];
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    multicast.receive(packet);
-    return packet;
   }
 
   private static void handle(String message) throws IOException {
@@ -97,18 +57,21 @@ public class Server {
     init(args);
 
     long count = 0;
-    System.out.printf(echo + "Listening on %s:%d / timeout %ds|\n", group, mport, timeout / 1000);
+    System.out.printf(echo + "Listening on %s:%d / timeout %ds\n",
+                      peer.getMulticastGroup(), peer.getMulticastPort(),
+                      MulticastPeer.multicastTimeout);
 
     try {
       while (true) {
-        DatagramPacket packet = receiveMulticast();
-        String message = new String(packet.getData(), packet.getOffset(), packet.getLength());
+        DatagramPacket packet = peer.receiveMulticast();
+        String message = new String(packet.getData(), packet.getOffset(),
+                                    packet.getLength());
 
         System.out.println(echo + "Received message " + message);
         ++count;
         handle(message);
 
-        sendSocket(servername, packet.getAddress(), packet.getPort());
+        peer.send(servername, packet.getAddress(), packet.getPort());
       }
     } catch (SocketTimeoutException e) {
       System.out.println(echo + "Timeout. Received " + count + " total messages|");
@@ -117,6 +80,6 @@ public class Server {
       e.printStackTrace();
     }
 
-    die();
+    peer.die();
   }
 }
