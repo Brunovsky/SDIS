@@ -1,10 +1,10 @@
 package dbs;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Objects;
 
 // The header consists of a sequence of ASCII lines, sequences of ASCII codes terminated
 // with the sequence '0xD''0xA', which we denote <CRLF> because these are the ASCII codes
@@ -93,36 +93,43 @@ public class Message {
   }
 
   public String headerString() {
-    return String.join("\r\n", mainHeaderString(), String.join("\r\n", more));
+    String main = mainHeaderString();
+    if (more.length > 0) {
+      String rest = String.join("\r\n", more);
+      main = String.join("\r\n", main, rest);
+    }
+    return main;
   }
 
   private byte[] getHeaderBytes() {
-    return headerString().getBytes();
+    return (headerString() + "\r\n\r\n").getBytes();
   }
 
-  protected byte[] getBytes() throws IOException {
+  byte[] getBytes() {
     byte[] header = getHeaderBytes();
-    byte[] sep = {'\r', '\n', '\r', '\n'};
+    System.out.println("Header length: " + header.length);
 
-    byte[] bytes = new byte[header.length + sep.length + body.length];
+    if (body == null) return header;
+
+    int length = header.length + body.length;
+    byte[] bytes = new byte[length];
+
     System.arraycopy(header, 0, bytes, 0, header.length);
-    System.arraycopy(sep, 0, bytes, header.length, sep.length);
-    System.arraycopy(body, 0, bytes, header.length + sep.length, body.length);
+    System.arraycopy(body, 0, bytes, header.length, body.length);
 
     return bytes;
   }
 
-  protected DatagramPacket getPacket(String senderId, int port, InetAddress address)
-      throws IOException {
-    String tmp = this.senderId;
-    this.senderId = senderId;
+  DatagramPacket getPacket(String senderId, int port, InetAddress address) throws MessageException {
+    setSenderId(senderId);
     byte[] bytes = getBytes();
-    this.senderId = tmp;
+    System.out.println("Get Packet length: " + bytes.length);
     return new DatagramPacket(bytes, bytes.length, address, port);
   }
 
-  protected DatagramPacket getPacket(int port, InetAddress address) throws IOException {
+  DatagramPacket getPacket(int port, InetAddress address) {
     byte[] bytes = getBytes();
+    System.out.println("Get Packet length: " + bytes.length);
     return new DatagramPacket(bytes, bytes.length, address, port);
   }
 
@@ -135,14 +142,12 @@ public class Message {
       throw new MessageException("Main message header is empty");
     }
 
-    if (parts.length >= 1) {
-      MessageType type = MessageType.from(parts[0]);  // can throw too
+    MessageType type = MessageType.from(parts[0]);  // can throw too
 
-      if (parts.length != type.fields()) {
-        throw new MessageException("Incomplete message header for " + parts[0]
-                                   + " message: expected " + type.fields()
-                                   + " fields, got " + parts.length + ".");
-      }
+    if (parts.length != type.fields()) {
+      throw new MessageException("Incomplete message header for " + parts[0]
+          + " message: expected " + type.fields()
+          + " fields, got " + parts.length + ".");
     }
   }
 
@@ -170,6 +175,12 @@ public class Message {
     }
   }
 
+  private void validateChunkNo(int chunkNo) throws MessageException {
+    if (chunkNo < 0) {
+      throw new MessageException("Invalid chunkNo: " + chunkNo);
+    }
+  }
+
   private void validateReplicationDegree(String replication) throws MessageException {
     if (!replication.matches("[0-9]")) {
       throw new MessageException("Invalid replication degree: " + replication);
@@ -177,7 +188,7 @@ public class Message {
   }
 
   private void validateReplicationDegree(int replication) throws MessageException {
-    if (replication > 0 && replication < 10) {
+    if (replication < 0 || replication >= 10) {
       throw new MessageException("Replication degree should be 1..9: " + replication);
     }
   }
@@ -190,7 +201,7 @@ public class Message {
    * Parse a String corresponding to the first header line, and assign it to this message.
    * Weak exception guarantee (can be made strong)
    *
-   * @param   String  header string
+   * @param header header string
    */
   private void parseMainHeader(String header) throws MessageException {
     String[] parts = header.split(" ");
@@ -214,7 +225,7 @@ public class Message {
     }
 
     if (parts.length >= 5) {
-      validateChunkNo(parts[5]);
+      validateChunkNo(parts[4]);
       chunkNo = Integer.parseInt(parts[4]);
     }
 
@@ -228,7 +239,7 @@ public class Message {
    * Parse a collection of headers and assign it to this message.
    * Weak exception guarantee (can be made strong).
    *
-   * @param   String[]  headers The list of headers (v1.0 has just one)
+   * @param headers The list of headers (v1.0 has just one)
    */
   private void parseHeaders(String[] headers) throws MessageException {
     if (headers.length == 0) {
@@ -244,44 +255,65 @@ public class Message {
    */
 
   /**
-   * [RECEIVE] Constructs a message directly from a block of bytes given address and port.
-   *
-   * @param   byte[]       bytes    The entire message as a byte string
-   * @param   InetAddress  address  The sender's IP address
-   * @param   int          port     The sender's UDP port
+   * [RECEIVE] Constructs a message directly from a block of bytes, properly trimmed
    */
-  protected Message(byte[] bytes, InetAddress address, int port) throws MessageException {
-    byte[] crlf = {'\r', '\n', '\r', '\n'};
-
+  Message(byte[] bytes) throws MessageException {
     try {
       // Find index of first occurrence of \r\n\r\n
-      int index = Collections.indexOfSubList(Arrays.asList(bytes), Arrays.asList(crlf));
+      int index = new String(bytes, StandardCharsets.UTF_8).indexOf("\r\n\r\n");
+      if (index < 0) {
+        throw new MessageException("Invalid Message byte array: no header end present");
+      }
 
       // Headers up to index, body after index
       byte[] headersBytes = Arrays.copyOfRange(bytes, 0, index);
       String[] headers = new String(headersBytes).split("\r\n");
-      body = Arrays.copyOfRange(bytes, index + 4, bytes.length);
 
       parseHeaders(headers);
+
+      if (messageType.hasBody()) {
+        body = Arrays.copyOfRange(bytes, index + 4, bytes.length);
+
+        if (body.length == 0) {
+          throw new MessageException("Empty body in " + messageType + " message");
+        }
+      } else if (index + 4 != bytes.length) {
+        throw new MessageException("Non-empty body in " + messageType + " message");
+      }
+
     } catch (IllegalArgumentException e) {
       throw new MessageException(e.getMessage());
     }
   }
 
   /**
+   * [RECEIVE] Constructs a message directly from a block of bytes given address and port.
+   *
+   * @param bytes   The entire message as a byte string
+   * @param port    The sender's UDP port
+   * @param address The sender's IP address
+   */
+  Message(byte[] bytes, int port, InetAddress address) throws MessageException {
+    this(bytes);
+
+    this.port = port;
+    this.address = address;
+  }
+
+  /**
    * [RECEIVE] Construct a message directly from a received Datagram packet.
    *
-   * @param   DatagramPacket  packet  The received UDP packet
+   * @param packet The received UDP packet
    */
-  protected Message(DatagramPacket packet) throws MessageException {
-    this(packet.getData(), packet.getAddress(), packet.getPort());
+  Message(DatagramPacket packet) throws MessageException {
+    this(packet.getData(), packet.getPort(), packet.getAddress());
   }
 
   /**
    * [SEND] Construct a message given all fields.
    */
-  protected Message(MessageType type, String version, String fileId, int chunkNo,
-                    int replication, String[] more, byte[] body) throws MessageException {
+  Message(MessageType type, String version, String fileId, int chunkNo,
+          int replication, String[] more, byte[] body) throws MessageException {
     this.messageType = type;
 
     validateVersion(version);
@@ -290,20 +322,21 @@ public class Message {
     validateFileId(fileId);
     this.fileId = fileId;
 
+    validateChunkNo(chunkNo);
     this.chunkNo = chunkNo;
 
     validateReplicationDegree(replication);
     this.replication = replication;
 
-    this.more = more;
+    this.more = more == null ? new String[0] : more;
     this.body = body;
   }
 
   /**
    * [SEND] Construct a message given all fields plus sender id.
    */
-  protected Message(MessageType type, String version, String fileId, int chunkNo,
-                    int replication, String[] more, byte[] body, String senderId)
+  Message(MessageType type, String version, String fileId, int chunkNo,
+          int replication, String[] more, byte[] body, String senderId)
       throws MessageException {
     this(type, version, fileId, chunkNo, replication, more, body);
 
@@ -314,9 +347,9 @@ public class Message {
   /**
    * [SEND] Construct a message given all fields, sender id, destination address and port.
    */
-  protected Message(MessageType type, String version, String fileId, int chunkNo,
-                    int replication, String[] more, byte[] body, String senderId,
-                    InetAddress address, int port) throws MessageException {
+  Message(MessageType type, String version, String fileId, int chunkNo,
+          int replication, String[] more, byte[] body, String senderId,
+          InetAddress address, int port) throws MessageException {
     this(type, version, fileId, chunkNo, replication, more, body, senderId);
 
     this.address = address;
@@ -330,23 +363,23 @@ public class Message {
   public static Message PUTCHUNK(String fileId, int chunkNo, int replication, byte[] body)
       throws MessageException {
     return new Message(MessageType.PUTCHUNK, Protocol.version, fileId, chunkNo,
-                       replication, null, body);
+        replication, null, body);
   }
 
   public static Message STORED(String fileId, int chunkNo) throws MessageException {
     return new Message(MessageType.STORED, Protocol.version, fileId, chunkNo, 0, null,
-                       null);
+        null);
   }
 
   public static Message GETCHUNK(String fileId, int chunkNo) throws MessageException {
-    return new Message(MessageType.STORED, Protocol.version, fileId, chunkNo, 0, null,
-                       null);
+    return new Message(MessageType.GETCHUNK, Protocol.version, fileId, chunkNo, 0, null,
+        null);
   }
 
   public static Message CHUNK(String fileId, int chunkNo, byte[] body)
       throws MessageException {
     return new Message(MessageType.CHUNK, Protocol.version, fileId, chunkNo, 0, null,
-                       body);
+        body);
   }
 
   public static Message DELETE(String fileId) throws MessageException {
@@ -355,7 +388,7 @@ public class Message {
 
   public static Message REMOVED(String fileId, int chunkNo) throws MessageException {
     return new Message(MessageType.REMOVED, Protocol.version, fileId, chunkNo, 0, null,
-                       null);
+        null);
   }
 
   /**
@@ -408,29 +441,57 @@ public class Message {
     return port;
   }
 
-  protected void setSenderId(String senderId) {
+  void setSenderId(String senderId) throws MessageException {
+    validateSenderId(senderId);
     this.senderId = senderId;
   }
 
-  protected void setAddress(InetAddress address) {
+  void setAddress(InetAddress address) {
     this.address = address;
   }
 
-  protected void setPort(int port) {
+  void setPort(int port) {
     this.port = port;
   }
 
   @Override
   public String toString() {
     StringBuilder text = new StringBuilder("Message");
-    text.append("\n " + headerString());
-    text.append("\n MessageType: " + messageType);
-    text.append("\n Version: " + version);
-    text.append("\n SenderId: " + senderId);
-    text.append("\n FileId: " + fileId);
-    text.append("\n ChunkNo: " + chunkNo);
-    text.append("\n ReplicationDeg: " + replication);
-    text.append("\n Body.length: " + (body != null ? body.length : 0));
+    text.append("\n ").append(headerString());
+    text.append("\n message type: ").append(messageType);
+    text.append("\n      version: ").append(version);
+    text.append("\n       sender: ").append(senderId);
+    text.append("\n      file id: ").append(fileId);
+    text.append("\n        chunk: ").append(chunkNo);
+    text.append("\n  replication: ").append(replication);
+    text.append("\n         body: ").append(body != null ? body.length : "null");
+    if (address != null && port != 0) {
+      text.append("\n to/from: ").append(address.toString()).append(":").append(port);
+    }
+    text.append("\n");
     return text.toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Message message = (Message) o;
+    return chunkNo == message.chunkNo &&
+        replication == message.replication &&
+        messageType == message.messageType &&
+        version.equals(message.version) &&
+        Objects.equals(senderId, message.senderId) &&
+        fileId.equals(message.fileId) &&
+        Arrays.equals(more, message.more) &&
+        Arrays.equals(body, message.body);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = Objects.hash(messageType, version, senderId, fileId, chunkNo, replication);
+    result = 31 * result + Arrays.hashCode(more);
+    result = 31 * result + Arrays.hashCode(body);
+    return result;
   }
 }

@@ -2,7 +2,5 @@
 .vscode
 .settings/
 bin/
-test/
 *.xml
-src/Test.java
 old/

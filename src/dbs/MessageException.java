@@ -6,4 +6,8 @@ public class MessageException extends Exception {
   public MessageException(String s) {
     super(s);
   }
+
+  public MessageException(String s, Throwable cause) {
+    super(s, cause);
+  }
 }
