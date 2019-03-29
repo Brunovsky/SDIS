@@ -9,7 +9,7 @@ import java.net.UnknownHostException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TestMessage {
+class TestMessage {
   @Test
   void visualize() throws MessageException, UnknownHostException {
     Message message;
@@ -34,19 +34,19 @@ public class TestMessage {
     String body2 = "Lorem ipsum dolor\r\nsit amet quorum\n";
 
     message = Message.CHUNK(hash2, 4, body1.getBytes());
-    message.setSenderId("bruno");
+    message.setSenderId("12345");
     System.out.println(message.toString());
 
     message = Message.DELETE(hash1);
-    message.setSenderId("bruno");
+    message.setSenderId("54321");
     System.out.println(message.toString());
 
     message = Message.REMOVED(hash1, 4);
-    message.setSenderId("sofia");
+    message.setSenderId("7890");
     System.out.println(message.toString());
 
     message = Message.PUTCHUNK(hash2, 9, 6, body2.getBytes());
-    message.setSenderId("anonymous");
+    message.setSenderId("00000");
     System.out.println(message.toString());
   }
 
@@ -399,7 +399,8 @@ public class TestMessage {
 
   @Test
   void badConstructors() {
-    Class<MessageException> ME = MessageException.class;
+    Class<MessageException> EXC = MessageException.class;
+    Class<MessageError> ERR = MessageError.class;
 
     String hash1 = "3456765435672482457389472385689124423058430230534534534809124723";
     String hash2 = "54655346542352abdebcebdbaebbcbebde234234bacbed132842babcab123124";
@@ -413,13 +414,13 @@ public class TestMessage {
     String add4 = "github.com", add5 = "localhost", add6 = "moodle.up.pt";
     int p1 = 7878, p2 = 12212, p3 = 8080, p4 = 1337, p5 = 5123, p6 = 9351;
 
-    assertThrows(ME, () -> Message.PUTCHUNK(hash1, 0, 13, body1));
-    assertThrows(ME, () -> Message.STORED(badhash1, 83));
-    assertThrows(ME, () -> Message.GETCHUNK(badhash3, 765));
-    assertThrows(ME, () -> Message.CHUNK(badhash2, 2, body2));
-    assertThrows(ME, () -> Message.DELETE(badhash2));
-    assertThrows(ME, () -> Message.REMOVED(hash2, -1));
-    assertThrows(ME, () -> Message.DELETE(hash1).setSenderId(badsender1));
-    assertThrows(ME, () -> Message.DELETE(hash1).setSenderId(badsender2));
+    assertThrows(ERR, () -> Message.PUTCHUNK(hash1, 0, 13, body1));
+    assertThrows(ERR, () -> Message.STORED(badhash1, 83));
+    assertThrows(ERR, () -> Message.GETCHUNK(badhash3, 765));
+    assertThrows(ERR, () -> Message.CHUNK(badhash2, 2, body2));
+    assertThrows(ERR, () -> Message.DELETE(badhash2));
+    assertThrows(ERR, () -> Message.REMOVED(hash2, -1));
+    assertThrows(ERR, () -> Message.DELETE(hash1).setSenderId(badsender1));
+    assertThrows(ERR, () -> Message.DELETE(hash1).setSenderId(badsender2));
   }
 }

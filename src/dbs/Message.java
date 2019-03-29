@@ -120,17 +120,15 @@ public class Message {
     return bytes;
   }
 
-  DatagramPacket getPacket(String senderId, int port, InetAddress address) throws MessageException {
-    setSenderId(senderId);
+  DatagramPacket getPacket(int port, InetAddress address) {
     byte[] bytes = getBytes();
     System.out.println("Get Packet length: " + bytes.length);
     return new DatagramPacket(bytes, bytes.length, address, port);
   }
 
-  DatagramPacket getPacket(int port, InetAddress address) {
-    byte[] bytes = getBytes();
-    System.out.println("Get Packet length: " + bytes.length);
-    return new DatagramPacket(bytes, bytes.length, address, port);
+  DatagramPacket getPacket(String senderId, int port, InetAddress address) {
+    setSenderId(senderId);
+    return getPacket(port, address);
   }
 
   /**
@@ -313,35 +311,42 @@ public class Message {
    * [SEND] Construct a message given all fields.
    */
   Message(MessageType type, String version, String fileId, int chunkNo,
-          int replication, String[] more, byte[] body) throws MessageException {
-    this.messageType = type;
+          int replication, String[] more, byte[] body) {
+    try {
+      this.messageType = type;
 
-    validateVersion(version);
-    this.version = version;
+      validateVersion(version);
+      this.version = version;
 
-    validateFileId(fileId);
-    this.fileId = fileId;
+      validateFileId(fileId);
+      this.fileId = fileId;
 
-    validateChunkNo(chunkNo);
-    this.chunkNo = chunkNo;
+      validateChunkNo(chunkNo);
+      this.chunkNo = chunkNo;
 
-    validateReplicationDegree(replication);
-    this.replication = replication;
+      validateReplicationDegree(replication);
+      this.replication = replication;
 
-    this.more = more == null ? new String[0] : more;
-    this.body = body;
+      this.more = more == null ? new String[0] : more;
+      this.body = body;
+    } catch (MessageException e) {
+      throw new MessageError(e);
+    }
   }
 
   /**
    * [SEND] Construct a message given all fields plus sender id.
    */
   Message(MessageType type, String version, String fileId, int chunkNo,
-          int replication, String[] more, byte[] body, String senderId)
-      throws MessageException {
+          int replication, String[] more, byte[] body, String senderId) {
     this(type, version, fileId, chunkNo, replication, more, body);
 
-    validateSenderId(senderId);
-    this.senderId = senderId;
+    try {
+      validateSenderId(senderId);
+      this.senderId = senderId;
+    } catch (MessageException e) {
+      throw new MessageError(e);
+    }
   }
 
   /**
@@ -360,33 +365,31 @@ public class Message {
    * * Constructor shortcuts
    */
 
-  public static Message PUTCHUNK(String fileId, int chunkNo, int replication, byte[] body)
-      throws MessageException {
+  public static Message PUTCHUNK(String fileId, int chunkNo, int replication, byte[] body) {
     return new Message(MessageType.PUTCHUNK, Protocol.version, fileId, chunkNo,
         replication, null, body);
   }
 
-  public static Message STORED(String fileId, int chunkNo) throws MessageException {
+  public static Message STORED(String fileId, int chunkNo) {
     return new Message(MessageType.STORED, Protocol.version, fileId, chunkNo, 0, null,
         null);
   }
 
-  public static Message GETCHUNK(String fileId, int chunkNo) throws MessageException {
+  public static Message GETCHUNK(String fileId, int chunkNo) {
     return new Message(MessageType.GETCHUNK, Protocol.version, fileId, chunkNo, 0, null,
         null);
   }
 
-  public static Message CHUNK(String fileId, int chunkNo, byte[] body)
-      throws MessageException {
+  public static Message CHUNK(String fileId, int chunkNo, byte[] body) {
     return new Message(MessageType.CHUNK, Protocol.version, fileId, chunkNo, 0, null,
         body);
   }
 
-  public static Message DELETE(String fileId) throws MessageException {
+  public static Message DELETE(String fileId) {
     return new Message(MessageType.DELETE, Protocol.version, fileId, 0, 0, null, null);
   }
 
-  public static Message REMOVED(String fileId, int chunkNo) throws MessageException {
+  public static Message REMOVED(String fileId, int chunkNo) {
     return new Message(MessageType.REMOVED, Protocol.version, fileId, chunkNo, 0, null,
         null);
   }
@@ -441,8 +444,12 @@ public class Message {
     return port;
   }
 
-  void setSenderId(String senderId) throws MessageException {
-    validateSenderId(senderId);
+  void setSenderId(String senderId) {
+    try {
+      validateSenderId(senderId);
+    } catch (MessageException e) {
+      throw new MessageError(e);
+    }
     this.senderId = senderId;
   }
 
