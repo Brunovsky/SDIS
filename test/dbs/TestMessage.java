@@ -1,5 +1,9 @@
 package dbs;
 
+import dbs.message.Message;
+import dbs.message.MessageError;
+import dbs.message.MessageException;
+import dbs.message.MessageType;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;

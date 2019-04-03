@@ -4,3 +4,5 @@
 bin/
 *.xml
 old/
+out/
+*.iml

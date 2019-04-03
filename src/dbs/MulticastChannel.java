@@ -1,70 +1,38 @@
 package dbs;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.SocketException;
+import java.net.*;
 
 public class MulticastChannel {
-  private MulticastSocket socket;
-  private InetAddress group;
-  private int port;
+  private final InetAddress address;
+  private final int port;
 
-  private Peer peer;
-
-  public MulticastChannel(Peer peer, int port, InetAddress group) throws IOException {
-    this.peer = peer;
+  MulticastChannel(InetAddress address, int port) {
+    this.address = address;
     this.port = port;
-    this.group = group;
-
-    socket = new MulticastSocket(port);
-    socket.joinGroup(group);
-    socket.setSoTimeout(Protocol.multicastTimeout);
-    socket.setTimeToLive(1);
   }
 
-  public void die() throws IOException {
-    socket.leaveGroup(group);
-    socket.close();
-    socket = null;
-  }
-
-  public void send(Message message, int toPort, InetAddress toAddress)
-      throws IOException {
-    socket.send(message.getPacket(peer.id, toPort, toAddress));
-  }
-
-  public Message receive() throws IOException {
-    byte[] buffer = new byte[Protocol.maxPacketSize];
-    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-    socket.receive(packet);
+  MulticastChannel(String address, String port) throws Exception {
+    // parse address
     try {
-      return new Message(packet);
-    } catch (MessageException e) {
-      System.err.println("Multicast received invalid message:\n" + e.getMessage());
-      return receive();
+      this.address = InetAddress.getByName(address);
+    } catch (UnknownHostException e) {
+      Utils.printErr("MulticastChannel", "Could not get an InetAddress object for the raw IP address " + address);
+      throw e;
+    }
+
+    // parse port
+    try {
+      this.port = Integer.parseInt(port);
+    } catch (NumberFormatException e) {
+      throw e;
     }
   }
 
-  public int port() {
-    return this.port;
+  public InetAddress getAddress() {
+    return address;
   }
 
-  public InetAddress address() {
-    return this.group;
-  }
-
-  public InetAddress group() {
-    return this.group;
-  }
-
-  public boolean setSoTimeout(int timeout) {
-    try {
-      socket.setSoTimeout(timeout);
-      return true;
-    } catch (SocketException e) {
-      return false;
-    }
+  public int getPort() {
+    return port;
   }
 }
