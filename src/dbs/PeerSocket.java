@@ -1,6 +1,7 @@
 package dbs;
 
 import dbs.message.Message;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -17,19 +18,20 @@ public final class PeerSocket implements Runnable {
   private boolean finished = false;
   // set to true to quit after next message.
 
-  public PeerSocket(Peer peer, int port, InetAddress address) throws IOException {
+  public PeerSocket(@NotNull Peer peer, int port, @NotNull InetAddress address)
+      throws IOException {
     this.peer = peer;
     this.socket = new DatagramSocket(port, address);
     this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
-  public PeerSocket(Peer peer, int port) throws IOException {
+  public PeerSocket(@NotNull Peer peer, int port) throws IOException {
     this.peer = peer;
     this.socket = new DatagramSocket(port);
     this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
-  public PeerSocket(Peer peer) throws IOException {
+  public PeerSocket(@NotNull Peer peer) throws IOException {
     this.peer = peer;
     this.socket = new DatagramSocket();
     this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
@@ -51,9 +53,7 @@ public final class PeerSocket implements Runnable {
    *
    * @param packet The datagram packet to be sent, taken from the front of the queue.
    */
-  private void send(DatagramPacket packet) {
-    assert packet != null;
-
+  private void send(@NotNull DatagramPacket packet) {
     try {
       socket.send(packet);
     } catch (IOException e) {
@@ -72,9 +72,7 @@ public final class PeerSocket implements Runnable {
    *
    * @param message The message to be sent.
    */
-  public void send(Message message, Protocol.Channel channel) {
-    assert message != null && channel != null;
-
+  public void send(@NotNull Message message, @NotNull Channel channel) {
     queue.add(message.getPacket(peer.getId(), channel.port, channel.address));
   }
 

@@ -1,20 +1,20 @@
 package dbs;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.IOError;
 import java.io.IOException;
 import java.net.*;
 
 public final class Multicaster implements Runnable {
-  public interface Processor {
-    Runnable runnable(DatagramPacket packet);
-  }
+  public interface Processor { Runnable runnable(@NotNull DatagramPacket packet); }
 
   private MulticastSocket socket;
   private final Peer peer;
   private final Processor processor;
   private boolean finished = false;
 
-  private final Protocol.Channel channel;
+  private final Channel channel;
 
   /**
    * Die regularly by leaving the Multicast group and then closing the socket normally.
@@ -24,7 +24,7 @@ public final class Multicaster implements Runnable {
     if (socket == null) return;
     finished = true;
 
-    try { // throws iff constructor throws, so this never throws.
+    try {  // throws iff constructor throws, so this never throws.
       socket.leaveGroup(channel.address);
       socket.close();
       socket = null;
@@ -70,9 +70,8 @@ public final class Multicaster implements Runnable {
    * @throws IOException If there is a problem setting up the multicast network, e.g.
    *                     invalid multicast address, port or timeout.
    */
-  public Multicaster(Peer peer, Protocol.Channel channel, Processor processor) throws IOException {
-    assert peer != null && channel.port > 0 && channel.address != null && processor != null;
-
+  public Multicaster(@NotNull Peer peer, @NotNull Channel channel,
+                     @NotNull Processor processor) throws IOException {
     this.peer = peer;
     this.channel = channel;
     this.processor = processor;

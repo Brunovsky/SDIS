@@ -4,6 +4,7 @@ import dbs.message.Message;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -67,8 +68,6 @@ public final class Peer {
     mdr.finish();
   }
 
-
-
   /**
    * Construct a peer making no assumptions, generate a random peer id and initialize all
    * multicasters, the peer socket, and thread pools.
@@ -94,7 +93,7 @@ public final class Peer {
    * @param port    The peer socket's port
    * @param address The peer socket's address
    */
-  public Peer(int port, InetAddress address) throws IOException {
+  public Peer(int port, @NotNull InetAddress address) throws IOException {
     this(port, address, Long.toString(ThreadLocalRandom.current().nextLong()));
   }
 
@@ -104,7 +103,7 @@ public final class Peer {
    *
    * @param id The peer's id
    */
-  public Peer(String id) throws IOException {
+  public Peer(@NotNull String id) throws IOException {
     this.id = id;
     this.socket = new PeerSocket(this);
     init();
@@ -117,7 +116,7 @@ public final class Peer {
    * @param port The peer socket's port
    * @param id   The peer's id
    */
-  public Peer(int port, String id) throws IOException {
+  public Peer(int port, @NotNull String id) throws IOException {
     this.id = id;
     this.socket = new PeerSocket(this, port);
     init();
@@ -131,13 +130,12 @@ public final class Peer {
    * @param address The peer socket's address
    * @param id      The peer's id
    */
-  public Peer(int port, InetAddress address, String id) throws IOException {
+  public Peer(int port, @NotNull InetAddress address, @NotNull String id)
+      throws IOException {
     this.id = id;
     this.socket = new PeerSocket(this, port, address);
     init();
   }
-
-
 
   public final String getId() {
     return this.id;
@@ -147,7 +145,7 @@ public final class Peer {
     return this.pool;
   }
 
-  public final void send(Message message, Protocol.Channel channel) {
+  public final void send(@NotNull Message message, @NotNull Channel channel) {
     socket.send(message, channel);
   }
 }
