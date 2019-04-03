@@ -1,4 +1,4 @@
-package dbs;
+package dbs.message;
 
 public enum MessageType {
   PUTCHUNK("PUTCHUNK"),

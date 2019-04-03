@@ -1,4 +1,4 @@
-package dbs;
+package dbs.message;
 
 public class MessageException extends Exception {
   static final long serialVersionUID = 73L;

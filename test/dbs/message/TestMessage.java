@@ -1,5 +1,11 @@
-package dbs;
+package dbs.message;
 
+import dbs.Protocol;
+import dbs.message.Message;
+import dbs.message.MessageError;
+import dbs.message.MessageException;
+import dbs.message.MessageType;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -11,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestMessage {
   @Test
-  void visualize() throws MessageException, UnknownHostException {
+  void visualize() throws UnknownHostException {
     Message message;
 
     InetAddress address = InetAddress.getByName("localhost");
@@ -88,7 +94,7 @@ class TestMessage {
     assertEquals(9, m1.getReplication());
     assertEquals(4, m2.getReplication());
 
-    assertEquals(Protocol.version, m1.getVersion());
+    Assertions.assertEquals(Protocol.version, m1.getVersion());
     assertEquals(Protocol.version, m2.getVersion());
 
     assertEquals(MessageType.PUTCHUNK, m1.getType());
@@ -403,23 +409,18 @@ class TestMessage {
     Class<MessageError> ERR = MessageError.class;
 
     String hash1 = "3456765435672482457389472385689124423058430230534534534809124723";
-    String hash2 = "54655346542352abdebcebdbaebbcbebde234234bacbed132842babcab123124";
     String badhash1 = "12434645756124230872385209137139q4723095791024723047023785348513";
     String badhash2 = "098340979087047057203465084757320460870589623405630425089702357";
     String badhash3 = "30634968239334233490327090291347203941828496345328523095203753204";
     byte[] body1 = "Some random\r\nbody\n".getBytes();
     byte[] body2 = "Clear body with some text la la la la".getBytes();
     String badsender1 = "manel1337", badsender2 = "~8080";
-    String add1 = "www.microsoft.com", add2 = "google.com", add3 = "fe.up.pt";
-    String add4 = "github.com", add5 = "localhost", add6 = "moodle.up.pt";
-    int p1 = 7878, p2 = 12212, p3 = 8080, p4 = 1337, p5 = 5123, p6 = 9351;
 
     assertThrows(ERR, () -> Message.PUTCHUNK(hash1, 0, 13, body1));
     assertThrows(ERR, () -> Message.STORED(badhash1, 83));
     assertThrows(ERR, () -> Message.GETCHUNK(badhash3, 765));
     assertThrows(ERR, () -> Message.CHUNK(badhash2, 2, body2));
     assertThrows(ERR, () -> Message.DELETE(badhash2));
-    assertThrows(ERR, () -> Message.REMOVED(hash2, -1));
     assertThrows(ERR, () -> Message.DELETE(hash1).setSenderId(badsender1));
     assertThrows(ERR, () -> Message.DELETE(hash1).setSenderId(badsender2));
   }
