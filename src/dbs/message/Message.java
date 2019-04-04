@@ -66,490 +66,447 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 // done with the FileId header field.
 
 public class Message {
-    private MessageType messageType;
-    private String version;
-    private String senderId;
-    private String fileId;
-    private int chunkNo;
-    private int replication;
+  private MessageType messageType;
+  private String version;
+  private String senderId;
+  private String fileId;
+  private int chunkNo;
+  private int replication;
 
-    private String[] more;
-    private byte[] body;
+  private String[] more;
+  private byte[] body;
 
-    private InetAddress address;
-    private int port;
+  private InetAddress address;
+  private int port;
 
-    private String mainHeaderString() {
-        String[] parts = new String[messageType.fields()];
+  private String mainHeaderString() {
+    String[] parts = new String[messageType.fields()];
 
-        parts[0] = messageType.toString();
-        parts[1] = version;
-        parts[2] = senderId;
-        parts[3] = fileId;
-        if (messageType.fields() >= 5) parts[4] = Integer.toString(chunkNo);
-        if (messageType.fields() >= 6) parts[5] = Integer.toString(replication);
+    parts[0] = messageType.toString();
+    parts[1] = version;
+    parts[2] = senderId;
+    parts[3] = fileId;
+    if (messageType.fields() >= 5) parts[4] = Integer.toString(chunkNo);
+    if (messageType.fields() >= 6) parts[5] = Integer.toString(replication);
 
-        return String.join(" ", parts);
+    return String.join(" ", parts);
+  }
+
+  private String headerString() {
+    String main = mainHeaderString();
+    if (more.length > 0) {
+      String rest = String.join("\r\n", more);
+      main = String.join("\r\n", main, rest);
+    }
+    return main;
+  }
+
+  private byte[] getHeaderBytes() {
+    return (headerString() + "\r\n\r\n").getBytes();
+  }
+
+  public byte[] getBytes() {
+    byte[] header = getHeaderBytes();
+
+    if (body == null) return header;
+
+    int length = header.length + body.length;
+    byte[] bytes = new byte[length];
+
+    System.arraycopy(header, 0, bytes, 0, header.length);
+    System.arraycopy(body, 0, bytes, header.length, body.length);
+
+    return bytes;
+  }
+
+  public DatagramPacket getPacket(int port, @NotNull InetAddress address) {
+    assert senderId != null;
+    byte[] bytes = getBytes();
+    return new DatagramPacket(bytes, bytes.length, address, port);
+  }
+
+  public DatagramPacket getPacket(@NotNull String senderId, int port,
+                                  @NotNull InetAddress address) {
+    setSenderId(senderId);
+    return getPacket(port, address);
+  }
+
+  private void validateMainHeader(@NotNull String[] parts) throws MessageException {
+    if (parts.length == 0) {
+      throw new MessageException("Main message header is empty");
     }
 
-    private String headerString() {
-        String main = mainHeaderString();
-        if (more.length > 0) {
-            String rest = String.join("\r\n", more);
-            main = String.join("\r\n", main, rest);
+    MessageType type = MessageType.from(parts[0]);  // can throw too
+
+    if (parts.length != type.fields()) {
+      throw new MessageException("Incomplete message header for " + parts[0]
+          + " message: expected " + type.fields() + " fields, got "
+          + parts.length + ".");
+    }
+  }
+
+  private void validateVersion(@NotNull String version) throws MessageException {
+    if (!version.matches("[0-9]\\.[0-9]")) {
+      throw new MessageException("Invalid protocol version: " + version);
+    }
+  }
+
+  private void validateSenderId(@NotNull String senderId) throws MessageException {
+    if (!senderId.matches("[0-9]+")) {
+      throw new MessageException("Invalid sender id: " + senderId);
+    }
+  }
+
+  private void validateFileId(@NotNull String fileId) throws MessageException {
+    if (fileId.length() != 64 || !fileId.matches("[a-fA-F0-9]+")) {
+      throw new MessageException("Invalid file hash: " + fileId);
+    }
+  }
+
+  private void validateChunkNo(@NotNull String chunkNo) throws MessageException {
+    if (!chunkNo.matches("[0-9]+")) {
+      throw new MessageException("Invalid chunkNo: " + chunkNo);
+    }
+  }
+
+  private void validateChunkNo(int chunkNo) throws MessageException {
+    if (chunkNo < 0) {
+      throw new MessageException("Invalid chunkNo: " + chunkNo);
+    }
+  }
+
+  private void validateReplicationDegree(@NotNull String replication)
+      throws MessageException {
+    if (!replication.matches("[0-9]")) {
+      throw new MessageException("Invalid replication degree: " + replication);
+    }
+  }
+
+  private void validateReplicationDegree(int replication) throws MessageException {
+    if (replication < 0 || replication >= 10) {
+      throw new MessageException("Replication degree should be 1..9: " + replication);
+    }
+  }
+
+  /**
+   * Parse a String corresponding to the first header line, and assign it to this message.
+   * Weak exception guarantee (can be made strong)
+   *
+   * @param header header string
+   */
+  private void parseMainHeader(@NotNull String header) throws MessageException {
+    String[] parts = header.split(" ");
+
+    validateMainHeader(parts);
+    messageType = MessageType.from(parts[0]);
+
+    if (parts.length >= 2) {
+      validateVersion(parts[1]);
+      version = parts[1];
+    }
+
+    if (parts.length >= 3) {
+      validateSenderId(parts[2]);
+      senderId = parts[2];
+    }
+
+    if (parts.length >= 4) {
+      validateFileId(parts[3]);
+      fileId = parts[3];
+    }
+
+    if (parts.length >= 5) {
+      validateChunkNo(parts[4]);
+      chunkNo = Integer.parseInt(parts[4]);
+    }
+
+    if (parts.length >= 6) {
+      validateReplicationDegree(parts[5]);
+      replication = Integer.parseInt(parts[5]);
+    }
+  }
+
+  /**
+   * Parse a collection of headers and assign it to this message.
+   * Weak exception guarantee (can be made strong).
+   *
+   * @param headers The list of headers (v1.0 has just one)
+   */
+  private void parseHeaders(@NotNull String[] headers) throws MessageException {
+    if (headers.length == 0) {
+      throw new MessageException("Message has no headers");
+    }
+
+    parseMainHeader(headers[0]);
+    more = Arrays.copyOfRange(headers, 1, headers.length);
+  }
+
+  /**
+   * Parse the message byte array.
+   *
+   * @param bytes The received message's byte array, properly trimmed.
+   * @throws MessageException If there is any problem with the message format whatsoever.
+   */
+  private void parse(@NotNull byte[] bytes, int length) throws MessageException {
+    try {
+      // Find index of first occurrence of \r\n\r\n
+      int index = new String(bytes, 0, length, UTF_8).indexOf("\r\n\r\n");
+      if (index < 0) {
+        throw new MessageException("Invalid Message byte array: no header separator");
+      }
+
+      // Headers up to index, body after index
+      byte[] headersBytes = Arrays.copyOfRange(bytes, 0, index);
+      String[] headers = new String(headersBytes).split("\r\n");
+
+      parseHeaders(headers);
+
+      if (messageType.hasBody()) {
+        body = Arrays.copyOfRange(bytes, index + 4, length);
+
+        if (body.length == 0) {
+          throw new MessageException("Empty body in " + messageType + " message");
         }
-        return main;
+      } else if (index + 4 != length) {
+        throw new MessageException("Non-empty body in " + messageType + " message "
+            + length);
+      }
+
+    } catch (IllegalArgumentException e) {
+      throw new MessageException(e.getMessage());
     }
+  }
 
-    private byte[] getHeaderBytes() {
-        return (headerString() + "\r\n\r\n").getBytes();
+  /**
+   * [RECEIVE] Constructs a message directly from a block of bytes, properly trimmed
+   */
+  public Message(@NotNull byte[] bytes) throws MessageException {
+    parse(bytes, bytes.length);
+  }
+
+  /**
+   * [RECEIVE] Construct a message directly from a received Datagram packet.
+   *
+   * @param packet The received UDP packet
+   */
+  public Message(@NotNull DatagramPacket packet) throws MessageException {
+    parse(packet.getData(), packet.getLength());
+
+    this.port = packet.getPort();
+    this.address = packet.getAddress();
+  }
+
+  /**
+   * [SEND] Construct a message given all fields.
+   */
+  private Message(@NotNull MessageType type, @NotNull String version,
+                  @NotNull String fileId, int chunkNo, int replication, String[] more,
+                  byte[] body) {
+    try {
+      this.messageType = type;
+
+      validateVersion(version);
+      this.version = version;
+
+      validateFileId(fileId);
+      this.fileId = fileId;
+
+      validateChunkNo(chunkNo);
+      this.chunkNo = chunkNo;
+
+      validateReplicationDegree(replication);
+      this.replication = replication;
+
+      this.more = more == null ? new String[0] : more;
+      this.body = body;
+    } catch (MessageException e) {
+      throw new MessageError(e);
     }
+  }
 
-    public byte[] getBytes() {
-        byte[] header = getHeaderBytes();
+  /**
+   * Construct a PUTCHUNK message. Required camps: fileId, chunkNo, replication, and body.
+   *
+   * @param fileId      This chunk's file id
+   * @param chunkNo     This chunk's number
+   * @param replication This chunk's desired replication degree
+   * @param body        The chunk content
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message PUTCHUNK(@NotNull String fileId, int chunkNo, int replication,
+                                 @NotNull byte[] body) {
+    return new Message(MessageType.PUTCHUNK, Protocol.version, fileId, chunkNo,
+        replication, null, body);
+  }
 
-        if (body == null) return header;
+  /**
+   * Construct a STORED message. Required camps: fileId and chunkNo.
+   *
+   * @param fileId  The stored chunk's file id
+   * @param chunkNo The stored chunk's number
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message STORED(@NotNull String fileId, int chunkNo) {
+    return new Message(MessageType.STORED, Protocol.version, fileId, chunkNo, 0, null,
+        null);
+  }
 
-        int length = header.length + body.length;
-        byte[] bytes = new byte[length];
+  /**
+   * Construct a GETCHUNK message. Required camps: fileId and chunkNo.
+   *
+   * @param fileId  The desired chunk's file id
+   * @param chunkNo The desired chunk's number
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message GETCHUNK(@NotNull String fileId, int chunkNo) {
+    return new Message(MessageType.GETCHUNK, Protocol.version, fileId, chunkNo, 0, null,
+        null);
+  }
 
-        System.arraycopy(header, 0, bytes, 0, header.length);
-        System.arraycopy(body, 0, bytes, header.length, body.length);
+  /**
+   * Construct a CHUNK message. Required camps: fileId, chunkNo and body.
+   *
+   * @param fileId  This chunk's file id
+   * @param chunkNo This chunk's number
+   * @param body    The chunk content
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message CHUNK(@NotNull String fileId, int chunkNo, @NotNull byte[] body) {
+    return new Message(MessageType.CHUNK, Protocol.version, fileId, chunkNo, 0, null,
+        body);
+  }
 
-        return bytes;
+  /**
+   * Construct a DELETE message. Required camps: fileId.
+   *
+   * @param fileId The id of the file to be deleted
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message DELETE(@NotNull String fileId) {
+    return new Message(MessageType.DELETE, Protocol.version, fileId, 0, 0, null, null);
+  }
+
+  /**
+   * Construct a REMOVED message. Required camps: fileId and chunkNo
+   *
+   * @param fileId  The removed chunk's file id
+   * @param chunkNo The removed chunk's number
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message REMOVED(@NotNull String fileId, int chunkNo) {
+    return new Message(MessageType.REMOVED, Protocol.version, fileId, chunkNo, 0, null,
+        null);
+  }
+
+  public MessageType getType() {
+    return messageType;
+  }
+
+  public String getVersion() {
+    return version;
+  }
+
+  public String getFileId() {
+    return fileId;
+  }
+
+  public int getChunkNo() {
+    if (messageType.fields() < 5)
+      throw new IllegalStateException("This message type has no chunk number");
+    return chunkNo;
+  }
+
+  public int getReplication() {
+    if (messageType.fields() < 6)
+      throw new IllegalStateException("This message type has no replication degree");
+    return replication;
+  }
+
+  public String[] getExtraHeaders() {
+    return more;
+  }
+
+  public byte[] getBody() {
+    if (!messageType.hasBody())
+      throw new IllegalStateException("This message type does not have a body");
+    return body;
+  }
+
+  public String getSenderId() {
+    return senderId;
+  }
+
+  public InetAddress getAddress() {
+    return address;
+  }
+
+  public int getPort() {
+    return port;
+  }
+
+  public void setSenderId(@NotNull String senderId) {
+    try {
+      validateSenderId(senderId);
+    } catch (MessageException e) {
+      throw new MessageError(e);
     }
+    this.senderId = senderId;
+  }
 
-    public DatagramPacket getPacket(int port, @NotNull InetAddress address) {
-        assert senderId != null;
-        byte[] bytes = getBytes();
-        return new DatagramPacket(bytes, bytes.length, address, port);
+  public void setAddress(@NotNull InetAddress address) {
+    this.address = address;
+  }
+
+  public void setPort(int port) {
+    this.port = port;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder text = new StringBuilder("Message");
+    text.append("\n ").append(headerString());
+    text.append("\n message type: ").append(messageType).append(" ").append(version);
+    text.append("\n       sender: ").append(senderId);
+    text.append("\n      file id: ").append(fileId);
+    text.append("\n        chunk: ").append(chunkNo);
+    text.append("\n  replication: ").append(replication);
+    text.append("\n         body: ").append(body != null ? body.length : "null");
+    if (address != null && port != 0) {
+      text.append("\n to/from: ").append(address.toString()).append(":").append(port);
     }
+    text.append("\n");
+    return text.toString();
+  }
 
-    public DatagramPacket getPacket(@NotNull String senderId, int port,
-                                    @NotNull InetAddress address) {
-        setSenderId(senderId);
-        return getPacket(port, address);
-    }
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Message message = (Message) o;
+    return chunkNo == message.chunkNo && replication == message.replication
+        && messageType == message.messageType && version.equals(message.version)
+        && Objects.equals(senderId, message.senderId) && fileId.equals(message.fileId)
+        && Arrays.equals(more, message.more) && Arrays.equals(body, message.body);
+  }
 
-    private void validateMainHeader(@NotNull String[] parts) throws MessageException {
-        if (parts.length == 0) {
-            throw new MessageException("Main message header is empty");
-        }
-
-        MessageType type = MessageType.from(parts[0]);  // can throw too
-
-        if (parts.length != type.fields()) {
-            throw new MessageException("Incomplete message header for " + parts[0]
-                    + " message: expected " + type.fields() + " fields, got "
-                    + parts.length + ".");
-        }
-    }
-
-    private void validateVersion(@NotNull String version) throws MessageException {
-        if (!version.matches("[0-9]\\.[0-9]")) {
-            throw new MessageException("Invalid protocol version: " + version);
-        }
-    }
-
-    private void validateSenderId(@NotNull String senderId) throws MessageException {
-        if (!senderId.matches("[0-9]+")) {
-            throw new MessageException("Invalid sender id: " + senderId);
-        }
-    }
-
-    private void validateFileId(@NotNull String fileId) throws MessageException {
-        if (fileId.length() != 64 || !fileId.matches("[a-fA-F0-9]+")) {
-            throw new MessageException("Invalid file hash: " + fileId);
-        }
-    }
-
-    private void validateChunkNo(@NotNull String chunkNo) throws MessageException {
-        if (!chunkNo.matches("[0-9]+")) {
-            throw new MessageException("Invalid chunkNo: " + chunkNo);
-        }
-    }
-
-    private void validateChunkNo(int chunkNo) throws MessageException {
-        if (chunkNo < 0) {
-            throw new MessageException("Invalid chunkNo: " + chunkNo);
-        }
-    }
-
-    private void validateReplicationDegree(@NotNull String replication)
-            throws MessageException {
-        if (!replication.matches("[0-9]")) {
-            throw new MessageException("Invalid replication degree: " + replication);
-        }
-    }
-
-    private void validateReplicationDegree(int replication) throws MessageException {
-        if (replication < 0 || replication >= 10) {
-            throw new MessageException("Replication degree should be 1..9: " + replication);
-        }
-    }
-
-    /**
-     * Parse a String corresponding to the first header line, and assign it to this message.
-     * Weak exception guarantee (can be made strong)
-     *
-     * @param header header string
-     */
-    private void parseMainHeader(@NotNull String header) throws MessageException {
-        String[] parts = header.split(" ");
-
-        validateMainHeader(parts);
-        messageType = MessageType.from(parts[0]);
-
-        if (parts.length >= 2) {
-            validateVersion(parts[1]);
-            version = parts[1];
-        }
-
-        if (parts.length >= 3) {
-            validateSenderId(parts[2]);
-            senderId = parts[2];
-        }
-
-        if (parts.length >= 4) {
-            validateFileId(parts[3]);
-            fileId = parts[3];
-        }
-
-        if (parts.length >= 5) {
-            validateChunkNo(parts[4]);
-            chunkNo = Integer.parseInt(parts[4]);
-        }
-
-        if (parts.length >= 6) {
-            validateReplicationDegree(parts[5]);
-            replication = Integer.parseInt(parts[5]);
-        }
-    }
-
-    /**
-     * Parse a collection of headers and assign it to this message.
-     * Weak exception guarantee (can be made strong).
-     *
-     * @param headers The list of headers (v1.0 has just one)
-     */
-    private void parseHeaders(@NotNull String[] headers) throws MessageException {
-        if (headers.length == 0) {
-            throw new MessageException("Message has no headers");
-        }
-
-        parseMainHeader(headers[0]);
-        more = Arrays.copyOfRange(headers, 1, headers.length);
-    }
-
-    /**
-     * Parse the message byte array.
-     *
-     * @param bytes The received message's byte array, properly trimmed.
-     * @throws MessageException If there is any problem with the message format whatsoever.
-     */
-    private void parse(@NotNull byte[] bytes, int length) throws MessageException {
-        try {
-            // Find index of first occurrence of \r\n\r\n
-            int index = new String(bytes, 0, length, UTF_8).indexOf("\r\n\r\n");
-            if (index < 0) {
-                throw new MessageException("Invalid Message byte array: no header separator");
-            }
-
-            // Headers up to index, body after index
-            byte[] headersBytes = Arrays.copyOfRange(bytes, 0, index);
-            String[] headers = new String(headersBytes).split("\r\n");
-
-            parseHeaders(headers);
-
-            if (messageType.hasBody()) {
-                body = Arrays.copyOfRange(bytes, index + 4, length);
-
-                if (body.length == 0) {
-                    throw new MessageException("Empty body in " + messageType + " message");
-                }
-            } else if (index + 4 != length) {
-                throw new MessageException("Non-empty body in " + messageType + " message "
-                        + length);
-            }
-
-        } catch (IllegalArgumentException e) {
-            throw new MessageException(e.getMessage());
-        }
-    }
-
-    /**
-     * [TEST] Duplicate a message
-     */
-    public Message(@NotNull Message message) {
-        try {
-            byte[] bytes = message.getBytes();
-            parse(bytes, bytes.length);
-        } catch (MessageException e) {
-            throw new MessageError(e);
-        }
-    }
-
-    /**
-     * [RECEIVE] Constructs a message directly from a block of bytes, properly trimmed
-     */
-    public Message(@NotNull byte[] bytes) throws MessageException {
-        parse(bytes, bytes.length);
-    }
-
-    /**
-     * [RECEIVE] Constructs a message directly from a block of bytes, properly trimmed,
-     * given address and port.
-     *
-     * @param bytes   The entire message as a byte string
-     * @param port    The sender's UDP port
-     * @param address The sender's IP address
-     */
-    private Message(@NotNull byte[] bytes, int port, @NotNull InetAddress address)
-            throws MessageException {
-        parse(bytes, bytes.length);
-
-        this.port = port;
-        this.address = address;
-    }
-
-    /**
-     * [RECEIVE] Construct a message directly from a received Datagram packet.
-     *
-     * @param packet The received UDP packet
-     */
-    public Message(@NotNull DatagramPacket packet) throws MessageException {
-        parse(packet.getData(), packet.getLength());
-
-        this.port = packet.getPort();
-        this.address = packet.getAddress();
-    }
-
-    /**
-     * [SEND] Construct a message given all fields.
-     */
-    private Message(@NotNull MessageType type, @NotNull String version,
-                    @NotNull String fileId, int chunkNo, int replication, String[] more,
-                    byte[] body) {
-        try {
-            this.messageType = type;
-
-            validateVersion(version);
-            this.version = version;
-
-            validateFileId(fileId);
-            this.fileId = fileId;
-
-            validateChunkNo(chunkNo);
-            this.chunkNo = chunkNo;
-
-            validateReplicationDegree(replication);
-            this.replication = replication;
-
-            this.more = more == null ? new String[0] : more;
-            this.body = body;
-        } catch (MessageException e) {
-            throw new MessageError(e);
-        }
-    }
-
-    /**
-     * [SEND] Construct a message given all fields plus sender id.
-     */
-    private Message(@NotNull MessageType type, @NotNull String version,
-                    @NotNull String fileId, int chunkNo, int replication, String[] more,
-                    byte[] body, @NotNull String senderId) {
-        this(type, version, fileId, chunkNo, replication, more, body);
-        try {
-            validateSenderId(senderId);
-            this.senderId = senderId;
-        } catch (MessageException e) {
-            throw new MessageError(e);
-        }
-    }
-
-    /**
-     * Construct a PUTCHUNK message. Required camps: fileId, chunkNo, replication, and body.
-     *
-     * @param fileId      This chunk's file id
-     * @param chunkNo     This chunk's number
-     * @param replication This chunk's desired replication degree
-     * @param body        The chunk content
-     * @return The constructed Message
-     * @throws MessageError   If any of the fields has a protocol-prohibited value
-     * @throws AssertionError If any of the fields has an invalid value
-     */
-    public static Message PUTCHUNK(@NotNull String fileId, int chunkNo, int replication,
-                                   @NotNull byte[] body) {
-        return new Message(MessageType.PUTCHUNK, Protocol.version, fileId, chunkNo,
-                replication, null, body);
-    }
-
-    /**
-     * Construct a STORED message. Required camps: fileId and chunkNo.
-     *
-     * @param fileId  The stored chunk's file id
-     * @param chunkNo The stored chunk's number
-     * @return The constructed Message
-     * @throws MessageError   If any of the fields has a protocol-prohibited value
-     * @throws AssertionError If any of the fields has an invalid value
-     */
-    public static Message STORED(@NotNull String fileId, int chunkNo) {
-        return new Message(MessageType.STORED, Protocol.version, fileId, chunkNo, 0, null,
-                null);
-    }
-
-    /**
-     * Construct a GETCHUNK message. Required camps: fileId and chunkNo.
-     *
-     * @param fileId  The desired chunk's file id
-     * @param chunkNo The desired chunk's number
-     * @return The constructed Message
-     * @throws MessageError   If any of the fields has a protocol-prohibited value
-     * @throws AssertionError If any of the fields has an invalid value
-     */
-    public static Message GETCHUNK(@NotNull String fileId, int chunkNo) {
-        return new Message(MessageType.GETCHUNK, Protocol.version, fileId, chunkNo, 0, null,
-                null);
-    }
-
-    /**
-     * Construct a CHUNK message. Required camps: fileId, chunkNo and body.
-     *
-     * @param fileId  This chunk's file id
-     * @param chunkNo This chunk's number
-     * @param body    The chunk content
-     * @return The constructed Message
-     * @throws MessageError   If any of the fields has a protocol-prohibited value
-     * @throws AssertionError If any of the fields has an invalid value
-     */
-    public static Message CHUNK(@NotNull String fileId, int chunkNo, @NotNull byte[] body) {
-        return new Message(MessageType.CHUNK, Protocol.version, fileId, chunkNo, 0, null,
-                body);
-    }
-
-    /**
-     * Construct a DELETE message. Required camps: fileId.
-     *
-     * @param fileId The id of the file to be deleted
-     * @return The constructed Message
-     * @throws MessageError   If any of the fields has a protocol-prohibited value
-     * @throws AssertionError If any of the fields has an invalid value
-     */
-    public static Message DELETE(@NotNull String fileId) {
-        return new Message(MessageType.DELETE, Protocol.version, fileId, 0, 0, null, null);
-    }
-
-    /**
-     * Construct a REMOVED message. Required camps: fileId and chunkNo
-     *
-     * @param fileId  The removed chunk's file id
-     * @param chunkNo The removed chunk's number
-     * @return The constructed Message
-     * @throws MessageError   If any of the fields has a protocol-prohibited value
-     * @throws AssertionError If any of the fields has an invalid value
-     */
-    public static Message REMOVED(@NotNull String fileId, int chunkNo) {
-        return new Message(MessageType.REMOVED, Protocol.version, fileId, chunkNo, 0, null,
-                null);
-    }
-
-    public MessageType getType() {
-        return messageType;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public String getFileId() {
-        return fileId;
-    }
-
-    public int getChunkNo() {
-        if (messageType.fields() < 5)
-            throw new IllegalStateException("This message type has no chunk number");
-        return chunkNo;
-    }
-
-    public int getReplication() {
-        if (messageType.fields() < 6)
-            throw new IllegalStateException("This message type has no replication degree");
-        return replication;
-    }
-
-    public String[] getExtraHeaders() {
-        return more;
-    }
-
-    public byte[] getBody() {
-        if (!messageType.hasBody())
-            throw new IllegalStateException("This message type does not have a body");
-        return body;
-    }
-
-    public String getSenderId() {
-        return senderId;
-    }
-
-    public InetAddress getAddress() {
-        return address;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setSenderId(@NotNull String senderId) {
-        try {
-            validateSenderId(senderId);
-        } catch (MessageException e) {
-            throw new MessageError(e);
-        }
-        this.senderId = senderId;
-    }
-
-    public void setAddress(@NotNull InetAddress address) {
-        this.address = address;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder text = new StringBuilder("Message");
-        text.append("\n ").append(headerString());
-        text.append("\n message type: ").append(messageType).append(" ").append(version);
-        text.append("\n       sender: ").append(senderId);
-        text.append("\n      file id: ").append(fileId);
-        text.append("\n        chunk: ").append(chunkNo);
-        text.append("\n  replication: ").append(replication);
-        text.append("\n         body: ").append(body != null ? body.length : "null");
-        if (address != null && port != 0) {
-            text.append("\n to/from: ").append(address.toString()).append(":").append(port);
-        }
-        text.append("\n");
-        return text.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Message message = (Message) o;
-        return chunkNo == message.chunkNo && replication == message.replication
-                && messageType == message.messageType && version.equals(message.version)
-                && Objects.equals(senderId, message.senderId) && fileId.equals(message.fileId)
-                && Arrays.equals(more, message.more) && Arrays.equals(body, message.body);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(messageType, version, senderId, fileId, chunkNo,
-                replication);
-        result = 31 * result + Arrays.hashCode(more);
-        result = 31 * result + Arrays.hashCode(body);
-        return result;
-    }
+  @Override
+  public int hashCode() {
+    int result = Objects.hash(messageType, version, senderId, fileId, chunkNo,
+        replication);
+    result = 31 * result + Arrays.hashCode(more);
+    result = 31 * result + Arrays.hashCode(body);
+    return result;
+  }
 }

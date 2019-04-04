@@ -16,42 +16,40 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestMessage {
   @Test
   void visualize() throws MessageException, UnknownHostException {
-    Message message;
-
     InetAddress address = InetAddress.getByName("localhost");
     String hash1 = "abcdefabcdefabcdefabcdefabcdefabcdef012345670123456701234567ABCD";
     String hash2 = "ABCDABCDabcdabcd01230123012301239876987698769876aecbaecbaecb1357";
 
-    message = Message.STORED(hash1, 0);
-    message.setSenderId("1337");
-    message.setAddress(address);
-    message.setPort(29500);
-    System.out.println(message.toString());
+    Message stored = Message.STORED(hash1, 0);
+    stored.setSenderId("1337");
+    stored.setAddress(address);
+    stored.setPort(29500);
+    System.out.println(stored.toString());
 
-    message = Message.GETCHUNK(hash2, 7);
-    message.setSenderId("808");
-    message.setAddress(address);
-    message.setPort(29600);
-    System.out.println(message.toString());
+    Message getchunk = Message.GETCHUNK(hash2, 7);
+    getchunk.setSenderId("808");
+    getchunk.setAddress(address);
+    getchunk.setPort(29600);
+    System.out.println(getchunk.toString());
 
     String body1 = "O rato roeu a\nrolha da garrafa\r\n do rei da Russia";
     String body2 = "Lorem ipsum dolor\r\nsit amet quorum\n";
 
-    message = Message.CHUNK(hash2, 4, body1.getBytes());
-    message.setSenderId("12345");
-    System.out.println(message.toString());
+    Message chunk = Message.CHUNK(hash2, 4, body1.getBytes());
+    chunk.setSenderId("12345");
+    System.out.println(chunk.toString());
 
-    message = Message.DELETE(hash1);
-    message.setSenderId("54321");
-    System.out.println(message.toString());
+    Message delete = Message.DELETE(hash1);
+    delete.setSenderId("54321");
+    System.out.println(delete.toString());
 
-    message = Message.REMOVED(hash1, 4);
-    message.setSenderId("7890");
-    System.out.println(message.toString());
+    Message removed = Message.REMOVED(hash1, 4);
+    removed.setSenderId("7890");
+    System.out.println(removed.toString());
 
-    message = Message.PUTCHUNK(hash2, 9, 6, body2.getBytes());
-    message.setSenderId("00000");
-    System.out.println(message.toString());
+    Message putchunk = Message.PUTCHUNK(hash2, 9, 6, body2.getBytes());
+    putchunk.setSenderId("00000");
+    System.out.println(putchunk.toString());
   }
 
   @Test
@@ -66,7 +64,7 @@ class TestMessage {
     int port = 7070;
 
     // Send Constructors
-    Message m1 = Message.PUTCHUNK(hash1, 1,9, body1.getBytes());
+    Message m1 = Message.PUTCHUNK(hash1, 1, 9, body1.getBytes());
     Message m2 = Message.PUTCHUNK(hash2, 2, 4, body2.getBytes());
 
     // Setters
@@ -414,9 +412,6 @@ class TestMessage {
     byte[] body1 = "Some random\r\nbody\n".getBytes();
     byte[] body2 = "Clear body with some text la la la la".getBytes();
     String badsender1 = "manel1337", badsender2 = "~8080";
-    String add1 = "www.microsoft.com", add2 = "google.com", add3 = "fe.up.pt";
-    String add4 = "github.com", add5 = "localhost", add6 = "moodle.up.pt";
-    int p1 = 7878, p2 = 12212, p3 = 8080, p4 = 1337, p5 = 5123, p6 = 9351;
 
     assertThrows(ERR, () -> Message.PUTCHUNK(hash1, 0, 13, body1));
     assertThrows(ERR, () -> Message.STORED(badhash1, 83));

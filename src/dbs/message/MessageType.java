@@ -3,68 +3,68 @@ package dbs.message;
 import org.jetbrains.annotations.NotNull;
 
 public enum MessageType {
-    PUTCHUNK("PUTCHUNK"),
-    STORED("STORED"),
-    GETCHUNK("GETCHUNK"),
-    CHUNK("CHUNK"),
-    DELETE("DELETE"),
-    REMOVED("REMOVED");
+  PUTCHUNK("PUTCHUNK"),
+  STORED("STORED"),
+  GETCHUNK("GETCHUNK"),
+  CHUNK("CHUNK"),
+  DELETE("DELETE"),
+  REMOVED("REMOVED");
 
-    String str;
+  String str;
 
-    MessageType(@NotNull String s) {
-        this.str = s;
+  MessageType(@NotNull String s) {
+    this.str = s;
+  }
+
+  public static MessageType from(@NotNull String s) throws MessageException {
+    switch (s) {
+      case "PUTCHUNK":
+        return PUTCHUNK;
+      case "STORED":
+        return STORED;
+      case "GETCHUNK":
+        return GETCHUNK;
+      case "CHUNK":
+        return CHUNK;
+      case "DELETE":
+        return DELETE;
+      case "REMOVED":
+        return REMOVED;
+      default:
+        throw new MessageException("Unrecognized message type: " + s);
     }
+  }
 
-    public static MessageType from(@NotNull String s) throws MessageException {
-        switch (s) {
-            case "PUTCHUNK":
-                return PUTCHUNK;
-            case "STORED":
-                return STORED;
-            case "GETCHUNK":
-                return GETCHUNK;
-            case "CHUNK":
-                return CHUNK;
-            case "DELETE":
-                return DELETE;
-            case "REMOVED":
-                return REMOVED;
-            default:
-                throw new MessageException("Unrecognized message type: " + s);
-        }
+  public int fields() {
+    switch (this) {
+      case PUTCHUNK:
+        return 6;
+      case STORED:
+      case GETCHUNK:
+      case CHUNK:
+      case REMOVED:
+        return 5;
+      case DELETE:
+        return 4;
+      default:
+        throw new IllegalStateException("Invalid message type state for fields() call");
     }
+  }
 
-    public int fields() {
-        switch (this) {
-            case PUTCHUNK:
-                return 6;
-            case STORED:
-            case GETCHUNK:
-            case CHUNK:
-            case REMOVED:
-                return 5;
-            case DELETE:
-                return 4;
-            default:
-                throw new IllegalStateException("Invalid message type state for fields() call");
-        }
+  public boolean hasBody() {
+    switch (this) {
+      case PUTCHUNK:
+      case CHUNK:
+        return true;
+      default:
+        return false;
     }
+  }
 
-    public boolean hasBody() {
-        switch (this) {
-            case PUTCHUNK:
-            case CHUNK:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    @Override
-    public String toString() {
-        return str;
-    }
+  @Override
+  public String toString() {
+    return str;
+  }
 }
 
 // PUTCHUNK <Version> <SenderId> <FileId> <ChunkNo> <ReplicationDeg> . <Body>
