@@ -6,3 +6,4 @@ bin/
 old/
 out/
 *.iml
+peersState/

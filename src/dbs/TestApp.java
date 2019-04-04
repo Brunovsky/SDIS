@@ -159,8 +159,7 @@ public class TestApp {
                 break;
             }
         } catch (Exception e) {
-            Utils.printErr("TestApp","Could not invoke the remote object's method.");
-            e.printStackTrace();
+            Utils.printErr("TestApp","Could not invoke the remote object's method. Peer not available.");
         }
     }
 }

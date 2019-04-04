@@ -1,6 +1,8 @@
 package dbs;
 
 public class Configuration {
+    public static String chunksReplicationDegreeDir = "peersState/";
+    public static String chunksReplicationDegreePathName = chunksReplicationDegreeDir + "chunksReplicationDegree";
     public static int maxPacketSize = 65200;
     public static int chunkSize = 64000;
     public static int multicastTimeout = 300; // milliseconds
