@@ -1,5 +1,8 @@
 package dbs;
 
+import dbs.message.Message;
+import org.jetbrains.annotations.NotNull;
+
 import java.io.*;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
@@ -17,6 +20,7 @@ public class Peer implements ClientInterface {
     private Multicaster mc;
     private Multicaster mdb;
     private Multicaster mdr;
+    private PeerSocket socket;
     private ScheduledThreadPoolExecutor pool;
     private HashMap<ChunkKey, Integer> chunksReplicationDegree;
     File chunksReplicationDegreeFile;
@@ -99,6 +103,7 @@ public class Peer implements ClientInterface {
 
     Peer(String protocolVersion, long id, String accessPoint, MulticastChannel mc, MulticastChannel mdb, MulticastChannel mdr) {
         this.protocolVersion = protocolVersion;
+        this.id = id;
         this.accessPoint = accessPoint;
         try {
             this.mc = new Multicaster(this, mc, Multicaster.Processor.ProcessorType.CONTROL);
@@ -109,21 +114,28 @@ public class Peer implements ClientInterface {
             System.exit(1);
         }
         pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
-        this.start();
+        try {
+            this.socket = new PeerSocket(this, mc, mdb, mdr);
+        } catch(Exception e)
+        {
+            Utils.printErr("Peer","Could not create the peer's socket.");
+            System.exit(1);
+        }
+            this.start();
     }
 
     private void start() {
-        //Thread tSocket = new Thread(socket);
+        Thread tSocket = new Thread(socket);
         Thread tMC = new Thread(mc);
         Thread tMDB = new Thread(mdb);
         Thread tMDR = new Thread(mdr);
 
-        //tSocket.setPriority(Thread.MAX_PRIORITY);
+        tSocket.setPriority(Thread.MAX_PRIORITY);
         tMC.setPriority(Thread.MAX_PRIORITY);
         tMDB.setPriority(Thread.MAX_PRIORITY);
         tMDR.setPriority(Thread.MAX_PRIORITY);
 
-        //tSocket.start();
+        tSocket.start();
         tMC.start();
         tMDB.start();
         tMDR.start();
@@ -143,6 +155,21 @@ public class Peer implements ClientInterface {
             this.chunksReplicationDegree = new HashMap<>();
             this.createChunksReplicationDegreeFile();
         }
+    }
+
+    /**
+     * Orders all main threads to terminate orderly.
+     * These threads will end within one socket reading cycle.
+     */
+    void finish() {
+        socket.finish();
+        mc.finish();
+        mdb.finish();
+        mdr.finish();
+    }
+
+    public final void send(@NotNull Message message) {
+        this.socket.send(message);
     }
 
     private void createChunksReplicationDegreeFile() {
@@ -226,7 +253,7 @@ public class Peer implements ClientInterface {
         }
 
         // hash the pathname
-        String fileId;
+        byte[] fileId;
         try {
             fileId = Utils.hash(fileToBackup, this.id);
             Utils.printInfo("Peer", "Received: " + fileId);
@@ -234,7 +261,15 @@ public class Peer implements ClientInterface {
             Utils.printErr("Peer", "Could not retrieve a file id for the path name " + pathname);
             return;
         }
-        return;
+
+        // send PUTCHUNCK MESSAGES
+        // TODO: continue - split file into chunks. Call method send of the Peer class for each message created.
+        /*FileInputStream fis = new FileInputStream(fileToBackup);
+        byte[] chunk = new byte[Configuration.chunkSize];
+        while(fis.read(chunk, 0, Configuration.chunkSize)) {
+
+        }
+        */
     }
 
     public void restore(String pathname) throws RemoteException {

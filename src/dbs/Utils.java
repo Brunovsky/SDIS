@@ -17,7 +17,7 @@ public class Utils {
         System.out.println(infoDescription);
     }
 
-    public static String hash(File file, long peerId) throws Exception {
+    public static byte[] hash(File file, long peerId) throws Exception {
         String filePath = file.getPath();
         long lastModified = file.lastModified();
         Utils.printInfo("Utils", "pathname: " + filePath + " last: " + lastModified + peerId);
@@ -30,7 +30,7 @@ public class Utils {
             Utils.printErr("Utils", "Could not execute hash function using the bit string '" + bitString + "'");
             return null;
         }
-        return encodedHash.toString();
+        return encodedHash;
     }
 
     public static String getChunksReplicationDegreePathName(long peerId) {
