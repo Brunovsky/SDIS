@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.MulticastSocket;
 import java.net.SocketTimeoutException;
+import java.util.logging.Logger;
 
 public final class Multicaster implements Runnable {
   public interface Processor {
@@ -23,6 +24,7 @@ public final class Multicaster implements Runnable {
   private final Processor processor;
   private boolean finished = false;
   private final MulticastChannel multicastChannel;
+  private final static Logger LOGGER = Logger.getLogger(Multicaster.class.getName());
 
   /**
    * Die regularly by leaving the Multicast group and then closing the socket normally.
@@ -90,7 +92,7 @@ public final class Multicaster implements Runnable {
       socket.setSoTimeout(Configuration.multicastTimeout);
       socket.setTimeToLive(1);
     } catch (Exception e) {
-      Utils.printErr("Multicaster", "Could not create socket.");
+      LOGGER.severe("Could not create socket.\n");
       throw e;
     }
   }

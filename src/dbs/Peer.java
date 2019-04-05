@@ -10,7 +10,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-
+import java.util.logging.Logger;
 
 public class Peer implements ClientInterface {
 
@@ -24,6 +24,7 @@ public class Peer implements ClientInterface {
   private ScheduledThreadPoolExecutor pool;
   private HashMap<ChunkKey,Integer> chunksReplicationDegree;
   File chunksReplicationDegreeFile;
+  private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
   public static void main(String args[]) {
 
@@ -33,7 +34,7 @@ public class Peer implements ClientInterface {
     try {
       peer = parseArgs(args);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Could not create Peer object.");
+      LOGGER.severe("Could not create Peer object.\n");
       System.exit(1);
     }
 
@@ -42,10 +43,9 @@ public class Peer implements ClientInterface {
       // Bind the remote object's stub in the registry
       Registry registry = LocateRegistry.getRegistry();
       registry.rebind(peer.getAccessPoint(), stub);
-      Utils.printInfo("Peer", "Ready to receive requests.");
+      LOGGER.info("Ready to receive requests.\n");
     } catch (Exception e) {
-      e.printStackTrace();
-      Utils.printErr("Peer", "Could not bind the remote object's stub to the name" + peer.getAccessPoint() + " in the registry.");
+      LOGGER.severe("Could not bind the remote object's stub to the name " + peer.getAccessPoint() + " in the registry.\n");
       System.exit(1);
     }
   }
@@ -53,7 +53,7 @@ public class Peer implements ClientInterface {
   public static Peer parseArgs(String args[]) throws Exception {
 
     if (args.length != 9)
-      Utils.printErr("Peer", "Wrong number of arguments. Usage: Peer <protocol_version> <id> <access_point> <mc> <mdb> <mdr>");
+      LOGGER.warning("Wrong number of arguments. Usage: Peer <protocol_version> <id> <access_point> <mc> <mdb> <mdr>\n");
 
     // parse protocol version
     String protocolVersion = args[0];
@@ -75,7 +75,7 @@ public class Peer implements ClientInterface {
     try {
       mc = new MulticastChannel(args[3], args[4]);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Invalid format for mc. Should be <ip_address><port_number>.");
+      LOGGER.warning("Invalid format for mc. Should be <ip_address><port_number>.\n");
       throw e;
     }
 
@@ -84,7 +84,7 @@ public class Peer implements ClientInterface {
     try {
       mdb = new MulticastChannel(args[5], args[6]);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Invalid format for mdb. Should be <ip_address><port_number>.");
+      LOGGER.warning("Invalid format for mdb. Should be <ip_address><port_number>.\n");
       throw e;
     }
 
@@ -93,7 +93,7 @@ public class Peer implements ClientInterface {
     try {
       mdr = new MulticastChannel(args[7], args[8]);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Invalid format for mdr. Should be <ip_address><port_number>.");
+      LOGGER.warning("Invalid format for mdr. Should be <ip_address><port_number>.\n");
       throw e;
     }
 
@@ -109,16 +109,17 @@ public class Peer implements ClientInterface {
       this.mdb = new Multicaster(this, mdb, Multicaster.Processor.ProcessorType.DATA_BACKUP);
       this.mdr = new Multicaster(this, mdr, Multicaster.Processor.ProcessorType.DATA_RESTORE);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Could not create multicasters.");
+      LOGGER.severe("Could not create multicasters.\n");
       System.exit(1);
     }
-    pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
+    this.pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
     try {
       this.socket = new PeerSocket(this, mc, mdb, mdr);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Could not create the peer's socket.");
+      LOGGER.severe("Could not create the peer's socket.\n");
       System.exit(1);
     }
+
     this.start();
   }
 
@@ -149,7 +150,7 @@ public class Peer implements ClientInterface {
       this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
       this.updateChunksReplicationDegreeHashMap();
     } catch (Exception e) {
-      Utils.printInfo("Peer", "Could not access the chunksReplicationDegree hashmap. Going to create one.");
+      LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to create one.\n");
       this.chunksReplicationDegree = new HashMap<>();
       this.createChunksReplicationDegreeFile();
     }
@@ -173,9 +174,9 @@ public class Peer implements ClientInterface {
   private void createChunksReplicationDegreeFile() {
     try {
       new File(Configuration.chunksReplicationDegreeDir).mkdir();
-      Utils.printInfo("Peer", "Could not locate the peer's state directory. Going to create one.");
+      LOGGER.info("Could not locate the peer's state directory. Going to create one.\n");
     } catch (Exception e) {
-      Utils.printErr("Peer", "Could not create the peersState directory.");
+      LOGGER.severe("Could not create the peersState directory.\n");
       System.exit(1);
     }
     String chunksReplicationDegreePathName = Utils.getChunksReplicationDegreePathName(this.id);
@@ -194,7 +195,7 @@ public class Peer implements ClientInterface {
       oos.close();
       fos.close();
     } catch (Exception e) {
-      Utils.printErr("Peer", "Could not generate serializes hashmap");
+      LOGGER.severe("Could not generate serializes hashmap.\n");
       System.exit(1);
     }
   }
@@ -245,7 +246,7 @@ public class Peer implements ClientInterface {
 
     // check if path name corresponds to a valid file
     if (!fileToBackup.exists() || fileToBackup.isDirectory()) {
-      Utils.printErr("Peer", "Invalid path name.");
+      LOGGER.severe("Invalid path name.\n");
       return;
     }
 
@@ -253,9 +254,8 @@ public class Peer implements ClientInterface {
     byte[] fileId;
     try {
       fileId = Utils.hash(fileToBackup, this.id);
-      Utils.printInfo("Peer", "Received: " + fileId);
     } catch (Exception e) {
-      Utils.printErr("Peer", "Could not retrieve a file id for the path name " + pathname);
+      LOGGER.severe("Could not retrieve a file id for the path name " + pathname + "\n");
       return;
     }
 

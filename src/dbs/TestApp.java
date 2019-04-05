@@ -1,7 +1,9 @@
 package dbs;
 
+import java.nio.file.LinkOption;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.util.logging.Logger;
 
 /**
  * A class to represent the testing client application.
@@ -38,6 +40,7 @@ public class TestApp {
    * applies only to the backup protocol (or its enhancement).
    */
   int oper2;
+  private final static Logger LOGGER = Logger.getLogger(TestApp.class.getName());
 
   public static void main(String[] args) {
     System.out.println("number of arguments: " + args.length);
@@ -158,7 +161,7 @@ public class TestApp {
           break;
       }
     } catch (Exception e) {
-      Utils.printErr("TestApp", "Could not invoke the remote object's method. Peer not available.");
+      LOGGER.warning("Could not invoke the remote object's method. Peer not available.\n");
     }
   }
 }
