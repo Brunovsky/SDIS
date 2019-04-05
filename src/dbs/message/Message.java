@@ -328,6 +328,7 @@ public class Message {
    * Construct a PUTCHUNK message. Required camps: fileId, chunkNo, replication, and body.
    *
    * @param fileId      This chunk's file id
+   * @param version     The protocol's version
    * @param chunkNo     This chunk's number
    * @param replication This chunk's desired replication degree
    * @param body        The chunk content
@@ -335,9 +336,9 @@ public class Message {
    * @throws MessageError   If any of the fields has a protocol-prohibited value
    * @throws AssertionError If any of the fields has an invalid value
    */
-  public static Message PUTCHUNK(@NotNull String fileId, int chunkNo, int replication,
+  public static Message PUTCHUNK(@NotNull String fileId, String version, int chunkNo, int replication,
                                  @NotNull byte[] body) {
-    return new Message(MessageType.PUTCHUNK, Protocol.version, fileId, chunkNo,
+    return new Message(MessageType.PUTCHUNK, version, fileId, chunkNo,
         replication, null, body);
   }
 
@@ -345,13 +346,14 @@ public class Message {
    * Construct a STORED message. Required camps: fileId and chunkNo.
    *
    * @param fileId  The stored chunk's file id
+   * @param version The protocol's version
    * @param chunkNo The stored chunk's number
    * @return The constructed Message
    * @throws MessageError   If any of the fields has a protocol-prohibited value
    * @throws AssertionError If any of the fields has an invalid value
    */
-  public static Message STORED(@NotNull String fileId, int chunkNo) {
-    return new Message(MessageType.STORED, Protocol.version, fileId, chunkNo, 0, null,
+  public static Message STORED(@NotNull String fileId, String version, int chunkNo) {
+    return new Message(MessageType.STORED, version, fileId, chunkNo, 0, null,
         null);
   }
 
@@ -359,13 +361,14 @@ public class Message {
    * Construct a GETCHUNK message. Required camps: fileId and chunkNo.
    *
    * @param fileId  The desired chunk's file id
+   * @param version The protocol's version
    * @param chunkNo The desired chunk's number
    * @return The constructed Message
    * @throws MessageError   If any of the fields has a protocol-prohibited value
    * @throws AssertionError If any of the fields has an invalid value
    */
-  public static Message GETCHUNK(@NotNull String fileId, int chunkNo) {
-    return new Message(MessageType.GETCHUNK, Protocol.version, fileId, chunkNo, 0, null,
+  public static Message GETCHUNK(@NotNull String fileId, String version, int chunkNo) {
+    return new Message(MessageType.GETCHUNK, version, fileId, chunkNo, 0, null,
         null);
   }
 
@@ -373,14 +376,15 @@ public class Message {
    * Construct a CHUNK message. Required camps: fileId, chunkNo and body.
    *
    * @param fileId  This chunk's file id
+   * @param version The protocol's version
    * @param chunkNo This chunk's number
    * @param body    The chunk content
    * @return The constructed Message
    * @throws MessageError   If any of the fields has a protocol-prohibited value
    * @throws AssertionError If any of the fields has an invalid value
    */
-  public static Message CHUNK(@NotNull String fileId, int chunkNo, @NotNull byte[] body) {
-    return new Message(MessageType.CHUNK, Protocol.version, fileId, chunkNo, 0, null,
+  public static Message CHUNK(@NotNull String fileId, String version, int chunkNo, @NotNull byte[] body) {
+    return new Message(MessageType.CHUNK, version, fileId, chunkNo, 0, null,
         body);
   }
 
@@ -388,25 +392,27 @@ public class Message {
    * Construct a DELETE message. Required camps: fileId.
    *
    * @param fileId The id of the file to be deleted
+   * @param version The protocol's version
    * @return The constructed Message
    * @throws MessageError   If any of the fields has a protocol-prohibited value
    * @throws AssertionError If any of the fields has an invalid value
    */
-  public static Message DELETE(@NotNull String fileId) {
-    return new Message(MessageType.DELETE, Protocol.version, fileId, 0, 0, null, null);
+  public static Message DELETE(@NotNull String fileId, String version) {
+    return new Message(MessageType.DELETE, version, fileId, 0, 0, null, null);
   }
 
   /**
    * Construct a REMOVED message. Required camps: fileId and chunkNo
    *
    * @param fileId  The removed chunk's file id
+   * @param version     The protocol's version
    * @param chunkNo The removed chunk's number
    * @return The constructed Message
    * @throws MessageError   If any of the fields has a protocol-prohibited value
    * @throws AssertionError If any of the fields has an invalid value
    */
-  public static Message REMOVED(@NotNull String fileId, int chunkNo) {
-    return new Message(MessageType.REMOVED, Protocol.version, fileId, chunkNo, 0, null,
+  public static Message REMOVED(@NotNull String fileId, String version, int chunkNo) {
+    return new Message(MessageType.REMOVED, version, fileId, chunkNo, 0, null,
         null);
   }
 

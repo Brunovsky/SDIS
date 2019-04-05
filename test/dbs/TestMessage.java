@@ -19,14 +19,15 @@ class TestMessage {
     InetAddress address = InetAddress.getByName("localhost");
     String hash1 = "abcdefabcdefabcdefabcdefabcdefabcdef012345670123456701234567ABCD";
     String hash2 = "ABCDABCDabcdabcd01230123012301239876987698769876aecbaecbaecb1357";
+    String protocolVersion = "1.0";
 
-    Message stored = Message.STORED(hash1, 0);
+    Message stored = Message.STORED(hash1, protocolVersion, 0);
     stored.setSenderId("1337");
     stored.setAddress(address);
     stored.setPort(29500);
     System.out.println(stored.toString());
 
-    Message getchunk = Message.GETCHUNK(hash2, 7);
+    Message getchunk = Message.GETCHUNK(hash2, protocolVersion, 7);
     getchunk.setSenderId("808");
     getchunk.setAddress(address);
     getchunk.setPort(29600);
@@ -35,19 +36,19 @@ class TestMessage {
     String body1 = "O rato roeu a\nrolha da garrafa\r\n do rei da Russia";
     String body2 = "Lorem ipsum dolor\r\nsit amet quorum\n";
 
-    Message chunk = Message.CHUNK(hash2, 4, body1.getBytes());
+    Message chunk = Message.CHUNK(hash2, protocolVersion,4, body1.getBytes());
     chunk.setSenderId("12345");
     System.out.println(chunk.toString());
 
-    Message delete = Message.DELETE(hash1);
+    Message delete = Message.DELETE(hash1, protocolVersion);
     delete.setSenderId("54321");
     System.out.println(delete.toString());
 
-    Message removed = Message.REMOVED(hash1, 4);
+    Message removed = Message.REMOVED(hash1, protocolVersion, 4);
     removed.setSenderId("7890");
     System.out.println(removed.toString());
 
-    Message putchunk = Message.PUTCHUNK(hash2, 9, 6, body2.getBytes());
+    Message putchunk = Message.PUTCHUNK(hash2, protocolVersion, 9, 6, body2.getBytes());
     putchunk.setSenderId("00000");
     System.out.println(putchunk.toString());
   }
@@ -62,10 +63,11 @@ class TestMessage {
     String sender = "111111";
     String address = "localhost";
     int port = 7070;
+    String protocolVersion = "1.0";
 
     // Send Constructors
-    Message m1 = Message.PUTCHUNK(hash1, 1, 9, body1.getBytes());
-    Message m2 = Message.PUTCHUNK(hash2, 2, 4, body2.getBytes());
+    Message m1 = Message.PUTCHUNK(hash1, protocolVersion, 1, 9, body1.getBytes());
+    Message m2 = Message.PUTCHUNK(hash2, protocolVersion, 2, 4, body2.getBytes());
 
     // Setters
     m1.setSenderId(sender);
@@ -90,8 +92,8 @@ class TestMessage {
     assertEquals(9, m1.getReplication());
     assertEquals(4, m2.getReplication());
 
-    assertEquals(Protocol.version, m1.getVersion());
-    assertEquals(Protocol.version, m2.getVersion());
+    assertEquals(protocolVersion, m1.getVersion());
+    assertEquals(protocolVersion, m2.getVersion());
 
     assertEquals(MessageType.PUTCHUNK, m1.getType());
     assertEquals(MessageType.PUTCHUNK, m2.getType());
@@ -114,10 +116,11 @@ class TestMessage {
     String sender = "222222";
     String address = "www.google.com";
     int port = 1337;
+    String protocolVersion = "1.0";
 
     // Send Constructors
-    Message m1 = Message.STORED(hash1, 7);
-    Message m2 = Message.STORED(hash2, 4);
+    Message m1 = Message.STORED(hash1, protocolVersion, 7);
+    Message m2 = Message.STORED(hash2, protocolVersion, 4);
 
     // Setters
     m1.setSenderId(sender);
@@ -136,8 +139,8 @@ class TestMessage {
     assertEquals(7, m1.getChunkNo());
     assertEquals(4, m2.getChunkNo());
 
-    assertEquals(Protocol.version, m1.getVersion());
-    assertEquals(Protocol.version, m2.getVersion());
+    assertEquals(protocolVersion, m1.getVersion());
+    assertEquals(protocolVersion, m2.getVersion());
 
     assertEquals(MessageType.STORED, m1.getType());
     assertEquals(MessageType.STORED, m2.getType());
@@ -160,10 +163,11 @@ class TestMessage {
     String sender = "333333";
     String address = "www.stackoverflow.com";
     int port = 12345;
+    String protocolVersion = "1.0";
 
     // Send Constructors
-    Message m1 = Message.GETCHUNK(hash1, 2);
-    Message m2 = Message.GETCHUNK(hash2, 5);
+    Message m1 = Message.GETCHUNK(hash1, protocolVersion, 2);
+    Message m2 = Message.GETCHUNK(hash2, protocolVersion, 5);
 
     // Setters
     m1.setSenderId(sender);
@@ -182,8 +186,8 @@ class TestMessage {
     assertEquals(2, m1.getChunkNo());
     assertEquals(5, m2.getChunkNo());
 
-    assertEquals(Protocol.version, m1.getVersion());
-    assertEquals(Protocol.version, m2.getVersion());
+    assertEquals(protocolVersion, m1.getVersion());
+    assertEquals(protocolVersion, m2.getVersion());
 
     assertEquals(MessageType.GETCHUNK, m1.getType());
     assertEquals(MessageType.GETCHUNK, m2.getType());
@@ -209,10 +213,11 @@ class TestMessage {
     String sender = "444444";
     String address = "localhost";
     int port = 7070;
+    String protocolVersion = "1.0";
 
     // Send Constructors
-    Message m1 = Message.CHUNK(hash1, 8, body1.getBytes());
-    Message m2 = Message.CHUNK(hash2, 3, body2.getBytes());
+    Message m1 = Message.CHUNK(hash1, protocolVersion, 8, body1.getBytes());
+    Message m2 = Message.CHUNK(hash2, protocolVersion, 3, body2.getBytes());
 
     // Setters
     m1.setSenderId(sender);
@@ -234,8 +239,8 @@ class TestMessage {
     assertEquals(8, m1.getChunkNo());
     assertEquals(3, m2.getChunkNo());
 
-    assertEquals(Protocol.version, m1.getVersion());
-    assertEquals(Protocol.version, m2.getVersion());
+    assertEquals(protocolVersion, m1.getVersion());
+    assertEquals(protocolVersion, m2.getVersion());
 
     assertEquals(MessageType.CHUNK, m1.getType());
     assertEquals(MessageType.CHUNK, m2.getType());
@@ -258,10 +263,11 @@ class TestMessage {
     String sender = "555555";
     String address = "localhost";
     int port = 6666;
+    String protocolVersion = "1.0";
 
     // Send Constructors
-    Message m1 = Message.DELETE(hash1);
-    Message m2 = Message.DELETE(hash2);
+    Message m1 = Message.DELETE(hash1, protocolVersion);
+    Message m2 = Message.DELETE(hash2, protocolVersion);
 
     // Setters
     m1.setSenderId(sender);
@@ -277,8 +283,8 @@ class TestMessage {
     assertEquals(hash1, m1.getFileId());
     assertEquals(hash2, m2.getFileId());
 
-    assertEquals(Protocol.version, m1.getVersion());
-    assertEquals(Protocol.version, m2.getVersion());
+    assertEquals(protocolVersion, m1.getVersion());
+    assertEquals(protocolVersion, m2.getVersion());
 
     assertEquals(MessageType.DELETE, m1.getType());
     assertEquals(MessageType.DELETE, m2.getType());
@@ -301,10 +307,11 @@ class TestMessage {
     String sender = "666666";
     String address = "www.stackoverflow.com";
     int port = 12345;
+    String protocolVersion = "1.0";
 
     // Send Constructors
-    Message m1 = Message.REMOVED(hash1, 9);
-    Message m2 = Message.REMOVED(hash2, 0);
+    Message m1 = Message.REMOVED(hash1, protocolVersion, 9);
+    Message m2 = Message.REMOVED(hash2, protocolVersion, 0);
 
     // Setters
     m1.setSenderId(sender);
@@ -323,8 +330,8 @@ class TestMessage {
     assertEquals(9, m1.getChunkNo());
     assertEquals(0, m2.getChunkNo());
 
-    assertEquals(Protocol.version, m1.getVersion());
-    assertEquals(Protocol.version, m2.getVersion());
+    assertEquals(protocolVersion, m1.getVersion());
+    assertEquals(protocolVersion, m2.getVersion());
 
     assertEquals(MessageType.REMOVED, m1.getType());
     assertEquals(MessageType.REMOVED, m2.getType());
@@ -355,13 +362,14 @@ class TestMessage {
     String add1 = "www.microsoft.com", add2 = "google.com", add3 = "fe.up.pt";
     String add4 = "github.com", add5 = "localhost", add6 = "moodle.up.pt";
     int p1 = 7878, p2 = 12212, p3 = 8080, p4 = 1337, p5 = 5123, p6 = 9351;
+    String protocolVersion = "1.0";
 
-    Message m1 = Message.PUTCHUNK(hash1, 111, 9, body1);
-    Message m2 = Message.STORED(hash2, 222);
-    Message m3 = Message.GETCHUNK(hash3, 3333);
-    Message m4 = Message.CHUNK(hash4, 55555, body4);
-    Message m5 = Message.DELETE(hash5);
-    Message m6 = Message.REMOVED(hash6, 6666);
+    Message m1 = Message.PUTCHUNK(hash1, protocolVersion, 111, 9, body1);
+    Message m2 = Message.STORED(hash2, protocolVersion, 222);
+    Message m3 = Message.GETCHUNK(hash3, protocolVersion, 3333);
+    Message m4 = Message.CHUNK(hash4, protocolVersion, 55555, body4);
+    Message m5 = Message.DELETE(hash5, protocolVersion);
+    Message m6 = Message.REMOVED(hash6, protocolVersion, 6666);
 
     DatagramPacket packetB1 = m1.getPacket(sender1, p1, InetAddress.getByName(add1));
     DatagramPacket packetB2 = m2.getPacket(sender2, p2, InetAddress.getByName(add2));
@@ -412,14 +420,15 @@ class TestMessage {
     byte[] body1 = "Some random\r\nbody\n".getBytes();
     byte[] body2 = "Clear body with some text la la la la".getBytes();
     String badsender1 = "manel1337", badsender2 = "~8080";
+    String protocolVersion = "1.0";
 
-    assertThrows(ERR, () -> Message.PUTCHUNK(hash1, 0, 13, body1));
-    assertThrows(ERR, () -> Message.STORED(badhash1, 83));
-    assertThrows(ERR, () -> Message.GETCHUNK(badhash3, 765));
-    assertThrows(ERR, () -> Message.CHUNK(badhash2, 2, body2));
-    assertThrows(ERR, () -> Message.DELETE(badhash2));
-    assertThrows(ERR, () -> Message.REMOVED(hash2, -1));
-    assertThrows(ERR, () -> Message.DELETE(hash1).setSenderId(badsender1));
-    assertThrows(ERR, () -> Message.DELETE(hash1).setSenderId(badsender2));
+    assertThrows(ERR, () -> Message.PUTCHUNK(hash1, protocolVersion, 0, 13, body1));
+    assertThrows(ERR, () -> Message.STORED(badhash1, protocolVersion, 83));
+    assertThrows(ERR, () -> Message.GETCHUNK(badhash3, protocolVersion, 765));
+    assertThrows(ERR, () -> Message.CHUNK(badhash2, protocolVersion, 2, body2));
+    assertThrows(ERR, () -> Message.DELETE(badhash2, protocolVersion));
+    assertThrows(ERR, () -> Message.REMOVED(hash2, protocolVersion, -1));
+    assertThrows(ERR, () -> Message.DELETE(hash1, protocolVersion).setSenderId(badsender1));
+    assertThrows(ERR, () -> Message.DELETE(hash1, protocolVersion).setSenderId(badsender2));
   }
 }

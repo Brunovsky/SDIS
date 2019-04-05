@@ -42,7 +42,7 @@ public class Peer implements ClientInterface {
       ClientInterface stub = (ClientInterface) UnicastRemoteObject.exportObject(peer, 0);
       // Bind the remote object's stub in the registry
       Registry registry = LocateRegistry.getRegistry();
-      registry.rebind(peer.getAccessPoint(), stub);
+      registry.bind(peer.getAccessPoint(), stub);
       LOGGER.info("Ready to receive requests.\n");
     } catch (Exception e) {
       LOGGER.severe("Could not bind the remote object's stub to the name " + peer.getAccessPoint() + " in the registry.\n");
@@ -100,7 +100,7 @@ public class Peer implements ClientInterface {
     return new Peer(protocolVersion, id, accessPoint, mc, mdb, mdr);
   }
 
-  Peer(String protocolVersion, long id, String accessPoint, MulticastChannel mc, MulticastChannel mdb, MulticastChannel mdr) {
+  Peer(String protocolVersion, long id, String accessPoint, MulticastChannel mc, MulticastChannel mdb, MulticastChannel mdr) throws Exception {
     this.protocolVersion = protocolVersion;
     this.id = id;
     this.accessPoint = accessPoint;
@@ -110,16 +110,45 @@ public class Peer implements ClientInterface {
       this.mdr = new Multicaster(this, mdr, Multicaster.Processor.ProcessorType.DATA_RESTORE);
     } catch (Exception e) {
       LOGGER.severe("Could not create multicasters.\n");
-      System.exit(1);
+      throw e;
     }
     this.pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
     try {
       this.socket = new PeerSocket(this, mc, mdb, mdr);
     } catch (Exception e) {
       LOGGER.severe("Could not create the peer's socket.\n");
-      System.exit(1);
+      throw e;
     }
+    this.start();
+  }
 
+  Peer(String protocolVersion, long id, String accessPoint) throws Exception {
+    this.protocolVersion = protocolVersion;
+    this.id = id;
+    this.accessPoint = accessPoint;
+    MulticastChannel mcChannel = null;
+    MulticastChannel mdbChannel = null;
+    MulticastChannel mdrChannel = null;
+
+    try {
+      mcChannel = new MulticastChannel(Protocol.mcAddress, Protocol.mcPort);
+      mdbChannel = new MulticastChannel(Protocol.mdbAddress, Protocol.mdbPort);
+      mdrChannel = new MulticastChannel(Protocol.mdrAddress, Protocol.mdrPort);
+
+      this.mc = new Multicaster(this, mcChannel, Multicaster.Processor.ProcessorType.CONTROL);
+      this.mdb = new Multicaster(this, mdbChannel, Multicaster.Processor.ProcessorType.DATA_BACKUP);
+      this.mdr = new Multicaster(this, mdrChannel, Multicaster.Processor.ProcessorType.DATA_RESTORE);
+    } catch (Exception e) {
+      LOGGER.severe("Could not create multicasters.\n");
+      throw e;
+    }
+    this.pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
+    try {
+      this.socket = new PeerSocket(this, mcChannel, mdbChannel, mdrChannel);
+    } catch (Exception e) {
+      LOGGER.severe("Could not create the peer's socket.\n");
+      throw e;
+    }
     this.start();
   }
 
