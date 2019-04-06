@@ -158,7 +158,7 @@ public class Message {
   }
 
   private void validateFileId(@NotNull String fileId) throws MessageException {
-    if (fileId.length() != 256 || !fileId.matches("[a-fA-F0-9]+")) {
+    if (fileId.length() != 64 || !fileId.matches("[a-fA-F0-9]+")) {
       throw new MessageException("Invalid file hash: " + fileId);
     }
   }
@@ -234,6 +234,7 @@ public class Message {
    */
   private void parseHeaders(@NotNull String[] headers) throws MessageException {
     if (headers.length == 0) {
+      System.out.println("--- 5");
       throw new MessageException("Message has no headers");
     }
 
@@ -252,11 +253,14 @@ public class Message {
       // Find index of first occurrence of \r\n\r\n
       int index = new String(bytes, 0, length, UTF_8).indexOf("\r\n\r\n");
       if (index < 0) {
+        System.out.println("--- 1");
         throw new MessageException("Invalid Message byte array: no header separator");
       }
 
       // Headers up to index, body after index
       byte[] headersBytes = Arrays.copyOfRange(bytes, 0, index);
+      String x = new String(bytes);
+      String y = new String(headersBytes);
       String[] headers = new String(headersBytes).split("\r\n");
 
       parseHeaders(headers);
@@ -265,14 +269,17 @@ public class Message {
         body = Arrays.copyOfRange(bytes, index + 4, length);
 
         if (body.length == 0) {
+          System.out.println("--- 2");
           throw new MessageException("Empty body in " + messageType + " message");
         }
       } else if (index + 4 != length) {
+        System.out.println("--- 3");
         throw new MessageException("Non-empty body in " + messageType + " message "
             + length);
       }
 
     } catch (IllegalArgumentException e) {
+      System.out.println("--- 4");
       throw new MessageException(e.getMessage());
     }
   }
@@ -308,7 +315,7 @@ public class Message {
       validateVersion(version);
       this.version = version;
 
-      //validateFileId(fileId);
+      validateFileId(fileId);
       this.fileId = fileId;
 
       validateChunkNo(chunkNo);
@@ -321,7 +328,6 @@ public class Message {
       this.body = body;
 
     } catch (MessageException e) {
-      System.out.println("OOPS ERROR");
       throw new MessageError(e);
     }
   }

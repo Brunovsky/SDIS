@@ -44,7 +44,7 @@ public class Peer implements ClientInterface {
       ClientInterface stub = (ClientInterface) UnicastRemoteObject.exportObject(peer, 0);
       // Bind the remote object's stub in the registry
       Registry registry = LocateRegistry.getRegistry();
-      registry.bind(peer.getAccessPoint(), stub);
+      registry.rebind(peer.getAccessPoint(), stub);
       LOGGER.info("Ready to receive requests.\n");
     } catch (Exception e) {
       LOGGER.severe("Could not bind the remote object's stub to the name " + peer.getAccessPoint() + " in the registry.\n");
@@ -199,9 +199,7 @@ public class Peer implements ClientInterface {
   }
 
   public final void send(@NotNull Message message) {
-    this.LOGGER.info("Socket to send message\n");
     this.socket.send(message);
-    this.LOGGER.info("Socket just sent message\n");
   }
 
   private void createChunksReplicationDegreeFile() {

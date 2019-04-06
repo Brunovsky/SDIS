@@ -1,6 +1,7 @@
 package dbs;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.logging.Logger;
 
@@ -19,7 +20,15 @@ public class Utils {
       LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
       return null;
     }
-    return encodedHash;
+    BigInteger hash = new BigInteger(1, encodedHash);
+
+    String hashtext = hash.toString(16);
+
+    while (hashtext.length() < 32) {
+      hashtext = "0" + hashtext;
+    }
+
+    return hashtext.getBytes();
   }
 
   public static String getChunksReplicationDegreePathName(long peerId) {
