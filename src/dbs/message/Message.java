@@ -158,7 +158,7 @@ public class Message {
   }
 
   private void validateFileId(@NotNull String fileId) throws MessageException {
-    if (fileId.length() != 64 || !fileId.matches("[a-fA-F0-9]+")) {
+    if (fileId.length() != 256 || !fileId.matches("[a-fA-F0-9]+")) {
       throw new MessageException("Invalid file hash: " + fileId);
     }
   }
@@ -308,7 +308,7 @@ public class Message {
       validateVersion(version);
       this.version = version;
 
-      validateFileId(fileId);
+      //validateFileId(fileId);
       this.fileId = fileId;
 
       validateChunkNo(chunkNo);
@@ -319,7 +319,9 @@ public class Message {
 
       this.more = more == null ? new String[0] : more;
       this.body = body;
+
     } catch (MessageException e) {
+      System.out.println("OOPS ERROR");
       throw new MessageError(e);
     }
   }

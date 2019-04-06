@@ -1,6 +1,5 @@
 package dbs;
 
-import dbs.processor.ControlProcessor;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -19,11 +18,11 @@ public class TestRMI {
     ProcessBuilder pb = new ProcessBuilder("rmiregistry");
     pb.directory(new File("out/production/SDIS_1819"));
     RMIREGISTRY = pb.start();
-    TimeUnit.MILLISECONDS.sleep(1000);
+    TimeUnit.SECONDS.sleep(1);
     assertTrue(RMIREGISTRY.isAlive());
   }
 
-  private void destroyRMIRegistry() {
+  public void destroyRMIRegistry() {
     RMIREGISTRY.destroy();
   }
 
@@ -40,6 +39,18 @@ public class TestRMI {
             Protocol.mdbPort,
             Protocol.mdrAddress,
             Protocol.mdrPort);
+    pb.directory(new File("out/production/SDIS_1819"));
+    return pb.start();
+  }
+
+  private Process launchBackupRequest(String peerAccessPoint, String pathname, int replicationDegree) throws IOException {
+    ProcessBuilder pb = new ProcessBuilder();
+    pb.command("java",
+            "dbs.TestApp",
+            peerAccessPoint,
+            "BACKUP",
+            pathname,
+            Integer.toString(replicationDegree));
     pb.directory(new File("out/production/SDIS_1819"));
     return pb.start();
   }
@@ -64,6 +75,20 @@ public class TestRMI {
     assertTrue(peer1.isAlive());
     peer1.destroy();
     destroyRMIRegistry();
+  }
+
+
+
+  @Test
+  public void testBackupRequest() throws Exception {
+    startRMIRegistry();
+    Process peer1 = launchPeer("1.0",1, "peer_1");
+    assertTrue(peer1.isAlive());
+    Process backupRequest = launchBackupRequest("peer_1", "test_files/file_1.txt", 3);
+    TimeUnit.SECONDS.sleep(5);
+    destroyRMIRegistry();
+    peer1.destroy();
+    backupRequest.destroy();
   }
 
 }
