@@ -189,7 +189,11 @@ public class Peer implements ClientInterface {
     }
   }
 
-  private void insertIntoChunksReplicationDegreeHashMap(byte[] fileId, int chunkNumber, Long peerId) {
+  public void getReplicationDegree(String fileId, int chunkNumber) {
+
+  }
+
+  private void insertIntoChunksReplicationDegreeHashMap(String fileId, int chunkNumber, Long peerId) {
     ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
     Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
     if(chunKPeers == null)
@@ -199,7 +203,7 @@ public class Peer implements ClientInterface {
     this.updateChunksReplicationDegreeHashMap();
   }
 
-  private void deleteFromChunksReplicationDegreeHashMap(byte[] fileId, int chunkNumber) {
+  private void deleteFromChunksReplicationDegreeHashMap(String fileId, int chunkNumber) {
     ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
     this.chunksReplicationDegree.remove(chunkKey);
     this.updateChunksReplicationDegreeHashMap();

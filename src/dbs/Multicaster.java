@@ -113,7 +113,7 @@ public final class Multicaster implements Runnable {
       packet = receive();
       if (packet == null) continue;
 
-      peer.getPool().submit(processor.runnable(packet));
+      peer.getPool().submit(processor.runnable(packet, this.peer));
     }
 
     die();
