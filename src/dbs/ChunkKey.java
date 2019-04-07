@@ -3,10 +3,10 @@ package dbs;
 import java.security.MessageDigest;
 
 public class ChunkKey {
-  private byte[] fileId;
+  private String fileId;
   private int chunkNumber;
 
-  public ChunkKey(byte[] fileId, int chunkNumber) {
+  public ChunkKey(String fileId, int chunkNumber) {
     this.fileId = fileId;
     this.chunkNumber = chunkNumber;
   }
@@ -16,8 +16,8 @@ public class ChunkKey {
     if (!(obj instanceof ChunkKey))
       return false;
 
-    ChunkKey objChunkKey = (ChunkKey) obj;
-    return objChunkKey.chunkNumber == this.chunkNumber &&
-        MessageDigest.isEqual(objChunkKey.fileId, this.fileId);
+    ChunkKey objChunckKey = (ChunkKey) obj;
+    return objChunckKey.chunkNumber == this.chunkNumber &&
+        MessageDigest.isEqual(objChunckKey.fileId.getBytes(), this.fileId.getBytes());
   }
 }

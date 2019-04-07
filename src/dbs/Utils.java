@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 public class Utils {
   private final static Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
-  public static byte[] hash(File file, long peerId) throws Exception {
+  public static String hash(File file, long peerId) throws Exception {
     String filePath = file.getPath();
     long lastModified = file.lastModified();
     String bitString = filePath + lastModified;
@@ -31,7 +31,7 @@ public class Utils {
       hashtext = "0" + hashtext;
     }
 
-    return hashtext.getBytes();
+    return hashtext;
   }
 
   public static Registry registry() {
