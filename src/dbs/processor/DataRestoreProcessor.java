@@ -1,5 +1,6 @@
 package dbs.processor;
 
+import dbs.Peer;
 import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.Multicaster;
@@ -9,10 +10,12 @@ import java.net.DatagramPacket;
 
 public class DataRestoreProcessor implements Multicaster.Processor {
   private class DataRestoreRunnable implements Runnable {
-    private DatagramPacket packet;
+    private final DatagramPacket packet;
+    private final Peer peer;
 
-    DataRestoreRunnable(@NotNull DatagramPacket packet) {
+    DataRestoreRunnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
       this.packet = packet;
+      this.peer = peer;
     }
 
     @Override
@@ -27,7 +30,7 @@ public class DataRestoreProcessor implements Multicaster.Processor {
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet) {
-    return new DataRestoreRunnable(packet);
+  public final Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
+    return new DataRestoreRunnable(packet, peer);
   }
 }

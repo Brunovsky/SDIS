@@ -15,7 +15,7 @@ public class DataBackupTransmitter implements Runnable {
   Peer peer;
   String pathname;
   int replicationDegree;
-  byte[] fileId;
+  String fileId;
   int numberChunks;
 
   public DataBackupTransmitter(Peer peer, String pathname, int replicationDegree) {
@@ -107,8 +107,8 @@ public class DataBackupTransmitter implements Runnable {
     while(numberBytesRead == Protocol.chunkSize);
   }
 
-  private void sendMessage(byte[] fileId, int chunkNumber, byte[] chunk) {
-    Message putchunkMessage = Message.PUTCHUNK(new String(fileId),
+  private void sendMessage(String fileId, int chunkNumber, byte[] chunk) {
+    Message putchunkMessage = Message.PUTCHUNK(fileId,
         peer.getConfig().version, chunkNumber, this.replicationDegree, chunk);
     peer.send(putchunkMessage);
   }

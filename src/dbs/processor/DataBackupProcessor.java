@@ -10,11 +10,12 @@ import java.net.DatagramPacket;
 
 public class DataBackupProcessor implements Multicaster.Processor {
   private class DataBackupRunnable implements Runnable {
-    private DatagramPacket packet;
-    private Peer peer;
+    private final DatagramPacket packet;
+    private final Peer peer;
 
-    DataBackupRunnable(@NotNull DatagramPacket packet, Peer peer) {
+    DataBackupRunnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
       this.packet = packet;
+      this.peer = peer;
     }
 
     @Override
@@ -36,7 +37,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet, Peer peer) {
+  public final Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
     return new DataBackupRunnable(packet, peer);
   }
 }

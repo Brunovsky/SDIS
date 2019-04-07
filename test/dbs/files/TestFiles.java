@@ -33,6 +33,14 @@ public class TestFiles {
   byte[] b5 = "55555555555555555555555555555555555555555555555555\n".getBytes();
   byte[] b6 = "6666666666666666666666666666666666666666666\n".getBytes();
 
+  byte[][] parts1 = {"1111".getBytes(), "22222222".getBytes(), "33333333".getBytes()};
+  byte[][] parts2 = {"aaaa".getBytes(), "bbbb".getBytes(), "cccccccccccc".getBytes()};
+  byte[][] parts3 = {"00000000".getBytes(), "11111111".getBytes(), "8888".getBytes(),
+      "22222222".getBytes(), "3333".getBytes(), "44444444".getBytes()};
+  byte[] p1 = "11112222222233333333".getBytes();
+  byte[] p2 = "aaaabbbbcccccccccccc".getBytes();
+  byte[] p3 = "0000000011111111888822222222333344444444".getBytes();
+
   Configuration config() {
     Configuration config = new Configuration();
 
@@ -79,9 +87,6 @@ public class TestFiles {
     assertTrue(manager.putChunk(hash2, 1, b4));
     assertTrue(manager.putChunk(hash2, 2, b6));
 
-    assertTrue(manager.putChunk(hash3, 3, b3));
-    assertTrue(manager.putChunk(hash3, 5, b2));
-
     assertTrue(manager.putChunk(hash4, 1, b1));
     assertTrue(manager.putChunk(hash4, 2, b2));
     assertTrue(manager.putChunk(hash4, 3, b3));
@@ -97,7 +102,6 @@ public class TestFiles {
 
   void getChunk(FilesManager manager) {
     assertArrayEquals(b1, manager.getChunk(hash1, 1));
-    assertArrayEquals(b3, manager.getChunk(hash3, 3));
     assertArrayEquals(b2, manager.getChunk(hash4, 2));
     assertArrayEquals(b5, manager.getChunk(hash5, 2));
     assertArrayEquals(b6, manager.getChunk(hash6, 0));
@@ -108,18 +112,15 @@ public class TestFiles {
   void hasChunk(FilesManager manager) {
     assertTrue(manager.hasChunk(hash1, 1));
     assertTrue(manager.hasChunk(hash2, 1));
-    assertTrue(manager.hasChunk(hash3, 3));
     assertTrue(manager.hasChunk(hash4, 4));
     assertTrue(manager.hasChunk(hash7, 5));
     assertFalse(manager.hasChunk(hash2, 3));
-    assertFalse(manager.hasChunk(hash3, 4));
     assertFalse(manager.hasChunk(hash9, 0));
     assertFalse(manager.hasChunk(hash10, 1));
   }
 
   void hasBackupFolder(FilesManager manager) {
     assertTrue(manager.hasBackupFolder(hash1));
-    assertTrue(manager.hasBackupFolder(hash3));
     assertTrue(manager.hasBackupFolder(hash6));
     assertFalse(manager.hasBackupFolder(hash8));
     assertFalse(manager.hasBackupFolder(hash10));
@@ -141,10 +142,10 @@ public class TestFiles {
   }
 
   void deleteBackupFile(FilesManager manager) {
-    manager.deleteBackupFile(hash1);
+    assertTrue(manager.deleteBackupFile(hash1));
     assertFalse(manager.hasBackupFolder(hash1));
     assertFalse(manager.hasChunk(hash1, 1));
-    manager.deleteBackupFile(hash2);
+    assertTrue(manager.deleteBackupFile(hash2));
     assertFalse(manager.hasChunk(hash2, 0));
     assertFalse(manager.hasChunk(hash2, 1));
     assertFalse(manager.hasChunk(hash2, 2));
@@ -158,7 +159,7 @@ public class TestFiles {
     clean();
 
     Configuration config = config();
-    FilesManager manager = new FilesManager("0", config);
+    FilesManager manager = new FilesManager("1", config);
 
     putChunk(manager);
     getChunk(manager);
@@ -166,5 +167,31 @@ public class TestFiles {
     hasBackupFolder(manager);
     deleteChunk(manager);
     deleteBackupFile(manager);
+  }
+
+  @Test
+  void restoreTest() throws IOException {
+    clean();
+
+    Configuration config = config();
+    FilesManager manager = new FilesManager("2", config);
+
+    assertFalse(manager.hasRestore("filename-1"));
+    assertFalse(manager.hasRestore("filename-2"));
+    assertFalse(manager.hasRestore("filename-9"));
+
+    assertTrue(manager.putRestore("filename-1", parts1));
+    assertTrue(manager.putRestore("filename-2", parts2));
+    assertTrue(manager.putRestore("filename-3", parts3));
+
+    assertTrue(manager.hasRestore("filename-1"));
+    assertTrue(manager.hasRestore("filename-2"));
+    assertFalse(manager.hasRestore("filename-9"));
+
+    assertNull(manager.getRestore("filename-9"));
+
+    assertArrayEquals(p1, manager.getRestore("filename-1"));
+    assertArrayEquals(p2, manager.getRestore("filename-2"));
+    assertArrayEquals(p3, manager.getRestore("filename-3"));
   }
 }
