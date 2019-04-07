@@ -1,9 +1,5 @@
-package dbs;
+package dbs.message;
 
-import dbs.message.Message;
-import dbs.message.MessageError;
-import dbs.message.MessageException;
-import dbs.message.MessageType;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -15,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TestMessage {
   @Test
-  void visualize() throws MessageException, UnknownHostException {
+  void visualize() throws UnknownHostException {
     InetAddress address = InetAddress.getByName("localhost");
     String hash1 = "abcdefabcdefabcdefabcdefabcdefabcdef012345670123456701234567ABCD";
     String hash2 = "ABCDABCDabcdabcd01230123012301239876987698769876aecbaecbaecb1357";
@@ -409,7 +405,6 @@ class TestMessage {
 
   @Test
   void badConstructors() {
-    Class<MessageException> EXC = MessageException.class;
     Class<MessageError> ERR = MessageError.class;
 
     String hash1 = "3456765435672482457389472385689124423058430230534534534809124723";

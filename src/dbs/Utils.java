@@ -1,6 +1,9 @@
 package dbs;
 
 import java.io.File;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.security.MessageDigest;
 import java.util.logging.Logger;
 
@@ -22,7 +25,28 @@ public class Utils {
     return encodedHash;
   }
 
-  public static String getChunksReplicationDegreePathName(long peerId) {
-    return Configuration.chunksReplicationDegreePathName + peerId + ".ser";
+  public static Registry registry() {
+    Registry registry;
+
+    try {
+      // Try to get the already open registry.
+      registry = LocateRegistry.getRegistry();
+    } catch (RemoteException e1) {
+      try {
+        // Race: There is no open registry. Create one.
+        // TODO: where to find selected port?
+        registry = LocateRegistry.createRegistry(Protocol.registryPort);
+      } catch (RemoteException e2) {
+        // Lost race: someone created a registry in the meanwhile.
+        try {
+          registry = LocateRegistry.getRegistry();
+        } catch (RemoteException e3) {
+          // Something very bar happened.
+          throw new Error(e1); // throw the first error
+        }
+      }
+    }
+
+    return registry;
   }
 }

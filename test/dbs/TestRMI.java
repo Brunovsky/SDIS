@@ -1,23 +1,21 @@
 package dbs;
 
-import dbs.processor.ControlProcessor;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.rmi.registry.Registry;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TestRMI {
-
   private static Process RMIREGISTRY;
-  private static Configuration conf;
 
-  @Test
   public void startRMIRegistry() throws Exception {
     ProcessBuilder pb = new ProcessBuilder("rmiregistry");
-    pb.directory(new File("out/production/SDIS_1819"));
+    pb.directory(new File("out/production/SDIS"));
     RMIREGISTRY = pb.start();
     TimeUnit.MILLISECONDS.sleep(1000);
     assertTrue(RMIREGISTRY.isAlive());
@@ -34,18 +32,18 @@ public class TestRMI {
             protocolVersion,
             Long.toString(id),
             accessPoint,
-            Protocol.mcAddress,
-            Protocol.mcPort,
-            Protocol.mdbAddress,
-            Protocol.mdbPort,
-            Protocol.mdrAddress,
-            Protocol.mdrPort);
-    pb.directory(new File("out/production/SDIS_1819"));
+            Protocol.mc.getAddress().toString(),
+            Integer.toString(Protocol.mc.getPort()),
+            Protocol.mdb.getAddress().toString(),
+            Integer.toString(Protocol.mdb.getPort()),
+            Protocol.mdr.getAddress().toString(),
+            Integer.toString(Protocol.mdr.getPort()));
+    pb.directory(new File("out/production/SDIS"));
     return pb.start();
   }
 
   @Test
-  public void testRunRMIRegistry() throws IOException, InterruptedException, Exception {
+  public void testRunRMIRegistry() throws Exception {
     startRMIRegistry();
     destroyRMIRegistry();
     TimeUnit.MILLISECONDS.sleep(500);
@@ -54,6 +52,9 @@ public class TestRMI {
 
   @Test
   public void testLaunchPeer() throws Exception {
+    Protocol.mc = new MulticastChannel(InetAddress.getByName("237.0.0.1"), 29500);
+    Protocol.mdb = new MulticastChannel(InetAddress.getByName("237.0.0.2"), 29501);
+    Protocol.mdr = new MulticastChannel(InetAddress.getByName("237.0.0.3"), 29502);
     startRMIRegistry();
     Process peer1 = launchPeer("1.0",1, "peer_1");
     Process peer2 = launchPeer("1.0", 2, "peer_1");
@@ -66,4 +67,41 @@ public class TestRMI {
     destroyRMIRegistry();
   }
 
+  @Test
+  public void testUtilsRegistry() {
+    Registry registry = Utils.registry();
+    assertNotNull(registry);
+  }
+
+  private final class GetRegistry implements Runnable {
+    private String name;
+
+    GetRegistry(String name) {
+      this.name = name;
+    }
+
+    @Override
+    public void run() {
+      System.out.println("Tester " + name);
+      Registry registry = Utils.registry();
+      assertNotNull(registry);
+    }
+  }
+
+  @Test
+  public void testUtilsRegistryLoop() throws InterruptedException {
+    Thread[] threads = new Thread[20];
+
+    for (int i = 0; i < 20; ++i) {
+      threads[i] = new Thread(new GetRegistry(Integer.toString(i)));
+    }
+
+    for (int i = 0; i < 20; ++i) {
+      threads[i].start();
+    }
+
+    for (int i = 0; i < 20; ++i) {
+      threads[i].join();
+    }
+  }
 }

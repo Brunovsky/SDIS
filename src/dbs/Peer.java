@@ -1,6 +1,9 @@
 package dbs;
 
 import dbs.message.Message;
+import dbs.processor.ControlProcessor;
+import dbs.processor.DataBackupProcessor;
+import dbs.processor.DataRestoreProcessor;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -13,20 +16,20 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Logger;
 
 public class Peer implements ClientInterface {
+  private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
-  private String protocolVersion;
   private long id;
   private String accessPoint;
+  private Configuration config;
   private Multicaster mc;
   private Multicaster mdb;
   private Multicaster mdr;
   private PeerSocket socket;
   private ScheduledThreadPoolExecutor pool;
   private HashMap<ChunkKey,Integer> chunksReplicationDegree;
-  File chunksReplicationDegreeFile;
-  private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
+  private File chunksReplicationDegreeFile;
 
-  public static void main(String args[]) {
+  public static void main(String[] args) {
 
     Peer peer = null;
 
@@ -50,7 +53,7 @@ public class Peer implements ClientInterface {
     }
   }
 
-  public static Peer parseArgs(String args[]) throws Exception {
+  public static Peer parseArgs(String[] args) throws Exception {
 
     if (args.length != 9)
       LOGGER.warning("Wrong number of arguments. Usage: Peer <protocol_version> <id> <access_point> <mc> <mdb> <mdr>\n");
@@ -100,89 +103,43 @@ public class Peer implements ClientInterface {
     return new Peer(protocolVersion, id, accessPoint, mc, mdb, mdr);
   }
 
-  Peer(String protocolVersion, long id, String accessPoint, MulticastChannel mc, MulticastChannel mdb, MulticastChannel mdr) throws Exception {
-    this.protocolVersion = protocolVersion;
+  Peer(String protocolVersion, long id, String accessPoint, MulticastChannel mc,
+       MulticastChannel mdb, MulticastChannel mdr) throws IOException {
+    Protocol.mc = mc;
+    Protocol.mdb = mdb;
+    Protocol.mdr = mdr;
+
     this.id = id;
     this.accessPoint = accessPoint;
-    try {
-      this.mc = new Multicaster(this, mc, Multicaster.Processor.ProcessorType.CONTROL);
-      this.mdb = new Multicaster(this, mdb, Multicaster.Processor.ProcessorType.DATA_BACKUP);
-      this.mdr = new Multicaster(this, mdr, Multicaster.Processor.ProcessorType.DATA_RESTORE);
-    } catch (Exception e) {
-      LOGGER.severe("Could not create multicasters.\n");
-      throw e;
-    }
-    this.pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
-    try {
-      this.socket = new PeerSocket(this, mc, mdb, mdr);
-    } catch (Exception e) {
-      LOGGER.severe("Could not create the peer's socket.\n");
-      throw e;
-    }
-    this.start();
+    this.config = new Configuration();
+    this.config.version = protocolVersion;
+
+    setup();
   }
 
-  Peer(String protocolVersion, long id, String accessPoint) throws Exception {
-    this.protocolVersion = protocolVersion;
+  Peer(String protocolVersion, long id, String accessPoint) throws IOException {
     this.id = id;
     this.accessPoint = accessPoint;
-    MulticastChannel mcChannel = null;
-    MulticastChannel mdbChannel = null;
-    MulticastChannel mdrChannel = null;
+    this.config = new Configuration();
+    this.config.version = protocolVersion;
 
-    try {
-      mcChannel = new MulticastChannel(Protocol.mcAddress, Protocol.mcPort);
-      mdbChannel = new MulticastChannel(Protocol.mdbAddress, Protocol.mdbPort);
-      mdrChannel = new MulticastChannel(Protocol.mdrAddress, Protocol.mdrPort);
-
-      this.mc = new Multicaster(this, mcChannel, Multicaster.Processor.ProcessorType.CONTROL);
-      this.mdb = new Multicaster(this, mdbChannel, Multicaster.Processor.ProcessorType.DATA_BACKUP);
-      this.mdr = new Multicaster(this, mdrChannel, Multicaster.Processor.ProcessorType.DATA_RESTORE);
-    } catch (Exception e) {
-      LOGGER.severe("Could not create multicasters.\n");
-      throw e;
-    }
-    this.pool = new ScheduledThreadPoolExecutor(Configuration.threadPoolSize);
-    try {
-      this.socket = new PeerSocket(this, mcChannel, mdbChannel, mdrChannel);
-    } catch (Exception e) {
-      LOGGER.severe("Could not create the peer's socket.\n");
-      throw e;
-    }
-    this.start();
+    setup();
   }
 
-  private void start() {
-    Thread tSocket = new Thread(socket);
-    Thread tMC = new Thread(mc);
-    Thread tMDB = new Thread(mdb);
-    Thread tMDR = new Thread(mdr);
+  Peer(long id, String accessPoint) throws IOException {
+    this.id = id;
+    this.accessPoint = accessPoint;
+    this.config = new Configuration();
 
-    tSocket.setPriority(Thread.MAX_PRIORITY);
-    tMC.setPriority(Thread.MAX_PRIORITY);
-    tMDB.setPriority(Thread.MAX_PRIORITY);
-    tMDR.setPriority(Thread.MAX_PRIORITY);
+    setup();
+  }
 
-    tSocket.start();
-    tMC.start();
-    tMDB.start();
-    tMDR.start();
+  Peer(long id, String accessPoint, Configuration config) throws IOException {
+    this.id = id;
+    this.accessPoint = accessPoint;
+    this.config = config;
 
-    // retrieve chunk's replication degree HashMap
-    try {
-      String chunksReplicationDegreePathName = Utils.getChunksReplicationDegreePathName(this.id);
-      FileInputStream fis = new FileInputStream(chunksReplicationDegreePathName);
-      ObjectInputStream ois = new ObjectInputStream(fis);
-      this.chunksReplicationDegree = (HashMap) ois.readObject();
-      fis.close();
-      ois.close();
-      this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
-      this.updateChunksReplicationDegreeHashMap();
-    } catch (Exception e) {
-      LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to create one.\n");
-      this.chunksReplicationDegree = new HashMap<>();
-      this.createChunksReplicationDegreeFile();
-    }
+    setup();
   }
 
   /**
@@ -196,19 +153,20 @@ public class Peer implements ClientInterface {
     mdr.finish();
   }
 
-  public final void send(@NotNull Message message) {
+  public void send(@NotNull Message message) {
     this.socket.send(message);
   }
 
   private void createChunksReplicationDegreeFile() {
     try {
-      new File(Configuration.chunksReplicationDegreeDir).mkdir();
+      new File(config.chunksReplicationDegreeDir).mkdir();
       LOGGER.info("Could not locate the peer's state directory. Going to create one.\n");
     } catch (Exception e) {
       LOGGER.severe("Could not create the peersState directory.\n");
       System.exit(1);
     }
-    String chunksReplicationDegreePathName = Utils.getChunksReplicationDegreePathName(this.id);
+    String chunksReplicationDegreePathName =
+        config.chunksReplicationDegreePathName + id + ".ser";
     this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
     this.updateChunksReplicationDegreeHashMap();
   }
@@ -217,7 +175,8 @@ public class Peer implements ClientInterface {
     if (chunksReplicationDegreeFile.exists())
       this.chunksReplicationDegreeFile.delete();
     try {
-      String chunksReplicationDegreePathName = Utils.getChunksReplicationDegreePathName(this.id);
+      String chunksReplicationDegreePathName =
+          config.chunksReplicationDegreePathName + id + ".ser";
       FileOutputStream fos = new FileOutputStream(chunksReplicationDegreePathName);
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       oos.writeObject(this.chunksReplicationDegree);
@@ -241,8 +200,78 @@ public class Peer implements ClientInterface {
     this.updateChunksReplicationDegreeHashMap();
   }
 
-  public String getProtocolVersion() {
-    return protocolVersion;
+  private void initMulticasters() throws IOException {
+    try {
+      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
+      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
+      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
+    } catch (IOException e) {
+      LOGGER.severe("Could not create multicasters.\n");
+      throw e;
+    }
+  }
+
+  private void initSocket() throws IOException {
+    try {
+      this.socket = new PeerSocket(this);
+    } catch (Exception e) {
+      LOGGER.severe("Could not create the peer's socket.\n");
+      throw e;
+    }
+  }
+
+  private void initPool() {
+    this.pool = new ScheduledThreadPoolExecutor(config.threadPoolSize);
+  }
+
+  private void launchThreads() {
+    // Launch a thread for each socket.
+    Thread tSocket = new Thread(socket);
+    Thread tMC = new Thread(mc);
+    Thread tMDB = new Thread(mdb);
+    Thread tMDR = new Thread(mdr);
+
+    tSocket.setPriority(Thread.MAX_PRIORITY);
+    tMC.setPriority(Thread.MAX_PRIORITY);
+    tMDB.setPriority(Thread.MAX_PRIORITY);
+    tMDR.setPriority(Thread.MAX_PRIORITY);
+
+    tSocket.start();
+    tMC.start();
+    tMDB.start();
+    tMDR.start();
+  }
+
+  private void readReplicationDegreeMap() {
+    // retrieve chunk's replication degree HashMap
+    try {
+      String chunksReplicationDegreePathName =
+          config.chunksReplicationDegreePathName + id + ".ser";
+      FileInputStream fis = new FileInputStream(chunksReplicationDegreePathName);
+      ObjectInputStream ois = new ObjectInputStream(fis);
+      this.chunksReplicationDegree = (HashMap) ois.readObject();
+      fis.close();
+      ois.close();
+      this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
+      this.updateChunksReplicationDegreeHashMap();
+    } catch (Exception e) {
+      LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to create one.\n");
+      this.chunksReplicationDegree = new HashMap<>();
+      this.createChunksReplicationDegreeFile();
+    }
+  }
+
+  /**
+   * Construct all required sockets, joining the respective multicast channels; join the
+   * thread pool, verify file paths and configuration, etc.
+   * @throws IOException
+   */
+  private void setup() throws IOException {
+    initSocket();
+    initPool();
+    initMulticasters();
+    readReplicationDegreeMap();
+    launchThreads();
   }
 
   public long getId() {
@@ -253,16 +282,8 @@ public class Peer implements ClientInterface {
     return accessPoint;
   }
 
-  public Multicaster getMc() {
-    return mc;
-  }
-
-  public Multicaster getMdb() {
-    return mdb;
-  }
-
-  public Multicaster getMdr() {
-    return mdr;
+  public Configuration getConfig() {
+    return config;
   }
 
   public ScheduledThreadPoolExecutor getPool() {

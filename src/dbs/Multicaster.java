@@ -1,9 +1,5 @@
 package dbs;
 
-
-import dbs.processor.ControlProcessor;
-import dbs.processor.DataBackupProcessor;
-import dbs.processor.DataRestoreProcessor;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOError;
@@ -16,15 +12,15 @@ import java.util.logging.Logger;
 public final class Multicaster implements Runnable {
   public interface Processor {
     Runnable runnable(@NotNull DatagramPacket packet);
-    enum ProcessorType {CONTROL, DATA_BACKUP, DATA_RESTORE}
   }
+
+  private final static Logger LOGGER = Logger.getLogger(Multicaster.class.getName());
 
   private MulticastSocket socket;
   private final Peer peer;
   private final Processor processor;
   private boolean finished = false;
   private final MulticastChannel multicastChannel;
-  private final static Logger LOGGER = Logger.getLogger(Multicaster.class.getName());
 
   /**
    * Die regularly by leaving the Multicast group and then closing the socket normally.
@@ -76,22 +72,21 @@ public final class Multicaster implements Runnable {
    *
    * @param peer             The controlling peer
    * @param multicastChannel The Protocol Channel this Multicaster polls
-   * @param processorType    The type of the message processor
+   * @param processor        The processor of this Multicaster
    * @throws IOException If there is a problem setting up the multicast network, e.g.
    *                     invalid multicast address, port or timeout.
    */
   public Multicaster(@NotNull Peer peer, @NotNull MulticastChannel multicastChannel,
-                     @NotNull Multicaster.Processor.ProcessorType processorType) throws Exception {
+                     @NotNull Multicaster.Processor processor) throws IOException {
     this.peer = peer;
     this.multicastChannel = multicastChannel;
-    this.processor = processorType == Processor.ProcessorType.CONTROL ? new ControlProcessor() :
-        processorType == Processor.ProcessorType.DATA_BACKUP ? new DataBackupProcessor() : new DataRestoreProcessor();
+    this.processor = processor;
     try {
       socket = new MulticastSocket(multicastChannel.getPort());
       socket.joinGroup(multicastChannel.getAddress());
-      socket.setSoTimeout(Configuration.multicastTimeout);
+      socket.setSoTimeout(peer.getConfig().multicastTimeout);
       socket.setTimeToLive(1);
-    } catch (Exception e) {
+    } catch (IOException e) {
       LOGGER.severe("Could not create socket.\n");
       throw e;
     }
@@ -101,7 +96,7 @@ public final class Multicaster implements Runnable {
     return this.processor;
   }
 
-  public final void finish() {
+  final void finish() {
     this.finished = true;
   }
 

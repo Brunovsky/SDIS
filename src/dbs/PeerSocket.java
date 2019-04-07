@@ -16,31 +16,25 @@ public final class PeerSocket implements Runnable {
   private final Peer peer;
   private final LinkedBlockingDeque<DatagramPacket> queue;
   private boolean finished = false;
-  private MulticastChannel mc;
-  private MulticastChannel mdb;
-  private MulticastChannel mdr;
   // set to true to quit after next message.
 
   public PeerSocket(@NotNull Peer peer, int port, @NotNull InetAddress address)
       throws IOException {
     this.peer = peer;
     this.socket = new DatagramSocket(port, address);
-    this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
+    this.queue = new LinkedBlockingDeque<>(peer.getConfig().socketQueueCapacity);
   }
 
   public PeerSocket(@NotNull Peer peer, int port) throws IOException {
     this.peer = peer;
     this.socket = new DatagramSocket(port);
-    this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
+    this.queue = new LinkedBlockingDeque<>(peer.getConfig().socketQueueCapacity);
   }
 
-  public PeerSocket(@NotNull Peer peer, MulticastChannel mc, MulticastChannel mdb, MulticastChannel mdr) throws IOException {
+  public PeerSocket(@NotNull Peer peer) throws IOException {
     this.peer = peer;
     this.socket = new DatagramSocket();
-    this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
-    this.mc = mc;
-    this.mdb = mdb;
-    this.mdr = mdr;
+    this.queue = new LinkedBlockingDeque<>(peer.getConfig().socketQueueCapacity);
   }
 
   /**
@@ -82,13 +76,13 @@ public final class PeerSocket implements Runnable {
     MulticastChannel destinationChannel;
     switch (message.getType()) {
       case PUTCHUNK:
-        destinationChannel = this.mdb;
+        destinationChannel = Protocol.mdb;
         break;
       case CHUNK:
-        destinationChannel = this.mdr;
+        destinationChannel = Protocol.mdr;
         break;
       default:
-        destinationChannel = this.mc;
+        destinationChannel = Protocol.mc;
         break;
     }
     queue.add(message.getPacket(Long.toString(peer.getId()), destinationChannel.getPort(), destinationChannel.getAddress()));
@@ -110,7 +104,7 @@ public final class PeerSocket implements Runnable {
 
     while (!finished) {
       try {
-        packet = queue.poll(Configuration.socketTimeout, TimeUnit.MILLISECONDS);
+        packet = queue.poll(peer.getConfig().socketTimeout, TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {
         continue;
       }

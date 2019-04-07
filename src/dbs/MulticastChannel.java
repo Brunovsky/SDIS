@@ -22,6 +22,11 @@ public class MulticastChannel {
       throw e;
     }
 
+    if (!this.address.isMulticastAddress()) {
+      LOGGER.severe("Address " + address + " Is not a multicast address.\n");
+      throw new IllegalArgumentException(address);
+    }
+
     // parse port
     try {
       this.port = Integer.parseInt(port);
