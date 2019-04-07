@@ -4,6 +4,7 @@ import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.logging.Logger;
 
@@ -22,7 +23,15 @@ public class Utils {
       LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
       return null;
     }
-    return encodedHash;
+    BigInteger hash = new BigInteger(1, encodedHash);
+
+    String hashtext = hash.toString(16);
+
+    while (hashtext.length() < 32) {
+      hashtext = "0" + hashtext;
+    }
+
+    return hashtext.getBytes();
   }
 
   public static Registry registry() {
@@ -41,7 +50,7 @@ public class Utils {
         try {
           registry = LocateRegistry.getRegistry();
         } catch (RemoteException e3) {
-          // Something very bar happened.
+          // Something very bad happened.
           throw new Error(e1); // throw the first error
         }
       }

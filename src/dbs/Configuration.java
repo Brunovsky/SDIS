@@ -4,10 +4,10 @@ public class Configuration {
     // Which protocol version does this peer use?
     public String version = "1.0";
 
-    // This peer's id. TODO: Decide if this is appropriate (don't think so)
+    // This peer's id. TODO: is this better here? (don't think so)
     //public String id;
 
-    // This peer's access point. TODO: Decide if this is appropriate (don't think so)
+    // This peer's access point. TODO: is this better here? (don't think so)
     //public String accessPoint;
 
     // Peer's root directory.
@@ -15,10 +15,12 @@ public class Configuration {
     public String peerRootDirPrefix = "peer-";
 
     // Backup subdirectory, where chunks kept by this peer are kept.
+    // Note: This might be inlined somewhere already
     public String backupDir = "backup";
 
     // Chunk file prefix.
     // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
+    //public String chunkPrefix;
 
     // Restore subdirectory, where files restored are kept.
     public String restoreDir = "restored";

@@ -1,8 +1,8 @@
 package dbs.processor;
 
+import dbs.Multicaster;
 import dbs.message.Message;
 import dbs.message.MessageException;
-import dbs.Multicaster;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;

@@ -32,7 +32,7 @@ class TestMessage {
     String body1 = "O rato roeu a\nrolha da garrafa\r\n do rei da Russia";
     String body2 = "Lorem ipsum dolor\r\nsit amet quorum\n";
 
-    Message chunk = Message.CHUNK(hash2, protocolVersion,4, body1.getBytes());
+    Message chunk = Message.CHUNK(hash2, protocolVersion, 4, body1.getBytes());
     chunk.setSenderId("12345");
     System.out.println(chunk.toString());
 
@@ -40,7 +40,7 @@ class TestMessage {
     delete.setSenderId("54321");
     System.out.println(delete.toString());
 
-    Message removed = Message.REMOVED(hash1, protocolVersion, 4);
+    Message removed = Message.REMOVED(hash1, protocolVersion, 4 );
     removed.setSenderId("7890");
     System.out.println(removed.toString());
 

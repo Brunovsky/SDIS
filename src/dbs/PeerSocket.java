@@ -68,11 +68,25 @@ public final class PeerSocket implements Runnable {
   }
 
   /**
-   * Add this message to the output queue, destined to a generic channel.
+   * Add this message to the output queue, destined to a specific channel.
+   *
+   * @param message The message to be sent
+   * @param channel The destination channel
+   */
+  public void sendTo(@NotNull Message message, MulticastChannel channel) {
+    if (finished) return;
+    queue.add(message.getPacket(Long.toString(peer.getId()), channel.getPort(),
+        channel.getAddress()));
+  }
+
+  /**
+   * Add this message to the output queue. Automatically detect the channel based on
+   * the message type.
    *
    * @param message The message to be sent.
    */
   public void send(@NotNull Message message) {
+    if (finished) return;
     MulticastChannel destinationChannel;
     switch (message.getType()) {
       case PUTCHUNK:
@@ -85,7 +99,7 @@ public final class PeerSocket implements Runnable {
         destinationChannel = Protocol.mc;
         break;
     }
-    queue.add(message.getPacket(Long.toString(peer.getId()), destinationChannel.getPort(), destinationChannel.getAddress()));
+    sendTo(message, destinationChannel);
   }
 
   public final void finish() {
@@ -114,6 +128,11 @@ public final class PeerSocket implements Runnable {
     }
 
     // TODO: die gracefully, finish sending queued messages
+    while (!queue.isEmpty()) {
+      packet = queue.pop();
+      if (packet == null) continue;
+      send(packet);
+    }
 
     die();
   }

@@ -19,9 +19,9 @@ public class ControlProcessor implements Multicaster.Processor {
     public void run() {
       try {
         Message m = new Message(packet);
-        System.out.print("[MC Processor] \n" + m.toString() + "\n");
+        System.out.println("[MC Processor] \n" + m.toString() + "\n");
       } catch (MessageException e) {
-        System.err.print("[MC Processor ERR] Invalid:\n" + e.getMessage() + "\n");
+        System.err.println("[MC Processor ERR] Invalid:\n" + e.getMessage() + "\n");
       }
     }
   }

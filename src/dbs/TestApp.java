@@ -1,6 +1,5 @@
 package dbs;
 
-import java.nio.file.LinkOption;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.logging.Logger;
@@ -12,7 +11,7 @@ public class TestApp {
   /**
    * Represents the possible operations requested by the client.
    */
-  private static enum Operation {
+  private enum Operation {
     BACKUP, RESTORE, DELETE, RECLAIM, STATE
   }
 

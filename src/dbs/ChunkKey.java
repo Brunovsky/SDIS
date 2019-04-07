@@ -16,8 +16,8 @@ public class ChunkKey {
     if (!(obj instanceof ChunkKey))
       return false;
 
-    ChunkKey objChunckKey = (ChunkKey) obj;
-    return objChunckKey.chunkNumber == this.chunkNumber &&
-        MessageDigest.isEqual(objChunckKey.fileId, this.fileId);
+    ChunkKey objChunkKey = (ChunkKey) obj;
+    return objChunkKey.chunkNumber == this.chunkNumber &&
+        MessageDigest.isEqual(objChunkKey.fileId, this.fileId);
   }
 }

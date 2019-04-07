@@ -4,6 +4,7 @@ import dbs.message.Message;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
+import dbs.transmitter.DataBackupTransmitter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -12,13 +13,12 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
+import java.util.Vector;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Logger;
 
 public class Peer implements ClientInterface {
-  private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
-
-  private long id;
+  private Long id;
   private String accessPoint;
   private Configuration config;
   private Multicaster mc;
@@ -26,8 +26,9 @@ public class Peer implements ClientInterface {
   private Multicaster mdr;
   private PeerSocket socket;
   private ScheduledThreadPoolExecutor pool;
-  private HashMap<ChunkKey,Integer> chunksReplicationDegree;
+  public HashMap<ChunkKey, Vector<Long>> chunksReplicationDegree;
   private File chunksReplicationDegreeFile;
+  public final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
   public static void main(String[] args) {
 
@@ -45,7 +46,7 @@ public class Peer implements ClientInterface {
       ClientInterface stub = (ClientInterface) UnicastRemoteObject.exportObject(peer, 0);
       // Bind the remote object's stub in the registry
       Registry registry = LocateRegistry.getRegistry();
-      registry.bind(peer.getAccessPoint(), stub);
+      registry.rebind(peer.getAccessPoint(), stub);
       LOGGER.info("Ready to receive requests.\n");
     } catch (Exception e) {
       LOGGER.severe("Could not bind the remote object's stub to the name " + peer.getAccessPoint() + " in the registry.\n");
@@ -78,7 +79,7 @@ public class Peer implements ClientInterface {
     try {
       mc = new MulticastChannel(args[3], args[4]);
     } catch (Exception e) {
-      LOGGER.warning("Invalid format for mc. Should be <ip_address><port_number>.\n");
+      LOGGER.warning("Invalid format for mc. Should be <ip_address> <port_number>.\n");
       throw e;
     }
 
@@ -87,7 +88,7 @@ public class Peer implements ClientInterface {
     try {
       mdb = new MulticastChannel(args[5], args[6]);
     } catch (Exception e) {
-      LOGGER.warning("Invalid format for mdb. Should be <ip_address><port_number>.\n");
+      LOGGER.warning("Invalid format for mdb. Should be <ip_address> <port_number>.\n");
       throw e;
     }
 
@@ -96,7 +97,7 @@ public class Peer implements ClientInterface {
     try {
       mdr = new MulticastChannel(args[7], args[8]);
     } catch (Exception e) {
-      LOGGER.warning("Invalid format for mdr. Should be <ip_address><port_number>.\n");
+      LOGGER.warning("Invalid format for mdr. Should be <ip_address> <port_number>.\n");
       throw e;
     }
 
@@ -188,9 +189,13 @@ public class Peer implements ClientInterface {
     }
   }
 
-  private void insertIntoChunksReplicationDegreeHashMap(byte[] fileId, int chunkNumber, int replicationDegree) {
+  private void insertIntoChunksReplicationDegreeHashMap(byte[] fileId, int chunkNumber, Long peerId) {
     ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
-    this.chunksReplicationDegree.put(chunkKey, replicationDegree);
+    Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
+    if(chunKPeers == null)
+      chunKPeers = new Vector<>();
+    chunKPeers.add(peerId);
+    //this.chunksReplicationDegree.put(chunkKey, chunKPeers);
     this.updateChunksReplicationDegreeHashMap();
   }
 
@@ -291,31 +296,9 @@ public class Peer implements ClientInterface {
   }
 
   /********* Interface Implementation **********/
-  public void backup(String pathname, int replicationDegree) throws RemoteException {
-    File fileToBackup = new File(pathname);
-
-    // check if path name corresponds to a valid file
-    if (!fileToBackup.exists() || fileToBackup.isDirectory()) {
-      LOGGER.severe("Invalid path name.\n");
-      return;
-    }
-
-    // hash the pathname
-    byte[] fileId;
-    try {
-      fileId = Utils.hash(fileToBackup, this.id);
-    } catch (Exception e) {
-      LOGGER.severe("Could not retrieve a file id for the path name " + pathname + "\n");
-      return;
-    }
-
-    // send PUTCHUNCK MESSAGES
-    // TODO: continue - split file into chunks. Call method send of the Peer class for each message created.
-    /*FileInputStream fis = new FileInputStream(fileToBackup);
-    byte[] chunk = new byte[Configuration.chunkSize];
-    while(fis.read(chunk, 0, Configuration.chunkSize)) {
-    }
-    */
+  public void backup(String pathname, int replicationDegree) {
+    LOGGER.info("Received BACKUP request.");
+    this.pool.submit(new DataBackupTransmitter(this, pathname, replicationDegree));
   }
 
   public void restore(String pathname) throws RemoteException {
