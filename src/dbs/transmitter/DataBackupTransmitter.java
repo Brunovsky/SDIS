@@ -15,7 +15,7 @@ public class DataBackupTransmitter implements Runnable {
   Peer peer;
   String pathname;
   int replicationDegree;
-  byte[] fileId;
+  String fileId;
   int numberChunks;
 
   public DataBackupTransmitter(Peer peer, String pathname, int replicationDegree) {
@@ -31,7 +31,7 @@ public class DataBackupTransmitter implements Runnable {
     // check if path name corresponds to a valid file
     if (!fileToBackup.exists() || fileToBackup.isDirectory()) {
       Peer.LOGGER.severe("Invalid path name.\n");
-      System.exit(1);
+      return;
     }
 
     // hash the pathname
@@ -40,7 +40,7 @@ public class DataBackupTransmitter implements Runnable {
       this.fileId = Utils.hash(fileToBackup, peer.getId());
     } catch (Exception e) {
       Peer.LOGGER.severe("Could not retrieve a file id for the path name " + pathname + "\n");
-      System.exit(1);
+      return;
     }
 
     // send PUTCHUNK messages
@@ -51,21 +51,20 @@ public class DataBackupTransmitter implements Runnable {
       try {
         TimeUnit.SECONDS.sleep(1);
       } catch (InterruptedException e) {
-        Peer.LOGGER.severe("Could not wait for the reception of STORED messages");
-        System.exit(1);
+        Peer.LOGGER.severe("Could not wait for the reception of STORED messages.\n");
+        return;
       }
       if(backedUpFile()) {
-        Peer.LOGGER.info("Successfully backed up file '" + pathname + "'.");
-        System.exit(0);
+        Peer.LOGGER.info("Successfully backed up file '" + pathname + "'.\n");
+        return;
       }
       else {
         Peer.LOGGER.warning("Could not back up file '" + pathname + "'. Going to try " +
-            "again (attempt number " + attemptNumber + ").");
+            "again (attempt number " + attemptNumber + ").\n");
         this.transmitFile(fileToBackup);
       }
     }
-    Peer.LOGGER.severe("Could not backup file '" + pathname + "'. Backup cancelled.");
-    System.exit(1);
+    Peer.LOGGER.severe("Could not backup file '" + pathname + "'. Backup cancelled.\n");
   }
 
   private void transmitFile(File fileToBackup) {
@@ -78,7 +77,7 @@ public class DataBackupTransmitter implements Runnable {
     try{
       fis = new FileInputStream(fileToBackup);
     } catch (FileNotFoundException e) {
-      Peer.LOGGER.severe("Could not find the '"  + fileToBackup + "' file.");
+      Peer.LOGGER.severe("Could not find the '"  + fileToBackup + "' file.\n");
     }
 
     do {
@@ -88,7 +87,7 @@ public class DataBackupTransmitter implements Runnable {
       try {
         numberBytesRead = fis.read(chunk, 0, Protocol.chunkSize);
       } catch(IOException e) {
-        Peer.LOGGER.severe("Could not read from the '" + fileToBackup + "' file.");
+        Peer.LOGGER.severe("Could not read from the '" + fileToBackup + "' file.\n");
         break;
       }
 
@@ -99,7 +98,7 @@ public class DataBackupTransmitter implements Runnable {
           if(chunkPeers.size() >= this.replicationDegree) // chunk's replication degree already set to the desired value
             break;
         }
-        sendMessage(fileId, chunkNumber, chunk);
+        sendMessage(fileId.getBytes(), chunkNumber, chunk);
         this.numberChunks = chunkNumber;
         chunk = new byte[Protocol.chunkSize];
       }
@@ -114,8 +113,8 @@ public class DataBackupTransmitter implements Runnable {
   }
 
   private boolean backedUpFile() {
-    for (int chunckNumber = 1; chunckNumber <= this.numberChunks; chunckNumber++) {
-      ChunkKey chunkKey = new ChunkKey(this.fileId, chunckNumber);
+    for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
+      ChunkKey chunkKey = new ChunkKey(this.fileId, chunkNumber);
       if (peer.chunksReplicationDegree.containsKey(chunkKey)) {  // chunk already backed up
         Vector<Long> chunkPeers = peer.chunksReplicationDegree.get(chunkKey);
         if (chunkPeers.size() < this.replicationDegree) // chunk's replication degree already set to the desired value

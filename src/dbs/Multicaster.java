@@ -11,7 +11,7 @@ import java.util.logging.Logger;
 
 public final class Multicaster implements Runnable {
   public interface Processor {
-    Runnable runnable(@NotNull DatagramPacket packet);
+    Runnable runnable(@NotNull DatagramPacket packet, Peer peer);
   }
 
   private final static Logger LOGGER = Logger.getLogger(Multicaster.class.getName());

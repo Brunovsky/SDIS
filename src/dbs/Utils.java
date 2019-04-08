@@ -6,6 +6,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.math.BigInteger;
 import java.security.MessageDigest;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public class Utils {
@@ -57,5 +59,11 @@ public class Utils {
     }
 
     return registry;
+  }
+
+  public static void waitRandom(int min, int max, TimeUnit timeUnit) throws InterruptedException {
+    Random rand = new Random();
+    int delay = rand.nextInt(max) + min;
+    timeUnit.sleep(1);
   }
 }
