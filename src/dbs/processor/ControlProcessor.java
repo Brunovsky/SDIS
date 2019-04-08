@@ -11,10 +11,10 @@ import java.net.DatagramPacket;
 
 public class ControlProcessor implements Multicaster.Processor {
   private class ControlRunnable implements Runnable {
-    private DatagramPacket packet;
-    private Peer peer;
+    private final DatagramPacket packet;
+    private final Peer peer;
 
-    ControlRunnable(@NotNull DatagramPacket packet, Peer peer) {
+    ControlRunnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
       this.packet = packet;
       this.peer = peer;
     }
@@ -68,7 +68,7 @@ public class ControlProcessor implements Multicaster.Processor {
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet, Peer peer) {
+  public final Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
     return new ControlRunnable(packet, peer);
   }
 }

@@ -10,6 +10,9 @@ public class Configuration {
     // This peer's access point. TODO: is this better here? (don't think so)
     //public String accessPoint;
 
+    // Folder where each peer root directory is stored.
+    public String allPeersRootDir = "dbs";
+
     // Peer's root directory.
     // TODO: Define a prefix and use "peer-$PEERID/" or use "peer/$PEERID/" ?
     public String peerRootDirPrefix = "peer-";
@@ -18,12 +21,16 @@ public class Configuration {
     // Note: This might be inlined somewhere already
     public String backupDir = "backup";
 
+    // Backup entry prefix
+    // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
+    public String entryPrefix = "file-";
+
     // Chunk file prefix.
     // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
-    //public String chunkPrefix;
+    public String chunkPrefix = "chunk-";
 
     // Restore subdirectory, where files restored are kept.
-    public String restoreDir = "restored";
+    public String restoredDir = "restored";
 
     // Subdirectory for storing replication degrees
     public String chunksReplicationDegreeDir = "peersState/";
