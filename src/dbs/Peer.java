@@ -191,12 +191,16 @@ public class Peer implements ClientInterface {
     }
   }
 
-  public void getReplicationDegree(String fileId, int chunkNumber) {
-
+  public int getReplicationDegree(String fileId, int chunkNumber) {
+    ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
+    Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
+    if(chunKPeers == null)
+      return 0;
+    else
+      return chunKPeers.size();
   }
 
-  private void insertIntoChunksReplicationDegreeHashMap(String fileId, int chunkNumber,
-                                                        Long peerId) {
+  public void insertIntoChunksReplicationDegreeHashMap(String fileId, int chunkNumber, Long peerId) {
     ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
     Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
     if (chunKPeers == null)
@@ -305,8 +309,8 @@ public class Peer implements ClientInterface {
   }
 
   /********* Interface Implementation **********/
-  public void backup(@NotNull String pathname, int replicationDegree) {
-    LOGGER.info("Received BACKUP request.");
+  public void backup(String pathname, int replicationDegree) {
+    LOGGER.info("Received BACKUP request.\n");
     this.pool.submit(new DataBackupTransmitter(this, pathname, replicationDegree));
   }
 
