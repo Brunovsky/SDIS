@@ -6,7 +6,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -67,6 +66,7 @@ public final class FilesManager {
   /**
    * Construct a file manager for this given peer.
    * The file manager only needs the peer's configuration and id.
+   *
    * @param peer The DBS peer.
    * @throws IOException If the directories cannot be properly set up.
    */
@@ -107,6 +107,7 @@ public final class FilesManager {
 
   /**
    * Create the root directory shared by all peers if it does not exist.
+   *
    * @throws IOException If there is a problem setting up this directory.
    */
   private void createAllPeersRoot() throws IOException {
@@ -116,6 +117,7 @@ public final class FilesManager {
 
   /**
    * Create the root directory for our peer.
+   *
    * @throws IOException If there is a problem setting up this directory.
    */
   private void createPeerRoot() throws IOException {
@@ -126,6 +128,7 @@ public final class FilesManager {
 
   /**
    * Create the root directory for the backup subprotocol
+   *
    * @throws IOException If there is a problem setting up this directory.
    */
   private void createBackupRoot() throws IOException {
@@ -136,6 +139,7 @@ public final class FilesManager {
 
   /**
    * Create the root directory for the restore subprotocol
+   *
    * @throws IOException If there is a problem setting up this directory.
    */
   private void createRestoredRoot() throws IOException {
@@ -146,6 +150,7 @@ public final class FilesManager {
 
   /**
    * Verifies if there exists a backup folder corresponding to this file id.
+   *
    * @param fileId The file id
    * @return true if the folder exists, and false otherwise.
    */
@@ -156,7 +161,8 @@ public final class FilesManager {
 
   /**
    * Verifies if there exists a chunk file corresponding to this chunk.
-   * @param fileId The file id
+   *
+   * @param fileId  The file id
    * @param chunkNo The chunk number
    * @return true if the file exists, and false otherwise.
    */
@@ -168,6 +174,7 @@ public final class FilesManager {
 
   /**
    * Verifies if there exists a restored file with this filename.
+   *
    * @param filename The filename being restored
    * @return true if the file exists, and false otherwise.
    */
@@ -179,7 +186,8 @@ public final class FilesManager {
   /**
    * Returns the content of this chunk, or null if it does not exist or a reading error
    * occurred.
-   * @param fileId The file id
+   *
+   * @param fileId  The file id
    * @param chunkNo The chunk number
    * @return The entire chunk content, or null if the chunk does not exist/could not be
    * read.
@@ -199,6 +207,7 @@ public final class FilesManager {
   /**
    * Returns the content of this restored file, or null if it does not exist or a
    * reading error occurred.
+   *
    * @param filename The filename being restored
    * @return The entire file content, or null if it does not exist/could not be read.
    */
@@ -216,9 +225,10 @@ public final class FilesManager {
   /**
    * Stores a new chunk. If another chunk with the same name exists, it will be
    * overwritten.
-   * @param fileId The file id
+   *
+   * @param fileId  The file id
    * @param chunkNo The chunk number
-   * @param chunk The chunk content
+   * @param chunk   The chunk content
    * @return true if the file was successfully written, false otherwise
    */
   public boolean putChunk(@NotNull String fileId, int chunkNo, byte @NotNull [] chunk) {
@@ -237,11 +247,13 @@ public final class FilesManager {
   /**
    * Stores a new restored file. If another file with the same name exists, it will be
    * overwritten.
+   *
    * @param filename The file being restored
-   * @param chunks The various chunks composing the file
+   * @param chunks   The various chunks composing the file
    * @return true if the file was successfully written, false otherwise
    */
-  public boolean putRestore(@NotNull String filename, byte @NotNull [] @NotNull [] chunks) {
+  public boolean putRestore(@NotNull String filename,
+                            byte @NotNull [] @NotNull [] chunks) {
     try {
       Path filepath = restoredDir.resolve(filename);
       Files.write(filepath, concatenateChunks(chunks));
@@ -254,6 +266,7 @@ public final class FilesManager {
 
   /**
    * Delete the backup folder and all its chunks.
+   *
    * @param fileId The file id
    * @return false if the folder existed and could not be completely deleted, and true
    * otherwise.
@@ -265,7 +278,8 @@ public final class FilesManager {
 
   /**
    * Delete one chunk.
-   * @param fileId The file id
+   *
+   * @param fileId  The file id
    * @param chunkNo The chunk number
    * @return false if the file existed and could not be deleted, and true otherwise.
    */
@@ -283,6 +297,7 @@ public final class FilesManager {
 
   /**
    * Get total amount of disk space occupied by this backup file. Internal auxiliary.
+   *
    * @param file A file object, presumably valid and inside the backup/ subdirectory
    * @return The total amount of disk space, 0 if it does not exist or is not a folder.
    */
@@ -299,6 +314,7 @@ public final class FilesManager {
 
   /**
    * Total amount of space occupied by the file with this id.
+   *
    * @param fileId The file id
    * @return The total amount of disk space used, or 0 if it does not exist or is not a
    * folder.
@@ -313,6 +329,7 @@ public final class FilesManager {
 
   /**
    * Total amount of space occupied by all files backed up by this peer.
+   *
    * @return The total amount of disk space used.
    */
   public long backupTotalSpace() {
@@ -326,6 +343,7 @@ public final class FilesManager {
 
   /**
    * List of files kept by this peer's backup.
+   *
    * @return A (possibly empty) list of files kept under backup/
    */
   public File[] backupFilesList() {
@@ -335,6 +353,7 @@ public final class FilesManager {
 
   /**
    * List of chunks under this file.
+   *
    * @param fileId The file id
    * @return A (possible empty) list of chunks kept for this file.
    */

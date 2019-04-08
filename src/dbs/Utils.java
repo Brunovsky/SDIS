@@ -1,5 +1,7 @@
 package dbs;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -11,7 +13,7 @@ import java.util.logging.Logger;
 public class Utils {
   private final static Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
-  public static String hash(File file, long peerId) throws Exception {
+  public static String hash(@NotNull File file, long peerId) throws Exception {
     String filePath = file.getPath();
     long lastModified = file.lastModified();
     String bitString = filePath + lastModified;

@@ -40,7 +40,7 @@ class TestMessage {
     delete.setSenderId("54321");
     System.out.println(delete.toString());
 
-    Message removed = Message.REMOVED(hash1, protocolVersion, 4 );
+    Message removed = Message.REMOVED(hash1, protocolVersion, 4);
     removed.setSenderId("7890");
     System.out.println(removed.toString());
 
@@ -423,7 +423,9 @@ class TestMessage {
     assertThrows(ERR, () -> Message.CHUNK(badhash2, protocolVersion, 2, body2));
     assertThrows(ERR, () -> Message.DELETE(badhash2, protocolVersion));
     assertThrows(ERR, () -> Message.REMOVED(hash2, protocolVersion, -1));
-    assertThrows(ERR, () -> Message.DELETE(hash1, protocolVersion).setSenderId(badsender1));
-    assertThrows(ERR, () -> Message.DELETE(hash1, protocolVersion).setSenderId(badsender2));
+    assertThrows(ERR,
+        () -> Message.DELETE(hash1, protocolVersion).setSenderId(badsender1));
+    assertThrows(ERR,
+        () -> Message.DELETE(hash1, protocolVersion).setSenderId(badsender2));
   }
 }

@@ -26,7 +26,7 @@ public class Peer implements ClientInterface {
   private Multicaster mdr;
   private PeerSocket socket;
   private ScheduledThreadPoolExecutor pool;
-  public HashMap<ChunkKey, Vector<Long>> chunksReplicationDegree;
+  public HashMap<ChunkKey,Vector<Long>> chunksReplicationDegree;
   private File chunksReplicationDegreeFile;
   public final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
@@ -57,7 +57,8 @@ public class Peer implements ClientInterface {
   public static Peer parseArgs(String[] args) throws Exception {
 
     if (args.length != 9)
-      LOGGER.warning("Wrong number of arguments. Usage: Peer <protocol_version> <id> <access_point> <mc> <mdb> <mdr>\n");
+      LOGGER.warning("Wrong number of arguments. Usage: Peer <protocol_version> <id> " +
+          "<access_point> <mc> <mdb> <mdr>\n");
 
     // parse protocol version
     String protocolVersion = args[0];
@@ -104,8 +105,9 @@ public class Peer implements ClientInterface {
     return new Peer(protocolVersion, id, accessPoint, mc, mdb, mdr);
   }
 
-  Peer(String protocolVersion, long id, String accessPoint, MulticastChannel mc,
-       MulticastChannel mdb, MulticastChannel mdr) throws IOException {
+  Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint,
+       @NotNull MulticastChannel mc,
+       @NotNull MulticastChannel mdb, @NotNull MulticastChannel mdr) throws IOException {
     Protocol.mc = mc;
     Protocol.mdb = mdb;
     Protocol.mdr = mdr;
@@ -118,7 +120,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(String protocolVersion, long id, String accessPoint) throws IOException {
+  Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint) throws IOException {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = new Configuration();
@@ -127,7 +129,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(long id, String accessPoint) throws IOException {
+  Peer(long id, @NotNull String accessPoint) throws IOException {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = new Configuration();
@@ -135,7 +137,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(long id, String accessPoint, Configuration config) throws IOException {
+  Peer(long id, @NotNull String accessPoint, @NotNull Configuration config) throws IOException {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = config;
@@ -193,10 +195,11 @@ public class Peer implements ClientInterface {
 
   }
 
-  private void insertIntoChunksReplicationDegreeHashMap(String fileId, int chunkNumber, Long peerId) {
+  private void insertIntoChunksReplicationDegreeHashMap(String fileId, int chunkNumber,
+                                                        Long peerId) {
     ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
     Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
-    if(chunKPeers == null)
+    if (chunKPeers == null)
       chunKPeers = new Vector<>();
     chunKPeers.add(peerId);
     //this.chunksReplicationDegree.put(chunkKey, chunKPeers);
@@ -264,7 +267,8 @@ public class Peer implements ClientInterface {
       this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
       this.updateChunksReplicationDegreeHashMap();
     } catch (Exception e) {
-      LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to create one.\n");
+      LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to " +
+          "create one.\n");
       this.chunksReplicationDegree = new HashMap<>();
       this.createChunksReplicationDegreeFile();
     }
@@ -273,6 +277,7 @@ public class Peer implements ClientInterface {
   /**
    * Construct all required sockets, joining the respective multicast channels; join the
    * thread pool, verify file paths and configuration, etc.
+   *
    * @throws IOException
    */
   private void setup() throws IOException {
@@ -300,16 +305,16 @@ public class Peer implements ClientInterface {
   }
 
   /********* Interface Implementation **********/
-  public void backup(String pathname, int replicationDegree) {
+  public void backup(@NotNull String pathname, int replicationDegree) {
     LOGGER.info("Received BACKUP request.");
     this.pool.submit(new DataBackupTransmitter(this, pathname, replicationDegree));
   }
 
-  public void restore(String pathname) throws RemoteException {
+  public void restore(@NotNull String pathname) throws RemoteException {
     return;
   }
 
-  public void delete(String pathname) throws RemoteException {
+  public void delete(@NotNull String pathname) throws RemoteException {
     return;
   }
 
