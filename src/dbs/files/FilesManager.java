@@ -4,8 +4,7 @@ import dbs.Configuration;
 import dbs.Peer;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,9 +19,15 @@ public final class FilesManager {
   private Path peerDir;
   private Path backupDir;
   private Path restoredDir;
+  private Path mineDir;
+  private Path idMapDir;
 
-  private static String chk(@NotNull String fileId, int chunkNo) {
-    return "chunk #" + chunkNo + " of file " + fileId.substring(0, 12) + "..";
+  static private String chk(@NotNull String fileId, int chunkNo) {
+    return "chunk #" + chunkNo + " of file " + id(fileId);
+  }
+
+  static private String id(@NotNull String fileId) {
+    return fileId.substring(0, 10) + "..";
   }
 
   static byte[] concatenateChunks(byte @NotNull [] @NotNull [] chunks) {
@@ -64,32 +69,6 @@ public final class FilesManager {
   }
 
   /**
-   * Construct a file manager for this given peer.
-   * The file manager only needs the peer's configuration and id.
-   *
-   * @param peer The DBS peer.
-   * @throws IOException If the directories cannot be properly set up.
-   */
-  public FilesManager(@NotNull Peer peer) throws IOException {
-    this(Long.toString(peer.getId()), peer.getConfig());
-  }
-
-  /**
-   * @param id     The DBS peer's id.
-   * @param config THe configuration (contains paths)
-   * @throws IOException If the directories cannot be properly set up.
-   */
-  FilesManager(@NotNull String id, @NotNull Configuration config) throws IOException {
-    this.id = id;
-    this.config = config;
-
-    createAllPeersRoot();
-    createPeerRoot();
-    createBackupRoot();
-    createRestoredRoot();
-  }
-
-  /**
    * @param fileId A valid fileId
    * @return The corresponding directory name in the backup/ directory
    */
@@ -106,46 +85,52 @@ public final class FilesManager {
   }
 
   /**
-   * Create the root directory shared by all peers if it does not exist.
+   * Construct a file manager for this given peer.
+   * The file manager only needs the peer's configuration and id.
    *
-   * @throws IOException If there is a problem setting up this directory.
+   * @param peer The DBS peer.
+   * @throws IOException If the directories cannot be properly set up.
    */
-  private void createAllPeersRoot() throws IOException {
-    Path path = Paths.get(config.allPeersRootDir);
+  public FilesManager(@NotNull Peer peer) throws IOException {
+    this(Long.toString(peer.getId()), peer.getConfig());
+  }
+
+  /**
+   * Constructs a files manager for a peer's id and config.
+   *
+   * @param id     The DBS peer's id.
+   * @param config THe configuration (contains paths)
+   * @throws IOException If the directories cannot be properly set up.
+   */
+  FilesManager(@NotNull String id, @NotNull Configuration config) throws IOException {
+    this.id = id;
+    this.config = config;
+
+    Path path;
+
+    // dbs/
+    path = Paths.get(config.allPeersRootDir);
     allPeersDir = Files.createDirectories(path);
-  }
 
-  /**
-   * Create the root directory for our peer.
-   *
-   * @throws IOException If there is a problem setting up this directory.
-   */
-  private void createPeerRoot() throws IOException {
-    String subfolder = config.peerRootDirPrefix + id;
-    Path path = allPeersDir.resolve(subfolder);
+    // dbs/peer-ID
+    path = allPeersDir.resolve(config.peerRootDirPrefix + this.id);
     peerDir = Files.createDirectories(path);
-  }
 
-  /**
-   * Create the root directory for the backup subprotocol
-   *
-   * @throws IOException If there is a problem setting up this directory.
-   */
-  private void createBackupRoot() throws IOException {
-    String subfolder = config.backupDir;
-    Path path = peerDir.resolve(subfolder);
+    // dbs/peer-ID/backup/
+    path = peerDir.resolve(config.backupDir);
     backupDir = Files.createDirectories(path);
-  }
 
-  /**
-   * Create the root directory for the restore subprotocol
-   *
-   * @throws IOException If there is a problem setting up this directory.
-   */
-  private void createRestoredRoot() throws IOException {
-    String subfolder = config.restoredDir;
-    Path path = peerDir.resolve(subfolder);
+    // dbs/peer-ID/restored/
+    path = peerDir.resolve(config.restoredDir);
     restoredDir = Files.createDirectories(path);
+
+    // dbs/peer-ID/idmap/
+    path = peerDir.resolve(config.idMapDir);
+    idMapDir = Files.createDirectories(path);
+
+    // dbs/peer-ID/mine/
+    path = peerDir.resolve(config.chunkInfoDir);
+    mineDir = Files.createDirectories(path);
   }
 
   /**
@@ -160,6 +145,18 @@ public final class FilesManager {
   }
 
   /**
+   * Delete the backup folder and all its chunks.
+   *
+   * @param fileId The file id
+   * @return false if the folder existed and could not be completely deleted, and true
+   * otherwise.
+   */
+  public boolean deleteBackupFile(@NotNull String fileId) {
+    Path filepath = backupDir.resolve(makeBackupEntry(fileId));
+    return deleteDirectory(filepath.toFile());
+  }
+
+  /**
    * Verifies if there exists a chunk file corresponding to this chunk.
    *
    * @param fileId  The file id
@@ -170,17 +167,6 @@ public final class FilesManager {
     Path filepath = backupDir.resolve(makeBackupEntry(fileId));
     Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
     return Files.exists(chunkpath) && Files.isRegularFile(chunkpath);
-  }
-
-  /**
-   * Verifies if there exists a restored file with this filename.
-   *
-   * @param filename The filename being restored
-   * @return true if the file exists, and false otherwise.
-   */
-  public boolean hasRestore(@NotNull String filename) {
-    Path filepath = restoredDir.resolve(filename);
-    return Files.exists(filepath);
   }
 
   /**
@@ -200,24 +186,6 @@ public final class FilesManager {
       return Files.readAllBytes(chunkpath);
     } catch (IOException e) {
       LOGGER.warning("Failed to get " + chk(fileId, chunkNo) + "\n" + e.getMessage());
-      return null;
-    }
-  }
-
-  /**
-   * Returns the content of this restored file, or null if it does not exist or a
-   * reading error occurred.
-   *
-   * @param filename The filename being restored
-   * @return The entire file content, or null if it does not exist/could not be read.
-   */
-  public byte[] getRestore(@NotNull String filename) {
-    try {
-      Path filepath = restoredDir.resolve(filename);
-      if (Files.notExists(filepath)) return null;
-      return Files.readAllBytes(filepath);
-    } catch (IOException e) {
-      LOGGER.warning("Failed to read restore file " + filename + "\n" + e.getMessage());
       return null;
     }
   }
@@ -245,6 +213,54 @@ public final class FilesManager {
   }
 
   /**
+   * Delete one chunk.
+   *
+   * @param fileId  The file id
+   * @param chunkNo The chunk number
+   * @return false if the file existed and could not be deleted, and true otherwise.
+   */
+  public boolean deleteChunk(@NotNull String fileId, int chunkNo) {
+    try {
+      Path filepath = backupDir.resolve(makeBackupEntry(fileId));
+      Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
+      if (Files.notExists(chunkpath)) return true;
+      return Files.deleteIfExists(chunkpath);
+    } catch (IOException e) {
+      LOGGER.warning("Failed to delete " + chk(fileId, chunkNo) + "\n" + e.getMessage());
+      return false;
+    }
+  }
+
+  /**
+   * Verifies if there exists a restored file with this filename.
+   *
+   * @param filename The filename being restored
+   * @return true if the file exists, and false otherwise.
+   */
+  public boolean hasRestore(@NotNull String filename) {
+    Path filepath = restoredDir.resolve(filename);
+    return Files.exists(filepath);
+  }
+
+  /**
+   * Returns the content of this restored file, or null if it does not exist or a
+   * reading error occurred.
+   *
+   * @param filename The filename being restored
+   * @return The entire file content, or null if it does not exist/could not be read.
+   */
+  public byte[] getRestore(@NotNull String filename) {
+    try {
+      Path filepath = restoredDir.resolve(filename);
+      if (Files.notExists(filepath)) return null;
+      return Files.readAllBytes(filepath);
+    } catch (IOException e) {
+      LOGGER.warning("Failed to read restore file " + filename + "\n" + e.getMessage());
+      return null;
+    }
+  }
+
+  /**
    * Stores a new restored file. If another file with the same name exists, it will be
    * overwritten.
    *
@@ -260,37 +276,6 @@ public final class FilesManager {
       return true;
     } catch (IOException e) {
       LOGGER.warning("Failed to restore file " + filename + "\n" + e.getMessage());
-      return false;
-    }
-  }
-
-  /**
-   * Delete the backup folder and all its chunks.
-   *
-   * @param fileId The file id
-   * @return false if the folder existed and could not be completely deleted, and true
-   * otherwise.
-   */
-  public boolean deleteBackupFile(@NotNull String fileId) {
-    Path filepath = backupDir.resolve(makeBackupEntry(fileId));
-    return deleteDirectory(filepath.toFile());
-  }
-
-  /**
-   * Delete one chunk.
-   *
-   * @param fileId  The file id
-   * @param chunkNo The chunk number
-   * @return false if the file existed and could not be deleted, and true otherwise.
-   */
-  public boolean deleteChunk(@NotNull String fileId, int chunkNo) {
-    try {
-      Path filepath = backupDir.resolve(makeBackupEntry(fileId));
-      Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
-      if (!Files.exists(chunkpath)) return true;
-      return Files.deleteIfExists(chunkpath);
-    } catch (IOException e) {
-      LOGGER.warning("Failed to delete " + chk(fileId, chunkNo) + "\n" + e.getMessage());
       return false;
     }
   }
@@ -363,5 +348,100 @@ public final class FilesManager {
 
     File[] files = filepath.toFile().listFiles();
     return files == null ? new File[0] : files;
+  }
+
+  /**
+   * Retrieve the file id corresponding to a given filename.
+   *
+   * @param filename The backed up filename being queried
+   * @return The file id of the queried filename, or null if it does not exist.
+   */
+  public boolean hasOwnFilename(@NotNull String filename) {
+    Path ownpath = idMapDir.resolve(filename);
+    return Files.exists(ownpath);
+  }
+
+  public boolean hasOwnFileId(@NotNull String fileId) {
+    Path minepath = mineDir.resolve(fileId);
+    return Files.exists(minepath);
+  }
+
+  public String getOwnFileId(@NotNull String filename) {
+    try {
+      Path ownpath = idMapDir.resolve(filename);
+      if (Files.notExists(ownpath)) return null;
+      byte[] bytes = Files.readAllBytes(ownpath);
+      return new String(bytes);
+    } catch (IOException e) {
+      LOGGER.warning("Failed to read idmap file for " + filename + "\n" + e.getMessage());
+      return null;
+    }
+  }
+
+  public boolean putOwnFileId(@NotNull String filename, @NotNull String fileId) {
+    try {
+      Path ownpath = idMapDir.resolve(filename);
+      Files.write(ownpath, fileId.getBytes());
+      return true;
+    } catch (IOException e) {
+      LOGGER.warning("Failed to write idmap file " + filename + "\n" + e.getMessage());
+      return false;
+    }
+  }
+
+  public boolean deleteOwnFileId(@NotNull String filename) {
+    try {
+      Path ownpath = idMapDir.resolve(filename);
+      if (Files.notExists(ownpath)) return true;
+      return Files.deleteIfExists(ownpath);
+    } catch (IOException e) {
+      LOGGER.warning("Failed to delete idmap file " + filename + "\n" + e.getMessage());
+      return false;
+    }
+  }
+
+  public Object getMetadataOfFileId(@NotNull String fileId) {
+    Path minepath = mineDir.resolve(fileId);
+    if (Files.notExists(minepath)) return null;
+
+    try (
+        FileInputStream fis = new FileInputStream(minepath.toFile());
+        ObjectInputStream ois = new ObjectInputStream(fis)) {
+      return ois.readObject();
+    } catch (IOException e) {
+      LOGGER.severe("Failed to read metadata for " + id(fileId) + "\n" + e.getMessage());
+      return null;
+    } catch (ClassNotFoundException e) {
+      LOGGER.severe("Invalid class in serializable of " + id(fileId) + "\n" + e.getMessage());
+      return null;
+    }
+  }
+
+  public Object getMetadataOfFilename(@NotNull String filename) {
+    String fileId = getOwnFileId(filename);
+    if (fileId == null) return null;
+
+    return getMetadataOfFileId(fileId);
+  }
+
+  public boolean putMetadataOfFileId(@NotNull String fileId, Serializable ser) {
+    Path minepath = mineDir.resolve(fileId);
+
+    try (
+        FileOutputStream fos = new FileOutputStream(minepath.toFile());
+        ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+      oos.writeObject(ser);
+      return true;
+    } catch (IOException e) {
+      LOGGER.severe("Failed to write metadata for " + id(fileId) + "\n" + e.getMessage());
+      return false;
+    }
+  }
+
+  public boolean putMetadataOfFilename(@NotNull String filename, Serializable ser) {
+    String fileId = getOwnFileId(filename);
+    if (fileId == null) return false;
+
+    return putMetadataOfFileId(fileId, ser);
   }
 }

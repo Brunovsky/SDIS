@@ -32,6 +32,9 @@ public class TestFiles {
   byte[] p2 = "wwwstackoverflow".getBytes();
   byte[] p3 = "011222333344444555555".getBytes();
 
+  String f1 = "hello-world", f2 = "communism", f3 = "socialism", f4 = "dummy";
+  String c1 = "hello-world-content", c2 = "communism-content", c3 = "socialism-content";
+
   Configuration config() {
     Configuration config = new Configuration();
 
@@ -54,19 +57,20 @@ public class TestFiles {
     Configuration config = config();
     FilesManager manager1 = new FilesManager("1000", config);
     FilesManager manager2 = new FilesManager("2000", config);
-    FilesManager manager3 = new FilesManager("3000", config);
 
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-1000/backup")));
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-1000/restored")));
+    String peer1000 = "/tmp/dbs/peer-1000/";
+    assertTrue(Files.deleteIfExists(Paths.get(peer1000 + config.backupDir)));
+    assertTrue(Files.deleteIfExists(Paths.get(peer1000 + config.restoredDir)));
+    assertTrue(Files.deleteIfExists(Paths.get(peer1000 + config.chunkInfoDir)));
+    assertTrue(Files.deleteIfExists(Paths.get(peer1000 + config.idMapDir)));
     assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-1000")));
 
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-2000/backup")));
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-2000/restored")));
+    String peer2000 = "/tmp/dbs/peer-2000/";
+    assertTrue(Files.deleteIfExists(Paths.get(peer2000 + config.backupDir)));
+    assertTrue(Files.deleteIfExists(Paths.get(peer2000 + config.restoredDir)));
+    assertTrue(Files.deleteIfExists(Paths.get(peer2000 + config.chunkInfoDir)));
+    assertTrue(Files.deleteIfExists(Paths.get(peer2000 + config.idMapDir)));
     assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-2000")));
-
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-3000/backup")));
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-3000/restored")));
-    assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-3000")));
 
     assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs")));
   }
@@ -175,5 +179,38 @@ public class TestFiles {
     assertArrayEquals(p1, manager.getRestore("filename-1"));
     assertArrayEquals(p2, manager.getRestore("filename-2"));
     assertArrayEquals(p3, manager.getRestore("filename-3"));
+  }
+
+  @Test
+  void metaTest() throws IOException {
+    clean();
+
+    Configuration config = config();
+    FilesManager manager = new FilesManager("3", config);
+
+    assertFalse(manager.hasOwnFilename(f1));
+    assertFalse(manager.hasOwnFilename(f2));
+
+    assertTrue(manager.putOwnFileId(f1, hash1));
+    assertTrue(manager.putOwnFileId(f2, hash2));
+    assertTrue(manager.putOwnFileId(f3, hash3));
+
+    assertEquals(hash1, manager.getOwnFileId(f1));
+    assertEquals(hash2, manager.getOwnFileId(f2));
+    assertEquals(hash3, manager.getOwnFileId(f3));
+
+    assertNull(manager.getOwnFileId(f4));
+
+    assertTrue(manager.putMetadataOfFileId(hash1, c1));
+    assertTrue(manager.putMetadataOfFilename(f2, c2));
+    assertTrue(manager.putMetadataOfFilename(f3, c3));
+
+    assertTrue(manager.hasOwnFilename(f1));
+    assertTrue(manager.hasOwnFilename(f3));
+    assertFalse(manager.hasOwnFilename(f4));
+
+    assertEquals(c1, manager.getMetadataOfFilename(f1));
+    assertEquals(c2, manager.getMetadataOfFilename(f2));
+    assertEquals(c3, manager.getMetadataOfFileId(hash3));
   }
 }

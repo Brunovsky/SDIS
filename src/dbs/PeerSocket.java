@@ -122,12 +122,10 @@ public final class PeerSocket implements Runnable {
       } catch (InterruptedException e) {
         continue;
       }
-
       if (packet == null) continue;
       send(packet);
     }
 
-    // TODO: die gracefully, finish sending queued messages
     while (!queue.isEmpty()) {
       packet = queue.pop();
       if (packet == null) continue;

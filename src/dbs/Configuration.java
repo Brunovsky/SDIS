@@ -32,6 +32,12 @@ public class Configuration {
     // Restore subdirectory, where files restored are kept.
     public String restoredDir = "restored";
 
+    // My files' id mapping directory
+    public String idMapDir = "idmap";
+
+    // My files' metadata directory
+    public String chunkInfoDir = "mine";
+
     // Subdirectory for storing replication degrees
     public String chunksReplicationDegreeDir = "peersState/";
 
