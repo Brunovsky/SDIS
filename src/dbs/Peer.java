@@ -26,7 +26,6 @@ public class Peer implements ClientInterface {
   private PeerSocket socket;
   private ScheduledThreadPoolExecutor pool;
   public FileInfoManager fileInfoManager;
-  private File chunksReplicationDegreeFile;
   public final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
   public static void main(String[] args) {
@@ -158,63 +157,7 @@ public class Peer implements ClientInterface {
   public void send(@NotNull Message message) {
     this.socket.send(message);
   }
-/*
-  private void createChunksReplicationDegreeFile() {
-    try {
-      new File(config.chunksReplicationDegreeDir).mkdir();
-      LOGGER.info("Could not locate the peer's state directory. Going to create one.\n");
-    } catch (Exception e) {
-      LOGGER.severe("Could not create the peersState directory.\n");
-      System.exit(1);
-    }
-    String chunksReplicationDegreePathName =
-        config.chunksReplicationDegreePathName + id + ".ser";
-    this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
-    this.updateChunksReplicationDegreeHashMap();
-  }
 
-  private void updateChunksReplicationDegreeHashMap() {
-    if (chunksReplicationDegreeFile.exists())
-      this.chunksReplicationDegreeFile.delete();
-    try {
-      String chunksReplicationDegreePathName =
-          config.chunksReplicationDegreePathName + id + ".ser";
-      FileOutputStream fos = new FileOutputStream(chunksReplicationDegreePathName);
-      ObjectOutputStream oos = new ObjectOutputStream(fos);
-      oos.writeObject(this.chunksReplicationDegree);
-      oos.close();
-      fos.close();
-    } catch (Exception e) {
-      LOGGER.severe("Could not generate serializes hashmap.\n");
-      System.exit(1);
-    }
-  }
-
-  public int getReplicationDegree(String fileId, int chunkNumber) {
-    ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
-    Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
-    if(chunKPeers == null)
-      return 0;
-    else
-      return chunKPeers.size();
-  }
-
-  public void insertIntoChunksReplicationDegreeHashMap(String fileId, int chunkNumber, Long peerId) {
-    ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
-    Vector<Long> chunKPeers = this.chunksReplicationDegree.get(chunkKey);
-    if (chunKPeers == null)
-      chunKPeers = new Vector<>();
-    chunKPeers.add(peerId);
-    //this.chunksReplicationDegree.put(chunkKey, chunKPeers);
-    this.updateChunksReplicationDegreeHashMap();
-  }
-
-  private void deleteFromChunksReplicationDegreeHashMap(String fileId, int chunkNumber) {
-    ChunkKey chunkKey = new ChunkKey(fileId, chunkNumber);
-    this.chunksReplicationDegree.remove(chunkKey);
-    this.updateChunksReplicationDegreeHashMap();
-  }
-*/
   private void initFileInfoManager() throws Exception {
     this.fileInfoManager = new FileInfoManager(this);
   }
@@ -261,27 +204,6 @@ public class Peer implements ClientInterface {
     tMDR.start();
   }
 
-  private void readReplicationDegreeMap() {
-    // retrieve chunk's replication degree HashMap
-    try {
-      /*
-      String chunksReplicationDegreePathName =
-          config.chunksReplicationDegreePathName + id + ".ser";
-      FileInputStream fis = new FileInputStream(chunksReplicationDegreePathName);
-      ObjectInputStream ois = new ObjectInputStream(fis);
-      this.chunksReplicationDegree = (HashMap) ois.readObject();
-      fis.close();
-      ois.close();
-      this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
-      this.updateChunksReplicationDegreeHashMap();*/
-    } catch (Exception e) {
-      LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to " +
-          "create one.\n");
-      /*this.chunksReplicationDegree = new HashMap<>();
-      this.createChunksReplicationDegreeFile();*/
-    }
-  }
-
   /**
    * Construct all required sockets, joining the respective multicast channels; join the
    * thread pool, verify file paths and configuration, etc.
@@ -293,7 +215,6 @@ public class Peer implements ClientInterface {
     initPool();
     initMulticasters();
     initFileInfoManager();
-    readReplicationDegreeMap();
     launchThreads();
   }
 

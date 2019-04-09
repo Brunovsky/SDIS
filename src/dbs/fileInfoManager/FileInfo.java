@@ -56,9 +56,8 @@ public class FileInfo {
    * @param chunkNumber The chunk's number.
    * @return The information regarding the specified chunk or null if that information doesn't exist.
    */
-  private ChunkInfo getChunkInfo(Integer chunkNumber) {
+  public ChunkInfo getChunkInfo(Integer chunkNumber) {
    return this.fileChunks.get(chunkNumber);
-
   }
 
   /**

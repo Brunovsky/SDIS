@@ -59,7 +59,6 @@ public class FileInfoManager {
   public void addFileInfo(String fileId) {
     if(!this.hasFileInfo(fileId))
       this.filesInfo.put(fileId, new FileInfo());
-    this.addFileInfoFolder(fileId);
   }
 
   /**
@@ -71,6 +70,7 @@ public class FileInfoManager {
     if(!this.hasFileInfo(fileId))
       this.addFileInfo(fileId);
     this.getFileInfo(fileId).addFileChunk(chunkNumber);
+    this.writeChunkInfoFile(fileId, chunkNumber);
   }
 
   /**
@@ -83,6 +83,7 @@ public class FileInfoManager {
     if(!this.hasFileInfo(fileId))
       this.addFileInfo(fileId);
     this.getFileInfo(fileId).addBackupPeer(chunkNumber, peerId);
+    this.writeChunkInfoFile(fileId, chunkNumber);
   }
 
   /**
@@ -94,6 +95,7 @@ public class FileInfoManager {
   public void removeBackupPeer(String fileId, Integer chunkNumber, Long peerId) {
     if(!this.hasFileInfo(fileId)) return;
     this.getFileInfo(fileId).removeBackupPeer(chunkNumber, peerId);
+    this.writeChunkInfoFile(fileId, chunkNumber);
   }
 
   /**
@@ -129,8 +131,18 @@ public class FileInfoManager {
     return this.getFileInfo(fileId).getDesiredReplicationDegree();
   }
 
-  private void addFileInfoFolder(String fileId) {
-
+  /**
+   * Allows for the update of a given chunk info on the disk (filesinfo folder)
+   * @param fileId The id of the file to which that chunk belongs.
+   * @param chunkNumber The chunk's number.
+   */
+  private void writeChunkInfoFile(String fileId, Integer chunkNumber) {
+    ChunkInfo chunkInfo = this.getFileInfo(fileId).getChunkInfo(chunkNumber);
+    if(chunkInfo == null) return;
+    try {
+      this.filesManager.writeChunkInfo(fileId, chunkNumber, chunkInfo);
+    } catch (Exception e) {
+      this.peer.LOGGER.severe("Could not update the chunk info for the chunk number " + chunkNumber + " of the file with id " + fileId);
+    }
   }
-
 }
