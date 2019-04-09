@@ -354,7 +354,7 @@ public final class FilesManager {
    * Retrieve the file id corresponding to a given filename.
    *
    * @param filename The backed up filename being queried
-   * @return The file id of the queried filename, or null if it does not exist.
+   * @return True if the file id of the queried filename exists, or false if it does not exist.
    */
   public boolean hasOwnFilename(@NotNull String filename) {
     Path ownpath = idMapDir.resolve(filename);

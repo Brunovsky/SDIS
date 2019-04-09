@@ -98,7 +98,7 @@ public class DataBackupTransmitter implements Runnable {
           if(chunkPeers.size() >= this.replicationDegree) // chunk's replication degree already set to the desired value
             break;
         }
-        sendMessage(fileId.getBytes(), chunkNumber, chunk);
+        sendMessage(fileId, chunkNumber, chunk);
         this.numberChunks = chunkNumber;
         chunk = new byte[Protocol.chunkSize];
       }
