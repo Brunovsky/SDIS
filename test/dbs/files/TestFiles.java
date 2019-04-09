@@ -2,6 +2,7 @@ package dbs.files;
 
 import dbs.Configuration;
 import dbs.fileInfoManager.ChunkInfo;
+import dbs.fileInfoManager.FileInfo;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -268,6 +269,18 @@ public class TestFiles {
   @Test
   void initFilesInfo() throws Exception {
     clean();
+    writeChunkInfo();
+    int chunkNumber = 1;
+    String peerId = "4";
+    Configuration config = config();
+    FilesManager manager = new FilesManager(peerId, config);
+    HashMap<String, FileInfo> map = manager.initFilesInfo();
+    String backupPeer1 = "1";
+    String backupPeer2 = "4";
 
+    assertTrue(map.containsKey(hash1));
+    assertTrue(map.get(hash1).hasBackupPeer(chunkNumber,Long.parseLong(backupPeer1)));
+    assertTrue(map.get(hash1).hasBackupPeer(chunkNumber,Long.parseLong(backupPeer2)));
+    assertEquals(2, map.get(hash1).getChunkReplicationDegree(chunkNumber));
   }
 }
