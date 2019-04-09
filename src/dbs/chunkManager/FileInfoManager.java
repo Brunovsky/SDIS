@@ -109,7 +109,7 @@ public class FileInfoManager {
    * @param fileId The file's id.
    * @return The desired replication degree of the given file or null if that file is unknown to the peer.
    */
-  public int getDesiredReplicationDegree(String fileId) {
+  public Integer getDesiredReplicationDegree(String fileId) {
     if(!this.hasFileInfo(fileId)) return null;
     return this.getFileInfo(fileId).getDesiredReplicationDegree();
   }
