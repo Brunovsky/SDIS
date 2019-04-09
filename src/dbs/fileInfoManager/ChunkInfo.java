@@ -1,9 +1,9 @@
-package dbs.chunkManager;
+package dbs.fileInfoManager;
 
 import java.util.HashSet;
 import java.util.Set;
 
-public class ChunkInfo {
+public class ChunkInfo implements java.io.Serializable {
 
   /**
    * Set of peers which have a backup of that chunk.
@@ -49,4 +49,6 @@ public class ChunkInfo {
   public int getReplicationDegree() {
     return this.backupPeers.size();
   }
+
+
 }

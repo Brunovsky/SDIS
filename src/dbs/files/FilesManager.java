@@ -2,6 +2,8 @@ package dbs.files;
 
 import dbs.Configuration;
 import dbs.Peer;
+import dbs.fileInfoManager.ChunkInfo;
+import dbs.fileInfoManager.FileInfo;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -24,6 +26,7 @@ public final class FilesManager {
   private final Path restoredDir;
   private final Path mineDir;
   private final Path idMapDir;
+  private final Path filesinfoDir;
   private final Pattern backupPattern;
   private final Pattern chunkPattern;
 
@@ -150,6 +153,10 @@ public final class FilesManager {
     // dbs/peer-ID/mine/
     path = peerDir.resolve(config.chunkInfoDir);
     mineDir = Files.createDirectories(path);
+
+    // dbs/peer-ID/filesinfo/
+    path = peerDir.resolve(config.filesinfoDir);
+    filesinfoDir = Files.createDirectories(path);
 
     // prefix[FILEID]
     backupPattern = Pattern.compile(Pattern.quote(config.entryPrefix) + "([0-9a-f]{64})");
@@ -526,5 +533,44 @@ public final class FilesManager {
     if (fileId == null) return true;
 
     return deleteMetadataOfFileId(filename);
+  }
+
+  public void writeChunkInfo(String fileId, Integer chunkNumber, ChunkInfo chunkInfo) throws IOException {
+    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
+    Path chunkInfoPath = fileInfoDir.resolve(chunkNumber.toString());
+    Files.createDirectories(fileInfoDir);
+    FileOutputStream fileOutputStream = new FileOutputStream(chunkInfoPath.toString(), false);
+    ObjectOutputStream out = new ObjectOutputStream(fileOutputStream);
+    out.writeObject(chunkInfo);
+    out.close();
+    fileOutputStream.close();
+  }
+
+  public ChunkInfo readChunkInfo(File chunkInfoFile) throws Exception {
+    FileInputStream fis = new FileInputStream(chunkInfoFile);
+    ObjectInputStream ois = new ObjectInputStream(fis);
+    ChunkInfo chunkInfo = (ChunkInfo) ois.readObject();
+    fis.close();
+    ois.close();
+    return chunkInfo;
+  }
+
+  public HashMap<String, FileInfo> initFilesInfo() throws Exception {
+    HashMap<String, FileInfo> fileInfoHashMap = new HashMap<>();
+    File filesInfoDir = this.filesinfoDir.toFile();
+
+    for(File fileinfoDir : filesInfoDir.listFiles()) {
+      if(fileinfoDir.isDirectory()) {
+        String fileId = fileinfoDir.getName();
+        fileInfoHashMap.put(fileId, new FileInfo());
+        for(File chunkInfoFile : fileinfoDir.listFiles()) {
+          Integer chunkNumber = Integer.parseInt(chunkInfoFile.getName());
+          ChunkInfo chunkInfo = this.readChunkInfo(chunkInfoFile);
+          fileInfoHashMap.get(fileId).addFileChunk(chunkNumber, chunkInfo);
+        }
+      }
+    }
+
+    return fileInfoHashMap;
   }
 }

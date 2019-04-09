@@ -1,4 +1,4 @@
-package dbs.chunkManager;
+package dbs.fileInfoManager;
 
 import java.util.HashMap;
 
@@ -58,6 +58,16 @@ public class FileInfo {
   public void addFileChunk(Integer chunkNumber) {
     if(!this.hasChunk(chunkNumber))
       this.fileChunks.put(chunkNumber, new ChunkInfo());
+  }
+
+  /**
+   * Adds a new entry to the fileChunks map if it doesn't exist yet.
+   * @param chunkNumber The number of the new chunk of that file.
+   * @param chunkInfo The information regarding that chunk.
+   */
+  public void addFileChunk(Integer chunkNumber, ChunkInfo chunkInfo) {
+    if(!this.hasChunk(chunkNumber))
+      this.fileChunks.put(chunkNumber, chunkInfo);
   }
 
   /**

@@ -1,4 +1,7 @@
-package dbs.chunkManager;
+package dbs.fileInfoManager;
+
+import dbs.Peer;
+import dbs.files.FilesManager;
 
 import java.util.HashMap;
 
@@ -12,12 +15,23 @@ public class FileInfoManager {
    * owned by that same peer may also be tracked.
    */
   private HashMap<String, FileInfo> filesInfo;
+  /**
+   * The peer being managed.
+   */
+  private Peer peer;
+  /**
+   * The manager of files in disk.
+   */
+  private FilesManager filesManager;
 
   /**
    * Constructs a new object of the FileInfoManager class.
+   * @param peer The peer being managed.
    */
-  public FileInfoManager() {
-    this.filesInfo = new HashMap<>();
+  public FileInfoManager(Peer peer) throws Exception  {
+    this.peer = peer;
+    this.filesManager = new FilesManager(peer);
+    this.filesInfo = this.filesManager.initFilesInfo();
   }
 
   /**
@@ -45,6 +59,7 @@ public class FileInfoManager {
   public void addFileInfo(String fileId) {
     if(!this.hasFileInfo(fileId))
       this.filesInfo.put(fileId, new FileInfo());
+    this.addFileInfoFolder(fileId);
   }
 
   /**
@@ -113,4 +128,9 @@ public class FileInfoManager {
     if(!this.hasFileInfo(fileId)) return null;
     return this.getFileInfo(fileId).getDesiredReplicationDegree();
   }
+
+  private void addFileInfoFolder(String fileId) {
+
+  }
+
 }

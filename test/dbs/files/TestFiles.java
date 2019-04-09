@@ -1,10 +1,12 @@
 package dbs.files;
 
 import dbs.Configuration;
+import dbs.fileInfoManager.ChunkInfo;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,6 +47,7 @@ public class TestFiles {
     config.peerRootDirPrefix = "peer-";
     config.backupDir = "backup";
     config.restoredDir = "restored";
+    config.filesinfoDir = "filesinfo";
 
     return config;
   }
@@ -238,5 +241,33 @@ public class TestFiles {
     map.put(hash4, chunks4);
 
     assertEquals(map, manager.backupAllChunksMap());
+  }
+
+  @Test
+  void writeChunkInfo() throws Exception {
+    clean();
+
+    int chunkNumber = 1;
+    String peerId = "4";
+    String chunkInfoDir = "/tmp/dbs/peer-" + peerId + "/" + config().filesinfoDir + "/" + hash1;
+    String backupPeer1 = "1";
+    String backupPeer2 = "4";
+    Configuration config = config();
+    FilesManager manager = new FilesManager(peerId, config);
+
+    ChunkInfo chunkInfo = new ChunkInfo();
+    chunkInfo.addBackupPeer(Long.parseLong(backupPeer1));
+    chunkInfo.addBackupPeer(Long.parseLong(backupPeer2));
+
+    manager.writeChunkInfo(hash1, chunkNumber, chunkInfo);
+    Path chunkInfoPath = Paths.get(chunkInfoDir).resolve(Integer.toString(chunkNumber));
+    assertTrue(Files.exists(chunkInfoPath));
+    manager.readChunkInfo(chunkInfoPath.toFile());
+  }
+
+  @Test
+  void initFilesInfo() throws Exception {
+    clean();
+
   }
 }

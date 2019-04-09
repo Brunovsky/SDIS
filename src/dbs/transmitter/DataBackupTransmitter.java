@@ -92,12 +92,12 @@ public class DataBackupTransmitter implements Runnable {
       }
 
       if(numberBytesRead > 0) {
-
+/*
         if(peer.chunksReplicationDegree.containsKey(chunkKey)) {  // chunk already backed up
           Vector<Long> chunkPeers = peer.chunksReplicationDegree.get(chunkKey);
           if(chunkPeers.size() >= this.replicationDegree) // chunk's replication degree already set to the desired value
             break;
-        }
+        }*/
         sendMessage(fileId, chunkNumber, chunk);
         this.numberChunks = chunkNumber;
         chunk = new byte[Protocol.chunkSize];
@@ -113,7 +113,7 @@ public class DataBackupTransmitter implements Runnable {
   }
 
   private boolean backedUpFile() {
-    for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
+    /*for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
       ChunkKey chunkKey = new ChunkKey(this.fileId, chunkNumber);
       if (peer.chunksReplicationDegree.containsKey(chunkKey)) {  // chunk already backed up
         Vector<Long> chunkPeers = peer.chunksReplicationDegree.get(chunkKey);
@@ -121,7 +121,7 @@ public class DataBackupTransmitter implements Runnable {
           return false;
       } else
         return false;
-    }
+    }*/
     return true;
   }
 }

@@ -1,5 +1,6 @@
 package dbs;
 
+import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
@@ -12,8 +13,6 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
-import java.util.Vector;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Logger;
 
@@ -26,7 +25,7 @@ public class Peer implements ClientInterface {
   private Multicaster mdr;
   private PeerSocket socket;
   private ScheduledThreadPoolExecutor pool;
-  public HashMap<ChunkKey,Vector<Long>> chunksReplicationDegree;
+  public FileInfoManager fileInfoManager;
   private File chunksReplicationDegreeFile;
   public final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
@@ -107,7 +106,7 @@ public class Peer implements ClientInterface {
 
   Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint,
        @NotNull MulticastChannel mc,
-       @NotNull MulticastChannel mdb, @NotNull MulticastChannel mdr) throws IOException {
+       @NotNull MulticastChannel mdb, @NotNull MulticastChannel mdr) throws Exception {
     Protocol.mc = mc;
     Protocol.mdb = mdb;
     Protocol.mdr = mdr;
@@ -120,7 +119,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint) throws IOException {
+  Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint) throws Exception {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = new Configuration();
@@ -129,7 +128,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(long id, @NotNull String accessPoint) throws IOException {
+  Peer(long id, @NotNull String accessPoint) throws Exception {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = new Configuration();
@@ -137,7 +136,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(long id, @NotNull String accessPoint, @NotNull Configuration config) throws IOException {
+  Peer(long id, @NotNull String accessPoint, @NotNull Configuration config) throws Exception {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = config;
@@ -159,7 +158,7 @@ public class Peer implements ClientInterface {
   public void send(@NotNull Message message) {
     this.socket.send(message);
   }
-
+/*
   private void createChunksReplicationDegreeFile() {
     try {
       new File(config.chunksReplicationDegreeDir).mkdir();
@@ -215,6 +214,10 @@ public class Peer implements ClientInterface {
     this.chunksReplicationDegree.remove(chunkKey);
     this.updateChunksReplicationDegreeHashMap();
   }
+*/
+  private void initFileInfoManager() throws Exception {
+    this.fileInfoManager = new FileInfoManager(this);
+  }
 
   private void initMulticasters() throws IOException {
     try {
@@ -261,6 +264,7 @@ public class Peer implements ClientInterface {
   private void readReplicationDegreeMap() {
     // retrieve chunk's replication degree HashMap
     try {
+      /*
       String chunksReplicationDegreePathName =
           config.chunksReplicationDegreePathName + id + ".ser";
       FileInputStream fis = new FileInputStream(chunksReplicationDegreePathName);
@@ -269,12 +273,12 @@ public class Peer implements ClientInterface {
       fis.close();
       ois.close();
       this.chunksReplicationDegreeFile = new File(chunksReplicationDegreePathName);
-      this.updateChunksReplicationDegreeHashMap();
+      this.updateChunksReplicationDegreeHashMap();*/
     } catch (Exception e) {
       LOGGER.info("Could not access the chunksReplicationDegree hashmap. Going to " +
           "create one.\n");
-      this.chunksReplicationDegree = new HashMap<>();
-      this.createChunksReplicationDegreeFile();
+      /*this.chunksReplicationDegree = new HashMap<>();
+      this.createChunksReplicationDegreeFile();*/
     }
   }
 
@@ -284,10 +288,11 @@ public class Peer implements ClientInterface {
    *
    * @throws IOException
    */
-  private void setup() throws IOException {
+  private void setup() throws Exception {
     initSocket();
     initPool();
     initMulticasters();
+    initFileInfoManager();
     readReplicationDegreeMap();
     launchThreads();
   }

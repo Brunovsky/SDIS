@@ -4,12 +4,6 @@ public class Configuration {
     // Which protocol version does this peer use?
     public String version = "1.0";
 
-    // This peer's id. TODO: is this better here? (don't think so)
-    //public String id;
-
-    // This peer's access point. TODO: is this better here? (don't think so)
-    //public String accessPoint;
-
     // Folder where each peer root directory is stored.
     public String allPeersRootDir = "dbs";
 
@@ -38,11 +32,8 @@ public class Configuration {
     // My files' metadata directory
     public String chunkInfoDir = "mine";
 
-    // Subdirectory for storing replication degrees
-    public String chunksReplicationDegreeDir = "peersState/";
-
-    // File to store the replication degree map's serializable
-    public String chunksReplicationDegreePathName = chunksReplicationDegreeDir + "chunksReplicationDegree";
+    // My file's info (desired replication degree and set of peers which have a backup of those files' chunks)
+    public String filesinfoDir = "filesinfo";
 
     // Multicaster's timeout for reading from multicast socket
     public int multicastTimeout = 300; // milliseconds

@@ -49,13 +49,13 @@ public class DataBackupProcessor implements Multicaster.Processor {
       if(senderId == this.peer.getId()) // the same peer has the one processing the message
         return;
 
-      int replicationDegree = this.peer.getReplicationDegree(fileId, chunkNumber);
+      /*int replicationDegree = this.peer.getReplicationDegree(fileId, chunkNumber);
       if(replicationDegree >= desiredReplicationDegree)
         return;
 
       storeChunk(fileId, chunkNumber, chunk);
       sendStoredMessage(version, fileId, chunkNumber);
-      this.peer.insertIntoChunksReplicationDegreeHashMap(fileId, chunkNumber, this.peer.getId());
+      this.peer.insertIntoChunksReplicationDegreeHashMap(fileId, chunkNumber, this.peer.getId());*/
     }
 
     private void storeChunk(String fileId, int chunkNumber, byte[] chunk) {

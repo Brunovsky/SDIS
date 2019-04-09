@@ -8,7 +8,7 @@ import java.net.InetAddress;
 
 class TestPeer {
   @Test
-  void visualize() throws IOException, InterruptedException {
+  void visualize() throws Exception {
     Protocol.mc = new MulticastChannel(InetAddress.getByName("237.0.0.1"), 29500);
     Protocol.mdb = new MulticastChannel(InetAddress.getByName("237.0.0.2"), 29501);
     Protocol.mdr = new MulticastChannel(InetAddress.getByName("237.0.0.3"), 29502);
