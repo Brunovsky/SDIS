@@ -1,5 +1,6 @@
 package dbs;
 
+import dbs.files.FilesManager;
 import dbs.message.Message;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
@@ -25,6 +26,7 @@ public class Peer implements ClientInterface {
   private Multicaster mdb;
   private Multicaster mdr;
   private PeerSocket socket;
+  private FilesManager filesManager;
   private ScheduledThreadPoolExecutor pool;
   public HashMap<ChunkKey,Vector<Long>> chunksReplicationDegree;
   private File chunksReplicationDegreeFile;
@@ -216,17 +218,6 @@ public class Peer implements ClientInterface {
     this.updateChunksReplicationDegreeHashMap();
   }
 
-  private void initMulticasters() throws IOException {
-    try {
-      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
-      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
-      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
-    } catch (IOException e) {
-      LOGGER.severe("Could not create multicasters.\n");
-      throw e;
-    }
-  }
-
   private void initSocket() throws IOException {
     try {
       this.socket = new PeerSocket(this);
@@ -238,6 +229,26 @@ public class Peer implements ClientInterface {
 
   private void initPool() {
     this.pool = new ScheduledThreadPoolExecutor(config.threadPoolSize);
+  }
+
+  private void initMulticasters() throws IOException {
+    try {
+      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
+      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
+      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
+    } catch (IOException e) {
+      LOGGER.severe("Could not create multicasters.\n");
+      throw e;
+    }
+  }
+
+  private void initFilesManager() throws IOException {
+    try {
+      this.filesManager = new FilesManager(this);
+    } catch (IOException e) {
+      LOGGER.severe("Could not create files manager.\n");
+      throw e;
+    }
   }
 
   private void launchThreads() {
@@ -288,6 +299,7 @@ public class Peer implements ClientInterface {
     initSocket();
     initPool();
     initMulticasters();
+    initFilesManager();
     readReplicationDegreeMap();
     launchThreads();
   }
@@ -306,6 +318,10 @@ public class Peer implements ClientInterface {
 
   public ScheduledThreadPoolExecutor getPool() {
     return pool;
+  }
+
+  public FilesManager getFilesManager() {
+    return filesManager;
   }
 
   /********* Interface Implementation **********/
