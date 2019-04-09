@@ -255,14 +255,18 @@ public class TestFiles {
     String backupPeer2 = "4";
     Configuration config = config();
     FilesManager manager = new FilesManager(peerId, config);
+    Integer desiredReplicationDegree = 2;
 
     ChunkInfo chunkInfo = new ChunkInfo();
     chunkInfo.addBackupPeer(Long.parseLong(backupPeer1));
     chunkInfo.addBackupPeer(Long.parseLong(backupPeer2));
 
     manager.writeChunkInfo(hash1, chunkNumber, chunkInfo);
+    manager.writeFileDesiredReplicationDegree(hash1, desiredReplicationDegree);
     Path chunkInfoPath = Paths.get(chunkInfoDir).resolve(Integer.toString(chunkNumber));
+    Path desiredReplicationDegreePath = Paths.get(chunkInfoDir).resolve(config.desiredReplicationDegreeFile);
     assertTrue(Files.exists(chunkInfoPath));
+    assertTrue(Files.exists(desiredReplicationDegreePath));
     manager.readChunkInfo(chunkInfoPath.toFile());
   }
 
@@ -282,5 +286,6 @@ public class TestFiles {
     assertTrue(map.get(hash1).hasBackupPeer(chunkNumber,Long.parseLong(backupPeer1)));
     assertTrue(map.get(hash1).hasBackupPeer(chunkNumber,Long.parseLong(backupPeer2)));
     assertEquals(2, map.get(hash1).getChunkReplicationDegree(chunkNumber));
+    assertEquals(2, map.get(hash1).getDesiredReplicationDegree());
   }
 }

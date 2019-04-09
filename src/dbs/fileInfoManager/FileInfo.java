@@ -1,5 +1,6 @@
 package dbs.fileInfoManager;
 
+import java.io.FileInputStream;
 import java.util.HashMap;
 
 public class FileInfo {
@@ -11,7 +12,7 @@ public class FileInfo {
   /**
    * The desired replication degree of that file.
    */
-  private int desiredReplicationDegree;
+  private Integer desiredReplicationDegree;
 
   /**
    * Constructs a new object of the FileInfo class.
@@ -22,10 +23,19 @@ public class FileInfo {
   }
 
   /**
+   * Constructs a new object of the FileInfo class, given the desired replication degree for that file.
+   * @param desiredReplicationDegree The desired replication degree for that file.
+   */
+  public FileInfo(Integer desiredReplicationDegree) {
+    this.fileChunks = new HashMap<>();
+    this.desiredReplicationDegree = desiredReplicationDegree;
+  }
+
+  /**
    * Constructs a new object of the FileInfo class, given the number of chunks of that file.
    * @param numberOfChunks The number of chunks of that file.
    */
-  public FileInfo(int numberOfChunks, int desiredReplicationDegree) {
+  public FileInfo(int numberOfChunks, Integer desiredReplicationDegree) {
     this();
     this.desiredReplicationDegree = desiredReplicationDegree;
     for(int i = 0; i < numberOfChunks; i++)
@@ -116,7 +126,7 @@ public class FileInfo {
    * Returns the desired replication degree of that file.
    * @return The dersired replication degree of that file.
    */
-  public int getDesiredReplicationDegree() {
+  public Integer getDesiredReplicationDegree() {
     return desiredReplicationDegree;
   }
 }

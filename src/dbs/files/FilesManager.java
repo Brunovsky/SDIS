@@ -535,24 +535,42 @@ public final class FilesManager {
     return deleteMetadataOfFileId(filename);
   }
 
-  public void writeChunkInfo(String fileId, Integer chunkNumber, ChunkInfo chunkInfo) throws IOException {
-    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
-    Path chunkInfoPath = fileInfoDir.resolve(chunkNumber.toString());
-    Files.createDirectories(fileInfoDir);
-    FileOutputStream fileOutputStream = new FileOutputStream(chunkInfoPath.toString(), false);
+  public void writeObject(Object object, String objectPathName) throws IOException {
+    FileOutputStream fileOutputStream = new FileOutputStream(objectPathName, false);
     ObjectOutputStream out = new ObjectOutputStream(fileOutputStream);
-    out.writeObject(chunkInfo);
+    out.writeObject(object);
     out.close();
     fileOutputStream.close();
   }
 
-  public ChunkInfo readChunkInfo(File chunkInfoFile) throws Exception {
-    FileInputStream fis = new FileInputStream(chunkInfoFile);
+  public void writeChunkInfo(String fileId, Integer chunkNumber, ChunkInfo chunkInfo) throws IOException {
+    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
+    Path chunkInfoPath = fileInfoDir.resolve(chunkNumber.toString());
+    Files.createDirectories(fileInfoDir);
+    this.writeObject(chunkInfo, chunkInfoPath.toString());
+  }
+
+  public void writeFileDesiredReplicationDegree(String fileId, Integer desiredReplicationDegree) throws IOException {
+    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
+    Path chunkInfoPath = fileInfoDir.resolve(config.desiredReplicationDegreeFile);
+    this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
+  }
+
+  public Object readObject(File objectFile) throws Exception {
+    FileInputStream fis = new FileInputStream(objectFile);
     ObjectInputStream ois = new ObjectInputStream(fis);
-    ChunkInfo chunkInfo = (ChunkInfo) ois.readObject();
+    Object object = ois.readObject();
     fis.close();
     ois.close();
-    return chunkInfo;
+    return object;
+  }
+
+  public ChunkInfo readChunkInfo(File chunkInfoFile) throws Exception {
+    return (ChunkInfo) this.readObject(chunkInfoFile);
+  }
+
+  public Integer readDesiredReplicationDegree(File desiredReplicationDegreeFile) throws Exception {
+    return (Integer) this.readObject(desiredReplicationDegreeFile);
   }
 
   public HashMap<String, FileInfo> initFilesInfo() throws Exception {
@@ -562,8 +580,11 @@ public final class FilesManager {
     for(File fileinfoDir : filesInfoDir.listFiles()) {
       if(fileinfoDir.isDirectory()) {
         String fileId = fileinfoDir.getName();
-        fileInfoHashMap.put(fileId, new FileInfo());
+        Path desiredRDFilename = fileinfoDir.toPath().resolve(config.desiredReplicationDegreeFile);
+        Integer fileDesiredReplicationDegree = (Integer) this.readObject(desiredRDFilename.toFile());
+        fileInfoHashMap.put(fileId, new FileInfo(fileDesiredReplicationDegree));
         for(File chunkInfoFile : fileinfoDir.listFiles()) {
+          if(chunkInfoFile.getName().equals(config.desiredReplicationDegreeFile)) continue;
           Integer chunkNumber = Integer.parseInt(chunkInfoFile.getName());
           ChunkInfo chunkInfo = this.readChunkInfo(chunkInfoFile);
           fileInfoHashMap.get(fileId).addFileChunk(chunkNumber, chunkInfo);

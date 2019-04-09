@@ -35,6 +35,9 @@ public class Configuration {
     // My file's info (desired replication degree and set of peers which have a backup of those files' chunks)
     public String filesinfoDir = "filesinfo";
 
+    // My file's desired replication degree file name
+    public String desiredReplicationDegreeFile = "drd";
+
     // Multicaster's timeout for reading from multicast socket
     public int multicastTimeout = 300; // milliseconds
 
