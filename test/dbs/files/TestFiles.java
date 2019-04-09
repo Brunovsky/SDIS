@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.TreeSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -75,60 +78,51 @@ public class TestFiles {
     assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs")));
   }
 
-  void putChunk(FilesManager manager) {
+  @Test
+  void backupOne() throws IOException {
+    clean();
+
+    Configuration config = config();
+    FilesManager manager = new FilesManager("1", config);
+
     assertTrue(manager.putChunk(hash1, 1, b1));
     assertTrue(manager.putChunk(hash1, 9, b1));
-
     assertTrue(manager.putChunk(hash2, 0, b2));
     assertTrue(manager.putChunk(hash2, 1, b4));
     assertTrue(manager.putChunk(hash2, 2, b6));
-
     assertTrue(manager.putChunk(hash3, 2, b5));
-
     assertTrue(manager.putChunk(hash4, 1, b1));
     assertTrue(manager.putChunk(hash4, 2, b2));
     assertTrue(manager.putChunk(hash4, 3, b3));
     assertTrue(manager.putChunk(hash4, 4, b4));
-  }
 
-  void getChunk(FilesManager manager) {
     assertArrayEquals(b1, manager.getChunk(hash1, 1));
     assertArrayEquals(b5, manager.getChunk(hash3, 2));
     assertArrayEquals(b2, manager.getChunk(hash4, 2));
     assertNull(manager.getChunk(hash1, 2));
     assertNull(manager.getChunk(hash4, 5));
-  }
 
-  void hasChunk(FilesManager manager) {
     assertTrue(manager.hasChunk(hash1, 1));
     assertTrue(manager.hasChunk(hash2, 1));
     assertTrue(manager.hasChunk(hash4, 4));
     assertFalse(manager.hasChunk(hash2, 3));
     assertFalse(manager.hasChunk(hash9, 0));
-  }
 
-  void hasBackupFolder(FilesManager manager) {
     assertTrue(manager.hasBackupFolder(hash1));
     assertTrue(manager.hasBackupFolder(hash4));
     assertFalse(manager.hasBackupFolder(hash8));
-  }
 
-  void deleteChunk(FilesManager manager) {
     assertTrue(manager.hasChunk(hash1, 9));
     assertTrue(manager.deleteChunk(hash1, 9));
     assertFalse(manager.hasChunk(hash1, 9));
     assertTrue(manager.deleteChunk(hash1, 9));
-
     assertFalse(manager.hasChunk(hash9, 2));
     assertTrue(manager.deleteChunk(hash9, 2));
     assertFalse(manager.hasChunk(hash9, 2));
     assertFalse(manager.hasBackupFolder(hash9));
-
     assertTrue(manager.hasChunk(hash4, 2));
     assertTrue(manager.deleteChunk(hash4, 2));
-  }
 
-  void deleteBackupFile(FilesManager manager) {
     assertTrue(manager.deleteBackupFile(hash1));
     assertFalse(manager.hasBackupFolder(hash1));
     assertFalse(manager.hasChunk(hash1, 1));
@@ -141,22 +135,7 @@ public class TestFiles {
   }
 
   @Test
-  void backupTest() throws IOException {
-    clean();
-
-    Configuration config = config();
-    FilesManager manager = new FilesManager("1", config);
-
-    putChunk(manager);
-    getChunk(manager);
-    hasChunk(manager);
-    hasBackupFolder(manager);
-    deleteChunk(manager);
-    deleteBackupFile(manager);
-  }
-
-  @Test
-  void restoreTest() throws IOException {
+  void restore() throws IOException {
     clean();
 
     Configuration config = config();
@@ -182,35 +161,82 @@ public class TestFiles {
   }
 
   @Test
-  void metaTest() throws IOException {
+  void meta() throws IOException {
     clean();
 
     Configuration config = config();
     FilesManager manager = new FilesManager("3", config);
 
-    assertFalse(manager.hasOwnFilename(f1));
-    assertFalse(manager.hasOwnFilename(f2));
+    assertFalse(manager.isKeepingFilename(f1));
+    assertFalse(manager.isKeepingFilename(f2));
 
-    assertTrue(manager.putOwnFileId(f1, hash1));
-    assertTrue(manager.putOwnFileId(f2, hash2));
-    assertTrue(manager.putOwnFileId(f3, hash3));
+    assertTrue(manager.putKeepingFile(f1, hash1));
+    assertTrue(manager.putKeepingFile(f2, hash2));
+    assertTrue(manager.putKeepingFile(f3, hash3));
 
-    assertEquals(hash1, manager.getOwnFileId(f1));
-    assertEquals(hash2, manager.getOwnFileId(f2));
-    assertEquals(hash3, manager.getOwnFileId(f3));
+    assertEquals(hash1, manager.getFileId(f1));
+    assertEquals(hash2, manager.getFileId(f2));
+    assertEquals(hash3, manager.getFileId(f3));
 
-    assertNull(manager.getOwnFileId(f4));
+    assertNull(manager.getFileId(f4));
 
     assertTrue(manager.putMetadataOfFileId(hash1, c1));
     assertTrue(manager.putMetadataOfFilename(f2, c2));
     assertTrue(manager.putMetadataOfFilename(f3, c3));
 
-    assertTrue(manager.hasOwnFilename(f1));
-    assertTrue(manager.hasOwnFilename(f3));
-    assertFalse(manager.hasOwnFilename(f4));
+    assertTrue(manager.isKeepingFilename(f1));
+    assertTrue(manager.isKeepingFilename(f3));
+    assertFalse(manager.isKeepingFilename(f4));
 
     assertEquals(c1, manager.getMetadataOfFilename(f1));
     assertEquals(c2, manager.getMetadataOfFilename(f2));
     assertEquals(c3, manager.getMetadataOfFileId(hash3));
+  }
+
+  @Test
+  void readBulk() throws IOException {
+    clean();
+
+    Configuration config = config();
+    FilesManager manager = new FilesManager("4", config);
+
+    TreeSet<String> filesEmpty = new TreeSet<>();
+    TreeSet<Integer> chunksEmpty = new TreeSet<>();
+
+    assertEquals(filesEmpty, manager.backupFilesSet());
+    assertEquals(chunksEmpty, manager.backupChunksSet(hash1));
+    assertEquals(chunksEmpty, manager.backupChunksSet(hash9));
+
+    assertTrue(manager.putChunk(hash1, 1, b1));
+    assertTrue(manager.putChunk(hash1, 9, b2));
+    assertTrue(manager.putChunk(hash2, 0, b3));
+    assertTrue(manager.putChunk(hash2, 1, b4));
+    assertTrue(manager.putChunk(hash2, 2, b5));
+    assertTrue(manager.putChunk(hash3, 2, b1));
+    assertTrue(manager.putChunk(hash4, 1, b3));
+    assertTrue(manager.putChunk(hash4, 2, b4));
+    assertTrue(manager.putChunk(hash4, 3, b5));
+    assertTrue(manager.putChunk(hash4, 4, b6));
+
+    TreeSet<String> files = new TreeSet<>(Arrays.asList(hash1, hash2, hash3, hash4));
+    TreeSet<Integer> chunks1 = new TreeSet<>(Arrays.asList(1, 9));
+    TreeSet<Integer> chunks2 = new TreeSet<>(Arrays.asList(0, 1, 2));
+    TreeSet<Integer> chunks3 = new TreeSet<>(Arrays.asList(2));
+    TreeSet<Integer> chunks4 = new TreeSet<>(Arrays.asList(1, 2, 3, 4));
+
+    assertEquals(files, manager.backupFilesSet());
+    assertEquals(chunks1, manager.backupChunksSet(hash1));
+    assertEquals(chunks2, manager.backupChunksSet(hash2));
+    assertEquals(chunks3, manager.backupChunksSet(hash3));
+    assertEquals(chunks4, manager.backupChunksSet(hash4));
+    assertEquals(chunksEmpty, manager.backupChunksSet(hash8));
+
+    HashMap<String, TreeSet<Integer>> map = new HashMap<>(4);
+    map.put(hash1, chunks1);
+    map.put(hash2, chunks2);
+    map.put(hash3, chunks3);
+    map.put(hash4, chunks4);
+
+    assertEquals(map, manager.backupAllChunksMap());
   }
 }

@@ -8,19 +8,24 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.*;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class FilesManager {
   private static final Logger LOGGER = Logger.getLogger(FilesManager.class.getName());
   private final String id;
   private final Configuration config;
 
-  private Path allPeersDir;
-  private Path peerDir;
-  private Path backupDir;
-  private Path restoredDir;
-  private Path mineDir;
-  private Path idMapDir;
+  private final Path allPeersDir;
+  private final Path peerDir;
+  private final Path backupDir;
+  private final Path restoredDir;
+  private final Path mineDir;
+  private final Path idMapDir;
+  private final Pattern backupPattern;
+  private final Pattern chunkPattern;
 
   static private String chk(@NotNull String fileId, int chunkNo) {
     return "chunk #" + chunkNo + " of file " + id(fileId);
@@ -49,7 +54,7 @@ public final class FilesManager {
     if (file.isDirectory()) {
       File[] subfiles = file.listFiles();
       if (subfiles != null) {
-        for (final File subfile : subfiles) {
+        for (File subfile : subfiles) {
           deleteRecursive(subfile);
         }
       }
@@ -61,27 +66,41 @@ public final class FilesManager {
     if (!directory.isDirectory()) return false;
     File[] files = directory.listFiles();
     if (files != null) {
-      for (final File file : files) {
+      for (File file : files) {
         file.delete();
       }
     }
     return directory.delete();
   }
 
-  /**
-   * @param fileId A valid fileId
-   * @return The corresponding directory name in the backup/ directory
-   */
   private String makeBackupEntry(@NotNull String fileId) {
     return config.entryPrefix + fileId;
   }
 
-  /**
-   * @param chunkNo A valid chunk number
-   * @return The corresponding filename in its file's subdirectory
-   */
+  private String extractFromBackupEntry(@NotNull String backupFilename) {
+    Matcher matcher = backupPattern.matcher(backupFilename);
+    if (!matcher.matches()) return null;
+
+    return matcher.group(1);
+  }
+
+  private boolean validBackupEntry(@NotNull String backupFilename) {
+    return backupPattern.matcher(backupFilename).matches();
+  }
+
   private String makeChunkEntry(int chunkNo) {
     return config.chunkPrefix + chunkNo;
+  }
+
+  private int extractFromChunkEntry(@NotNull String chunkFilename) {
+    Matcher matcher = chunkPattern.matcher(chunkFilename);
+    if (!matcher.matches()) return -1;
+
+    return Integer.parseInt(matcher.group(1));
+  }
+
+  private boolean validChunkEntry(@NotNull String chunkFilename) {
+    return chunkPattern.matcher(chunkFilename).matches();
   }
 
   /**
@@ -131,6 +150,12 @@ public final class FilesManager {
     // dbs/peer-ID/mine/
     path = peerDir.resolve(config.chunkInfoDir);
     mineDir = Files.createDirectories(path);
+
+    // prefix[FILEID]
+    backupPattern = Pattern.compile(Pattern.quote(config.entryPrefix) + "([0-9a-f]{64})");
+
+    // prefix[CHUNKNO]
+    chunkPattern = Pattern.compile(Pattern.quote(config.chunkPrefix) + "([0-9]+)");
   }
 
   /**
@@ -224,7 +249,8 @@ public final class FilesManager {
       Path filepath = backupDir.resolve(makeBackupEntry(fileId));
       Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
       if (Files.notExists(chunkpath)) return true;
-      return Files.deleteIfExists(chunkpath);
+      Files.deleteIfExists(chunkpath);
+      return true;
     } catch (IOException e) {
       LOGGER.warning("Failed to delete " + chk(fileId, chunkNo) + "\n" + e.getMessage());
       return false;
@@ -280,6 +306,77 @@ public final class FilesManager {
     }
   }
 
+  private File[] backupFilterFilesList(@NotNull File @NotNull [] files) {
+    return Arrays.stream(files)
+        .filter(file -> validBackupEntry(file.getName()))
+        .toArray(File[]::new);
+  }
+
+  private File[] backupFilterChunksList(@NotNull File @NotNull [] chunks) {
+    return Arrays.stream(chunks)
+        .filter(chunk -> validChunkEntry(chunk.getName()))
+        .toArray(File[]::new);
+  }
+
+  private File[] backupFilesList() {
+    File[] files = backupDir.toFile().listFiles();
+    if (files == null) {
+      return new File[0];
+    } else {
+      return backupFilterFilesList(files);
+    }
+  }
+
+  private File[] backupChunksList(@NotNull File file) {
+    if (!file.exists() || !file.isDirectory()) return new File[0];
+    File[] chunks = file.listFiles();
+    if (chunks == null) {
+      return new File[0];
+    } else {
+      return backupFilterChunksList(chunks);
+    }
+  }
+
+  private File[] backupChunksList(@NotNull String fileId) {
+    Path filepath = backupDir.resolve(makeBackupEntry(fileId));
+    if (Files.notExists(filepath)) return new File[0];
+
+    return backupChunksList(filepath.toFile());
+  }
+
+  public HashSet<String> backupFilesSet() {
+    File[] files = backupFilesList();
+    HashSet<String> set = new HashSet<>();
+
+    for (File file : files) {
+      set.add(extractFromBackupEntry(file.getName()));
+    }
+
+    return set;
+  }
+
+  public TreeSet<Integer> backupChunksSet(@NotNull String fileId) {
+    File[] files = backupChunksList(fileId);
+    TreeSet<Integer> set = new TreeSet<>();
+
+    for (File file : files) {
+      set.add(extractFromChunkEntry(file.getName()));
+    }
+
+    return set;
+  }
+
+  public HashMap<String,TreeSet<Integer>> backupAllChunksMap() {
+    HashSet<String> fileSet = backupFilesSet();
+    HashMap<String,TreeSet<Integer>> map = new HashMap<>();
+
+    for (String fileId : fileSet) {
+      map.put(fileId, backupChunksSet(fileId));
+    }
+
+    return map;
+  }
+
   /**
    * Get total amount of disk space occupied by this backup file. Internal auxiliary.
    *
@@ -287,10 +384,7 @@ public final class FilesManager {
    * @return The total amount of disk space, 0 if it does not exist or is not a folder.
    */
   private long backupFileTotalSpace(@NotNull File file) {
-    if (!file.exists() || !file.isDirectory()) return 0;
-
-    File[] chunks = file.listFiles();
-    if (chunks == null) return 0;
+    File[] chunks = backupChunksList(file);
 
     long total = 0;
     for (File chunk : chunks) total += chunk.getTotalSpace();
@@ -298,75 +392,40 @@ public final class FilesManager {
   }
 
   /**
-   * Total amount of space occupied by the file with this id.
+   * Total amount of space occupied by the backup file with this id.
    *
    * @param fileId The file id
    * @return The total amount of disk space used, or 0 if it does not exist or is not a
    * folder.
    */
   public long backupFileTotalSpace(@NotNull String fileId) {
-    Path filepath = backupDir.resolve(makeBackupEntry(fileId));
-    if (Files.notExists(filepath)) return 0;
-
-    File file = filepath.toFile();
-    return backupFileTotalSpace(file);
+    return backupFileTotalSpace(backupDir.resolve(makeBackupEntry(fileId)).toFile());
   }
 
   /**
-   * Total amount of space occupied by all files backed up by this peer.
+   * Total amount of space occupied by all files in the peer's backup subsystem.
    *
    * @return The total amount of disk space used.
    */
   public long backupTotalSpace() {
-    File[] files = backupDir.toFile().listFiles();
-    if (files == null) return 0;
+    File[] files = backupFilesList();
 
     long total = 0;
     for (File file : files) total += backupFileTotalSpace(file);
     return total;
   }
 
-  /**
-   * List of files kept by this peer's backup.
-   *
-   * @return A (possibly empty) list of files kept under backup/
-   */
-  public File[] backupFilesList() {
-    File[] files = backupDir.toFile().listFiles();
-    return files == null ? new File[0] : files;
-  }
-
-  /**
-   * List of chunks under this file.
-   *
-   * @param fileId The file id
-   * @return A (possible empty) list of chunks kept for this file.
-   */
-  public File[] backupChunksList(@NotNull String fileId) {
-    Path filepath = backupDir.resolve(makeBackupEntry(fileId));
-    if (Files.notExists(filepath)) return null;
-
-    File[] files = filepath.toFile().listFiles();
-    return files == null ? new File[0] : files;
-  }
-
-  /**
-   * Retrieve the file id corresponding to a given filename.
-   *
-   * @param filename The backed up filename being queried
-   * @return True if the file id of the queried filename exists, or false if it does not exist.
-   */
-  public boolean hasOwnFilename(@NotNull String filename) {
+  public boolean isKeepingFilename(@NotNull String filename) {
     Path ownpath = idMapDir.resolve(filename);
     return Files.exists(ownpath);
   }
 
-  public boolean hasOwnFileId(@NotNull String fileId) {
+  public boolean isKeepingFileId(@NotNull String fileId) {
     Path minepath = mineDir.resolve(fileId);
     return Files.exists(minepath);
   }
 
-  public String getOwnFileId(@NotNull String filename) {
+  public String getFileId(@NotNull String filename) {
     try {
       Path ownpath = idMapDir.resolve(filename);
       if (Files.notExists(ownpath)) return null;
@@ -378,7 +437,7 @@ public final class FilesManager {
     }
   }
 
-  public boolean putOwnFileId(@NotNull String filename, @NotNull String fileId) {
+  public boolean putKeepingFile(@NotNull String filename, @NotNull String fileId) {
     try {
       Path ownpath = idMapDir.resolve(filename);
       Files.write(ownpath, fileId.getBytes());
@@ -389,11 +448,15 @@ public final class FilesManager {
     }
   }
 
-  public boolean deleteOwnFileId(@NotNull String filename) {
+  public boolean deleteKeepingFile(@NotNull String filename) {
+    if (!isKeepingFilename(filename)) return true;
+
+    String fileId = getFileId(filename);
     try {
       Path ownpath = idMapDir.resolve(filename);
       if (Files.notExists(ownpath)) return true;
-      return Files.deleteIfExists(ownpath);
+      Files.deleteIfExists(ownpath);
+      return true;
     } catch (IOException e) {
       LOGGER.warning("Failed to delete idmap file " + filename + "\n" + e.getMessage());
       return false;
@@ -418,13 +481,13 @@ public final class FilesManager {
   }
 
   public Object getMetadataOfFilename(@NotNull String filename) {
-    String fileId = getOwnFileId(filename);
+    String fileId = getFileId(filename);
     if (fileId == null) return null;
 
     return getMetadataOfFileId(fileId);
   }
 
-  public boolean putMetadataOfFileId(@NotNull String fileId, Serializable ser) {
+  public boolean putMetadataOfFileId(@NotNull String fileId, @NotNull Serializable ser) {
     Path minepath = mineDir.resolve(fileId);
 
     try (
@@ -438,10 +501,30 @@ public final class FilesManager {
     }
   }
 
-  public boolean putMetadataOfFilename(@NotNull String filename, Serializable ser) {
-    String fileId = getOwnFileId(filename);
+  public boolean putMetadataOfFilename(@NotNull String filename,
+                                       @NotNull Serializable ser) {
+    String fileId = getFileId(filename);
     if (fileId == null) return false;
 
     return putMetadataOfFileId(fileId, ser);
+  }
+
+  public boolean deleteMetadataOfFileId(@NotNull String fileId) {
+    try {
+      Path minepath = mineDir.resolve(fileId);
+      if (Files.notExists(minepath)) return true;
+      Files.deleteIfExists(minepath);
+      return true;
+    } catch (IOException e) {
+      LOGGER.severe("Failed to delete metadata for " + id(fileId) + "\n" + e.getMessage());
+      return false;
+    }
+  }
+
+  public boolean deleteMetadataOfFilename(@NotNull String filename) {
+    String fileId = getFileId(filename);
+    if (fileId == null) return true;
+
+    return deleteMetadataOfFileId(filename);
   }
 }
