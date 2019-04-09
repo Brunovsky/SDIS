@@ -18,14 +18,14 @@ public final class FilesManager {
   private final String id;
   private final Configuration config;
 
-  private Path allPeersDir;
-  private Path peerDir;
-  private Path backupDir;
-  private Path restoredDir;
-  private Path mineDir;
-  private Path idMapDir;
-  private Pattern backupPattern;
-  private Pattern chunkPattern;
+  private final Path allPeersDir;
+  private final Path peerDir;
+  private final Path backupDir;
+  private final Path restoredDir;
+  private final Path mineDir;
+  private final Path idMapDir;
+  private final Pattern backupPattern;
+  private final Pattern chunkPattern;
 
   static private String chk(@NotNull String fileId, int chunkNo) {
     return "chunk #" + chunkNo + " of file " + id(fileId);
@@ -249,7 +249,8 @@ public final class FilesManager {
       Path filepath = backupDir.resolve(makeBackupEntry(fileId));
       Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
       if (Files.notExists(chunkpath)) return true;
-      return Files.deleteIfExists(chunkpath);
+      Files.deleteIfExists(chunkpath);
+      return true;
     } catch (IOException e) {
       LOGGER.warning("Failed to delete " + chk(fileId, chunkNo) + "\n" + e.getMessage());
       return false;
@@ -414,17 +415,17 @@ public final class FilesManager {
     return total;
   }
 
-  public boolean hasOwnFilename(@NotNull String filename) {
+  public boolean isKeepingFilename(@NotNull String filename) {
     Path ownpath = idMapDir.resolve(filename);
     return Files.exists(ownpath);
   }
 
-  public boolean hasOwnFileId(@NotNull String fileId) {
+  public boolean isKeepingFileId(@NotNull String fileId) {
     Path minepath = mineDir.resolve(fileId);
     return Files.exists(minepath);
   }
 
-  public String getOwnFileId(@NotNull String filename) {
+  public String getFileId(@NotNull String filename) {
     try {
       Path ownpath = idMapDir.resolve(filename);
       if (Files.notExists(ownpath)) return null;
@@ -436,7 +437,7 @@ public final class FilesManager {
     }
   }
 
-  public boolean putOwnFileId(@NotNull String filename, @NotNull String fileId) {
+  public boolean putKeepingFile(@NotNull String filename, @NotNull String fileId) {
     try {
       Path ownpath = idMapDir.resolve(filename);
       Files.write(ownpath, fileId.getBytes());
@@ -447,11 +448,15 @@ public final class FilesManager {
     }
   }
 
-  public boolean deleteOwnFileId(@NotNull String filename) {
+  public boolean deleteKeepingFile(@NotNull String filename) {
+    if (!isKeepingFilename(filename)) return true;
+
+    String fileId = getFileId(filename);
     try {
       Path ownpath = idMapDir.resolve(filename);
       if (Files.notExists(ownpath)) return true;
-      return Files.deleteIfExists(ownpath);
+      Files.deleteIfExists(ownpath);
+      return true;
     } catch (IOException e) {
       LOGGER.warning("Failed to delete idmap file " + filename + "\n" + e.getMessage());
       return false;
@@ -476,13 +481,13 @@ public final class FilesManager {
   }
 
   public Object getMetadataOfFilename(@NotNull String filename) {
-    String fileId = getOwnFileId(filename);
+    String fileId = getFileId(filename);
     if (fileId == null) return null;
 
     return getMetadataOfFileId(fileId);
   }
 
-  public boolean putMetadataOfFileId(@NotNull String fileId, Serializable ser) {
+  public boolean putMetadataOfFileId(@NotNull String fileId, @NotNull Serializable ser) {
     Path minepath = mineDir.resolve(fileId);
 
     try (
@@ -496,10 +501,30 @@ public final class FilesManager {
     }
   }
 
-  public boolean putMetadataOfFilename(@NotNull String filename, Serializable ser) {
-    String fileId = getOwnFileId(filename);
+  public boolean putMetadataOfFilename(@NotNull String filename,
+                                       @NotNull Serializable ser) {
+    String fileId = getFileId(filename);
     if (fileId == null) return false;
 
     return putMetadataOfFileId(fileId, ser);
+  }
+
+  public boolean deleteMetadataOfFileId(@NotNull String fileId) {
+    try {
+      Path minepath = mineDir.resolve(fileId);
+      if (Files.notExists(minepath)) return true;
+      Files.deleteIfExists(minepath);
+      return true;
+    } catch (IOException e) {
+      LOGGER.severe("Failed to delete metadata for " + id(fileId) + "\n" + e.getMessage());
+      return false;
+    }
+  }
+
+  public boolean deleteMetadataOfFilename(@NotNull String filename) {
+    String fileId = getFileId(filename);
+    if (fileId == null) return true;
+
+    return deleteMetadataOfFileId(filename);
   }
 }
