@@ -21,12 +21,7 @@ public class Utils {
     String bitString = filePath + lastModified;
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
     byte[] encodedHash;
-    try {
-      encodedHash = digest.digest(bitString.getBytes());
-    } catch (Exception e) {
-      LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
-      return null;
-    }
+    encodedHash = digest.digest(bitString.getBytes());
     BigInteger hash = new BigInteger(1, encodedHash);
 
     String hashtext = hash.toString(16);
@@ -36,6 +31,10 @@ public class Utils {
     }
 
     return hashtext;
+  }
+
+  public static int numberOfChunks(long filesize) {
+    return (int)((filesize + Protocol.chunkSize - 1) / Protocol.chunkSize);
   }
 
   public static Registry registry() {

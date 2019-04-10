@@ -56,4 +56,8 @@ public class Configuration {
 
     // Waiting period for GETCHUNK responses
     public int waitGetchunk = 600; // milliseconds
+
+    // Waiting interval for CHUNK responses
+    // TODO: random delay in Restore
+    public int waitChunk = 400;
 }

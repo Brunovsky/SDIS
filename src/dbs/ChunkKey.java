@@ -1,6 +1,6 @@
 package dbs;
 
-import java.security.MessageDigest;
+import java.util.Objects;
 
 public class ChunkKey {
   private final String fileId;
@@ -24,8 +24,17 @@ public class ChunkKey {
     if (!(obj instanceof ChunkKey))
       return false;
 
-    ChunkKey objChunckKey = (ChunkKey) obj;
-    return objChunckKey.chunkNo == this.chunkNo &&
-        MessageDigest.isEqual(objChunckKey.fileId.getBytes(), this.fileId.getBytes());
+    ChunkKey other = (ChunkKey) obj;
+    return this.chunkNo == other.chunkNo && fileId.equals(other.fileId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(fileId, chunkNo);
+  }
+
+  @Override
+  public String toString() {
+    return "ChunkKey{" + "fileId='" + fileId + '\'' + ", chunkNo=" + chunkNo + '}';
   }
 }
