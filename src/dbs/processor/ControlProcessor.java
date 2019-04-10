@@ -24,7 +24,7 @@ public class ControlProcessor implements Multicaster.Processor {
       try {
         Message m = new Message(packet);
         this.processMessage(m);
-        System.out.println("[MC Processor] \n" + m.toString() + "\n");
+        //System.out.println("[MC Processor] \n" + m.toString() + "\n");
       } catch (MessageException e) {
         System.err.println("[MC Processor ERR] Invalid:\n" + e.getMessage() + "\n");
       }
@@ -63,7 +63,12 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processStoredMessage(Message m) {
-      // TODO: update hasmap
+      Long senderId = Long.parseLong(m.getSenderId());
+      if(senderId == this.peer.getId()) return;
+      this.peer.LOGGER.info("Received stored message from " + senderId + "\n");
+      String fileId = m.getFileId();
+      Integer chunkNumber = m.getChunkNo();
+      this.peer.fileInfoManager.addBackupPeer(fileId, chunkNumber, senderId);
     }
   }
 

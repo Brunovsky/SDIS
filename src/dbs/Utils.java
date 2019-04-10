@@ -63,9 +63,9 @@ public class Utils {
     return registry;
   }
 
-  public static void waitRandom(int min, int max, TimeUnit timeUnit) throws InterruptedException {
+  public static int getRandom(int min, int max)  {
     Random rand = new Random();
     int delay = rand.nextInt(max) + min;
-    timeUnit.sleep(1);
+    return delay;
   }
 }

@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -278,7 +279,7 @@ public class TestFiles {
     String peerId = "4";
     Configuration config = config();
     FilesManager manager = new FilesManager(peerId, config);
-    HashMap<String, FileInfo> map = manager.initFilesInfo();
+    ConcurrentHashMap<String, FileInfo> map = manager.initFilesInfo();
     String backupPeer1 = "1";
     String backupPeer2 = "4";
 

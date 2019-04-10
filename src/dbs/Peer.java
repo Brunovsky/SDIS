@@ -5,7 +5,7 @@ import dbs.message.Message;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
-import dbs.transmitter.DataBackupTransmitter;
+import dbs.transmitter.PutchunkTransmitter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -37,6 +37,7 @@ public class Peer implements ClientInterface {
       peer = parseArgs(args);
     } catch (Exception e) {
       LOGGER.severe("Could not create Peer object.\n");
+      e.printStackTrace();
       System.exit(1);
     }
 
@@ -237,7 +238,7 @@ public class Peer implements ClientInterface {
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
     LOGGER.info("Received BACKUP request.\n");
-    this.pool.submit(new DataBackupTransmitter(this, pathname, replicationDegree));
+    this.pool.submit(new PutchunkTransmitter(this, pathname, replicationDegree, 1));
   }
 
   public void restore(@NotNull String pathname) throws RemoteException {

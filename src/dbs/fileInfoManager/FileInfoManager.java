@@ -3,7 +3,7 @@ package dbs.fileInfoManager;
 import dbs.Peer;
 import dbs.files.FilesManager;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FileInfoManager {
 
@@ -14,7 +14,7 @@ public class FileInfoManager {
    * against the desired replication degree of those chunks. The information regarding the files
    * owned by that same peer may also be tracked.
    */
-  private HashMap<String, FileInfo> filesInfo;
+  private ConcurrentHashMap<String, FileInfo> filesInfo;
   /**
    * The peer being managed.
    */
@@ -53,12 +53,55 @@ public class FileInfoManager {
   }
 
   /**
+   * Returns true if the given chunk is backed up by that peer and false otherwise.
+   * @param fileId The file's id.
+   * @param chunkNumber The chunk's number.
+   * @return True if the given chunk is backed up by that peer and false otherwise.
+   */
+  public boolean hasChunk(String fileId, Integer chunkNumber) {
+    return this.filesManager.hasChunk(fileId, chunkNumber);
+  }
+
+  /**
+   * Stores a new chunk. If another chunk with the same name exists, it will be overwritten.
+   * @param fileId  The file's id
+   * @param chunkNumber The chunk's number
+   * @param chunk   The chunk's content
+   * @return true if the file was successfully written, false otherwise
+   */
+  public void storeChunk(String fileId, Integer chunkNumber, byte[] chunk) {
+    if(this.hasChunk(fileId, chunkNumber)) return;  // chunk already stored
+    this.filesManager.putChunk(fileId, chunkNumber, chunk);
+  }
+
+  /**
+   * Returns the content of a chunk, or null if it does not exist or a reading error occurred.
+   * @param fileId  The file's id
+   * @param chunkNumber The chunk's number
+   * @return The entire content of the chunk, or null if the chunk does not exist/could not be read.
+   */
+  public byte[] getChunk(String fileId, Integer chunkNumber) {
+    return this.filesManager.getChunk(fileId, chunkNumber);
+  }
+  /**
    * Adds a new entry to the filesInfo map if it doesn't exist yet.
    * @param fileId The id of the new file.
    */
   public void addFileInfo(String fileId) {
     if(!this.hasFileInfo(fileId))
       this.filesInfo.put(fileId, new FileInfo());
+  }
+
+  /**
+   * Updates the desired replication degree of a file
+   * @param fileId The file's id.
+   * @param desiredReplicationDegree The desired replication degree of that file.
+   */
+  public void setDesiredReplicationDegree(String fileId, Integer desiredReplicationDegree) {
+    if(!this.hasFileInfo(fileId))
+      this.addFileInfo(fileId);
+    this.getFileInfo(fileId).setDesiredReplicationDegree(desiredReplicationDegree);
+    this.writeDesiredReplicationDegree(fileId);
   }
 
   /**
@@ -142,7 +185,20 @@ public class FileInfoManager {
     try {
       this.filesManager.writeChunkInfo(fileId, chunkNumber, chunkInfo);
     } catch (Exception e) {
-      this.peer.LOGGER.severe("Could not update the chunk info for the chunk number " + chunkNumber + " of the file with id " + fileId);
+      this.peer.LOGGER.severe("Could not update the chunk info for the chunk number " + chunkNumber + " of the file with id " + '\n');
+    }
+  }
+
+  /**
+   * Allows for the update of the desired replication degree of a given file on the disk
+   * @param fileId The file's id
+   */
+  private void writeDesiredReplicationDegree(String fileId) {
+    Integer desiredReplicationDegree = this.getFileInfo(fileId).getDesiredReplicationDegree();
+    try {
+      this.filesManager.writeFileDesiredReplicationDegree(fileId, desiredReplicationDegree);
+    } catch (Exception e) {
+      this.peer.LOGGER.severe("Could not update the desired replication degree of the file with id " + fileId + '\n');
     }
   }
 }

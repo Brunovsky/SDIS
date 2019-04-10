@@ -26,6 +26,10 @@ public class TestRMI {
   }
 
   private Process launchPeer(String protocolVersion, long id, String accessPoint) throws IOException {
+    Protocol.mc = new MulticastChannel(InetAddress.getByName("237.0.0.1"), 29500);
+    Protocol.mdb = new MulticastChannel(InetAddress.getByName("237.0.0.2"), 29501);
+    Protocol.mdr = new MulticastChannel(InetAddress.getByName("237.0.0.3"), 29502);
+
     ProcessBuilder pb = new ProcessBuilder();
     pb.command("java",
             "dbs.Peer",

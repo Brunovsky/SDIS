@@ -2,9 +2,11 @@ package dbs.processor;
 
 import dbs.Multicaster;
 import dbs.Peer;
+import dbs.Protocol;
 import dbs.Utils;
 import dbs.message.Message;
 import dbs.message.MessageException;
+import dbs.transmitter.StoredTransmitter;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
@@ -49,28 +51,26 @@ public class DataBackupProcessor implements Multicaster.Processor {
       if(senderId == this.peer.getId()) // the same peer has the one processing the message
         return;
 
-      /*int replicationDegree = this.peer.getReplicationDegree(fileId, chunkNumber);
+      int replicationDegree = this.peer.fileInfoManager.getChunkReplicationDegree(fileId, chunkNumber);
       if(replicationDegree >= desiredReplicationDegree)
         return;
 
       storeChunk(fileId, chunkNumber, chunk);
       sendStoredMessage(version, fileId, chunkNumber);
-      this.peer.insertIntoChunksReplicationDegreeHashMap(fileId, chunkNumber, this.peer.getId());*/
+      this.peer.fileInfoManager.addBackupPeer(fileId, chunkNumber, this.peer.getId());
+      this.peer.fileInfoManager.setDesiredReplicationDegree(fileId, desiredReplicationDegree);
     }
 
     private void storeChunk(String fileId, int chunkNumber, byte[] chunk) {
-      // TODO: store the chunk using the file manager
+      this.peer.fileInfoManager.storeChunk(fileId, chunkNumber, chunk);
     }
 
     private void sendStoredMessage(String version, String fileId, int chunkNumber) {
-      try {
-        Utils.waitRandom(0, 400, TimeUnit.MILLISECONDS);
-      } catch (InterruptedException e) {
-        this.peer.LOGGER.warning("Could not wait to send the STORED message.\n");
-      }
-      Message m = Message.STORED(fileId, version, chunkNumber);
-      this.peer.send(m);
+      this.peer.getPool().schedule(new StoredTransmitter(version, this.peer, fileId, chunkNumber),
+              Utils.getRandom(Protocol.minDelay, Protocol.maxDelay),
+              TimeUnit.MILLISECONDS);
     }
+
   }
 
   @Override
