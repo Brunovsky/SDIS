@@ -15,6 +15,16 @@ import java.util.logging.Logger;
 public class Utils {
   private final static Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
+  private static String bytesToHex(byte[] hash) {
+    StringBuffer hexString = new StringBuffer();
+    for (int i = 0; i < hash.length; i++) {
+      String hex = Integer.toHexString(0xff & hash[i]);
+      if(hex.length() == 1) hexString.append('0');
+      hexString.append(hex);
+    }
+    return hexString.toString();
+  }
+
   public static String hash(@NotNull File file, long peerId) throws Exception {
     String filePath = file.getPath();
     long lastModified = file.lastModified();
@@ -27,15 +37,8 @@ public class Utils {
       LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
       return null;
     }
-    BigInteger hash = new BigInteger(1, encodedHash);
 
-    String hashtext = hash.toString(16);
-
-    while (hashtext.length() < 32) {
-      hashtext = "0" + hashtext;
-    }
-
-    return hashtext;
+    return bytesToHex(encodedHash);
   }
 
   public static Registry registry() {

@@ -308,7 +308,7 @@ public class Message {
   private Message(@NotNull MessageType type, @NotNull String version,
                   @NotNull String fileId, int chunkNo, int replication,
                   String[] more,
-                  byte[] body) {
+                  byte[] body) throws MessageError {
     try {
       this.messageType = type;
 
@@ -347,6 +347,7 @@ public class Message {
   public static Message PUTCHUNK(@NotNull String fileId, @NotNull String version,
                                  int chunkNo, int replication,
                                  byte @NotNull [] body) {
+    System.out.println("generating putchunk");
     return new Message(MessageType.PUTCHUNK, version, fileId, chunkNo,
         replication, null, body);
   }

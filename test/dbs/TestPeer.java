@@ -3,10 +3,14 @@ package dbs;
 import dbs.message.Message;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 
-class TestPeer {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class TestPeer {
   @Test
   void visualize() throws Exception {
     Protocol.mc = new MulticastChannel(InetAddress.getByName("237.0.0.1"), 29500);
@@ -49,5 +53,43 @@ class TestPeer {
     Thread.sleep(300, 0); // let all messages go through
 
     peer.finish();
+  }
+
+  public static Process launchPeer(String protocolVersion, long id, String accessPoint) throws IOException {
+    Protocol.mc = new MulticastChannel(InetAddress.getByName("237.0.0.1"), 29500);
+    Protocol.mdb = new MulticastChannel(InetAddress.getByName("237.0.0.2"), 29501);
+    Protocol.mdr = new MulticastChannel(InetAddress.getByName("237.0.0.3"), 29502);
+
+    ProcessBuilder pb = new ProcessBuilder();
+    pb.command("java",
+            "dbs.Peer",
+            protocolVersion,
+            Long.toString(id),
+            accessPoint,
+            Protocol.mc.getAddress().toString(),
+            Integer.toString(Protocol.mc.getPort()),
+            Protocol.mdb.getAddress().toString(),
+            Integer.toString(Protocol.mdb.getPort()),
+            Protocol.mdr.getAddress().toString(),
+            Integer.toString(Protocol.mdr.getPort()));
+    pb.directory(new File("out/production/SDIS_1819"));
+    return pb.start();
+  }
+
+  @Test
+  public void testLaunchPeer() throws Exception {
+    Protocol.mc = new MulticastChannel(InetAddress.getByName("237.0.0.1"), 29500);
+    Protocol.mdb = new MulticastChannel(InetAddress.getByName("237.0.0.2"), 29501);
+    Protocol.mdr = new MulticastChannel(InetAddress.getByName("237.0.0.3"), 29502);
+    TestRMI.startRMIRegistry();
+    Process peer1 = launchPeer("1.0",1, "peer_1");
+    Process peer2 = launchPeer("1.0", 2, "peer_1");
+    assertTrue(peer1.isAlive());
+    assertTrue(peer2.isAlive());
+    peer2.waitFor();
+    assertEquals(1, peer2.exitValue()); // no two peers with the same access point
+    assertTrue(peer1.isAlive());
+    peer1.destroy();
+    TestRMI.destroyRMIRegistry();
   }
 }

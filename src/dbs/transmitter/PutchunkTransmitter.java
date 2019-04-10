@@ -2,6 +2,7 @@ package dbs.transmitter;
 
 import dbs.*;
 import dbs.message.Message;
+import dbs.message.MessageError;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,7 +50,6 @@ public class PutchunkTransmitter implements Runnable {
     this.numberChunks = (int)Math.ceil(fileSize / (double)Protocol.chunkSize);
 
     if(this.backedUpFile()) {
-      this.peer.LOGGER.info("1\n");
       Peer.LOGGER.info("Successfully backed up file '" + pathname + "'.\n");
       return;
     }
@@ -106,8 +106,13 @@ public class PutchunkTransmitter implements Runnable {
   }
 
   private void sendMessage(String fileId, int chunkNumber, byte[] chunk) {
-    Message putchunkMessage = Message.PUTCHUNK(fileId,
-            peer.getConfig().version, chunkNumber, this.replicationDegree, chunk);
+    Message putchunkMessage = null;
+    try {
+      putchunkMessage = Message.PUTCHUNK(fileId,
+              peer.getConfig().version, chunkNumber, this.replicationDegree, chunk);
+    } catch (MessageError e) {
+      this.peer.LOGGER.severe("Could not generate PUTCHUNK message. Going to abort execution of the PUTCHUNK protocol.\n");
+    }
     this.peer.LOGGER.info("---- sending putchunk message");
     peer.send(putchunkMessage);
   }
