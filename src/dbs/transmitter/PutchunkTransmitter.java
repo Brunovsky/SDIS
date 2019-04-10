@@ -15,7 +15,7 @@ public class PutchunkTransmitter implements Runnable {
   private String pathname;
   private int replicationDegree;
   private String fileId;
-  private long numberChunks;
+  private int numberChunks;
   private int transmissionNumber;
 
   public PutchunkTransmitter(Peer peer, String pathname, int replicationDegree, int transmissionNumber) {
@@ -45,7 +45,8 @@ public class PutchunkTransmitter implements Runnable {
       return;
     }
 
-    this.numberChunks = (fileToBackup.getTotalSpace() / Protocol.chunkSize);
+    Long fileSize = fileToBackup.length();
+    this.numberChunks = (int)Math.ceil(fileSize / (double)Protocol.chunkSize);
 
     if(this.backedUpFile()) {
       this.peer.LOGGER.info("1\n");
@@ -99,7 +100,6 @@ public class PutchunkTransmitter implements Runnable {
         if (chunkCurrentReplicationDegree < replicationDegree)
           sendMessage(fileId, chunkNumber, chunk);
       }
-      this.numberChunks = chunkNumber;
       chunk = new byte[Protocol.chunkSize];
     }
     while (numberBytesRead == Protocol.chunkSize);
@@ -108,6 +108,7 @@ public class PutchunkTransmitter implements Runnable {
   private void sendMessage(String fileId, int chunkNumber, byte[] chunk) {
     Message putchunkMessage = Message.PUTCHUNK(fileId,
             peer.getConfig().version, chunkNumber, this.replicationDegree, chunk);
+    this.peer.LOGGER.info("---- sending putchunk message");
     peer.send(putchunkMessage);
   }
 
