@@ -3,7 +3,6 @@ package dbs;
 import dbs.message.Message;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.net.InetAddress;
 
 class TestPeer {

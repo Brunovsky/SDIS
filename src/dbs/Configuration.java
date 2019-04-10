@@ -50,4 +50,10 @@ public class Configuration {
     // Peer's thread pool size (in threads)
     public int threadPoolSize = 8;
     //public static int putchunkerPoolSize = 10;
+
+    // Maximum number of allowed GETCHUNK for each chunk before the restore gives up
+    public int maxGetchunkAttempts = 5;
+
+    // Waiting period for GETCHUNK responses
+    public int waitGetchunk = 600; // milliseconds
 }

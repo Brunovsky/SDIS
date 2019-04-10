@@ -162,17 +162,6 @@ public class Peer implements ClientInterface {
     this.fileInfoManager = new FileInfoManager(this);
   }
 
-  private void initMulticasters() throws IOException {
-    try {
-      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
-      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
-      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
-    } catch (IOException e) {
-      LOGGER.severe("Could not create multicasters.\n");
-      throw e;
-    }
-  }
-
   private void initSocket() throws IOException {
     try {
       this.socket = new PeerSocket(this);
@@ -184,6 +173,17 @@ public class Peer implements ClientInterface {
 
   private void initPool() {
     this.pool = new ScheduledThreadPoolExecutor(config.threadPoolSize);
+  }
+
+  private void initMulticasters() throws IOException {
+    try {
+      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
+      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
+      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
+    } catch (IOException e) {
+      LOGGER.severe("Could not create multicasters.\n");
+      throw e;
+    }
   }
 
   private void launchThreads() {
