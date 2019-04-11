@@ -590,10 +590,10 @@ public final class FilesManager {
     this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
   }
 
-  public void deleteFileInfo(String fileId) {
+  public boolean deleteFileInfo(String fileId) {
     Path fileInfoDir = this.filesinfoDir.resolve(fileId);
     File file = fileInfoDir.toFile();
-    FilesManager.deleteRecursive(file);
+    return FilesManager.deleteRecursive(file);
   }
 
   public Object readObject(File objectFile) throws Exception {

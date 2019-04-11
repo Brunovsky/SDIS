@@ -56,7 +56,9 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processDeleteMessage(Message m) {
-      Peer.log("received deleted message from " + m.getSenderId(), Level.INFO);
+      String fileId = m.getFileId();
+      if(!this.peer.fileInfoManager.deleteBackedUpFile(fileId))
+        Peer.log("Could not delete the backed up file with id " + fileId, Level.SEVERE);
     }
 
     private void processGetchunkMessage(Message m) {

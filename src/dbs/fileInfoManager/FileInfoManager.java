@@ -120,6 +120,27 @@ public class FileInfoManager {
   }
 
   /**
+   * Deletes a backed up file and its records.
+   * @param fileId The file's id.
+   * @return True if the backed up file and its records were successfully deleted and false otherwise.
+   */
+  public boolean deleteBackedUpFile(String fileId) {
+    if(!this.hasFileInfo(fileId)) return true;
+    if(!this.filesManager.deleteBackupFile(fileId))
+    {
+      Peer.log("Could not delete the backup folder for the file with id " + fileId, Level.SEVERE);
+      return false;
+    }
+    this.deleteFileInfo(fileId);
+    if(!this.filesManager.deleteFileInfo(fileId))
+    {
+      Peer.log("Could not delete the records for the file with id " + fileId, Level.SEVERE);
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Updates the desired replication degree of a file
    * @param fileId The file's id.
    * @param desiredReplicationDegree The desired replication degree of that file.
