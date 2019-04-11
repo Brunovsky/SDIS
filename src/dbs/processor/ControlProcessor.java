@@ -8,6 +8,7 @@ import dbs.message.MessageType;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
+import java.util.logging.Level;
 
 public class ControlProcessor implements Multicaster.Processor {
   private class ControlRunnable implements Runnable {
@@ -46,7 +47,7 @@ public class ControlProcessor implements Multicaster.Processor {
           this.processRemovedMessage(m);
           break;
         default:
-          this.peer.LOGGER.severe("Could not recognized received message. Unexpected message type '" + messageType.toString() + "' in the MC channel.\n");
+          Peer.log("Could not recognized received message. Unexpected message type '" + messageType.toString() + "' in the MC channel", Level.SEVERE);
           return;
       }
     }
@@ -65,7 +66,6 @@ public class ControlProcessor implements Multicaster.Processor {
     private void processStoredMessage(Message m) {
       Long senderId = Long.parseLong(m.getSenderId());
       if(senderId == this.peer.getId()) return;
-      this.peer.LOGGER.info("Received stored message from " + senderId + "\n");
       String fileId = m.getFileId();
       Integer chunkNumber = m.getChunkNo();
       this.peer.fileInfoManager.addBackupPeer(fileId, chunkNumber, senderId);

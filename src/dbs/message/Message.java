@@ -234,7 +234,6 @@ public class Message {
    */
   private void parseHeaders(@NotNull String @NotNull [] headers) throws MessageException {
     if (headers.length == 0) {
-      System.out.println("--- 5");
       throw new MessageException("Message has no headers");
     }
 
@@ -254,7 +253,6 @@ public class Message {
       // TODO: use a BufferedStream
       int index = new String(bytes, 0, length, UTF_8).indexOf("\r\n\r\n");
       if (index < 0) {
-        System.out.println("--- 1");
         throw new MessageException("Invalid Message byte array: no header separator");
       }
 
@@ -268,17 +266,14 @@ public class Message {
         body = Arrays.copyOfRange(bytes, index + 4, length);
 
         if (body.length == 0) {
-          System.out.println("--- 2");
           throw new MessageException("Empty body in " + messageType + " message");
         }
       } else if (index + 4 != length) {
-        System.out.println("--- 3");
         throw new MessageException("Non-empty body in " + messageType + " message "
             + length);
       }
 
     } catch (IllegalArgumentException e) {
-      System.out.println("--- 4");
       throw new MessageException(e.getMessage());
     }
   }
@@ -347,7 +342,6 @@ public class Message {
   public static Message PUTCHUNK(@NotNull String fileId, @NotNull String version,
                                  int chunkNo, int replication,
                                  byte @NotNull [] body) {
-    System.out.println("generating putchunk");
     return new Message(MessageType.PUTCHUNK, version, fileId, chunkNo,
         replication, null, body);
   }

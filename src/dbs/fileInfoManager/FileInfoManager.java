@@ -4,6 +4,7 @@ import dbs.Peer;
 import dbs.files.FilesManager;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 public class FileInfoManager {
 
@@ -185,7 +186,7 @@ public class FileInfoManager {
     try {
       this.filesManager.writeChunkInfo(fileId, chunkNumber, chunkInfo);
     } catch (Exception e) {
-      this.peer.LOGGER.severe("Could not update the chunk info for the chunk number " + chunkNumber + " of the file with id " + '\n');
+      Peer.log("Could not update the chunk info for the chunk number " + chunkNumber + " of the file with id " + fileId, Level.SEVERE);
     }
   }
 
@@ -198,7 +199,7 @@ public class FileInfoManager {
     try {
       this.filesManager.writeFileDesiredReplicationDegree(fileId, desiredReplicationDegree);
     } catch (Exception e) {
-      this.peer.LOGGER.severe("Could not update the desired replication degree of the file with id " + fileId + '\n');
+      Peer.log("Could not update the desired replication degree of the file with id " + fileId, Level.SEVERE);
     }
   }
 }

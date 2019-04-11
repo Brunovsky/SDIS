@@ -13,7 +13,9 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Peer implements ClientInterface {
@@ -104,7 +106,7 @@ public class Peer implements ClientInterface {
     return new Peer(protocolVersion, id, accessPoint, mc, mdb, mdr);
   }
 
-  Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint,
+  public Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint,
        @NotNull MulticastChannel mc,
        @NotNull MulticastChannel mdb, @NotNull MulticastChannel mdr) throws Exception {
     Protocol.mc = mc;
@@ -119,7 +121,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint) throws Exception {
+  public Peer(@NotNull String protocolVersion, long id, @NotNull String accessPoint) throws Exception {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = new Configuration();
@@ -128,7 +130,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(long id, @NotNull String accessPoint) throws Exception {
+  public Peer(long id, @NotNull String accessPoint) throws Exception {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = new Configuration();
@@ -136,7 +138,7 @@ public class Peer implements ClientInterface {
     setup();
   }
 
-  Peer(long id, @NotNull String accessPoint, @NotNull Configuration config) throws Exception {
+  public Peer(long id, @NotNull String accessPoint, @NotNull Configuration config) throws Exception {
     this.id = id;
     this.accessPoint = accessPoint;
     this.config = config;
@@ -217,6 +219,15 @@ public class Peer implements ClientInterface {
     initMulticasters();
     initFileInfoManager();
     launchThreads();
+  }
+
+  /**
+   * Outputs the given message according to the provided level.
+   * @param msg The string message (or a key in the message catalog)
+   * @param level One of the message level identifiers, e.g., SEVERE
+   */
+  public static void log(String msg, Level level) {
+    LOGGER.log(level, msg + ".\n");
   }
 
   public long getId() {

@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 public class DataBackupProcessor implements Multicaster.Processor {
 
@@ -37,7 +38,6 @@ public class DataBackupProcessor implements Multicaster.Processor {
       String fileId = m.getFileId();
       int chunkNumber = m.getChunkNo();
       Long senderId = Long.parseLong(m.getSenderId());
-      this.peer.LOGGER.info("received message from : " + senderId + "\n");
       int desiredReplicationDegree = m.getReplication();
       String version = m.getVersion();
       byte[] chunk = null;
@@ -45,7 +45,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
       try {
         chunk = m.getBody();
       } catch(IllegalStateException e) {
-        this.peer.LOGGER.severe("Could not process the chunk content in the PUTCHUNK message.\n");
+        Peer.log("Could not process the chunk content in the PUTCHUNK message", Level.SEVERE);
         return;
       }
 
@@ -67,7 +67,6 @@ public class DataBackupProcessor implements Multicaster.Processor {
     }
 
     private void sendStoredMessage(String version, String fileId, int chunkNumber) {
-      this.peer.LOGGER.info("sending stored message.\n");
       this.peer.getPool().schedule(new StoredTransmitter(version, this.peer, fileId, chunkNumber),
               Utils.getRandom(Protocol.minDelay, Protocol.maxDelay),
               TimeUnit.MILLISECONDS);

@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 public class PutchunkTransmitter implements Runnable {
 
@@ -33,7 +34,7 @@ public class PutchunkTransmitter implements Runnable {
 
     // check if path name corresponds to a valid file
     if (!fileToBackup.exists() || fileToBackup.isDirectory()) {
-      Peer.LOGGER.severe("Invalid path name.\n");
+      Peer.log("Invalid path name", Level.SEVERE);
       return;
     }
 
@@ -42,7 +43,7 @@ public class PutchunkTransmitter implements Runnable {
     try {
       this.fileId = Utils.hash(fileToBackup, peer.getId());
     } catch (Exception e) {
-      Peer.LOGGER.severe("Could not retrieve a file id for the path name " + pathname + "\n");
+      Peer.log("Could not retrieve a file id for the path name " + pathname, Level.SEVERE);
       return;
     }
 
@@ -50,18 +51,18 @@ public class PutchunkTransmitter implements Runnable {
     this.numberChunks = (int)Math.ceil(fileSize / (double)Protocol.chunkSize);
 
     if(this.backedUpFile()) {
-      Peer.LOGGER.info("Successfully backed up file '" + pathname + "'.\n");
+      Peer.log("Successfully backed up file '" + pathname, Level.INFO);
       return;
     }
     else if (transmissionNumber == 6) {
-      peer.LOGGER.severe("Could not backup file '" + pathname + "' after 5 attempts. Backup cancelled.\n");
+      Peer.log("Could not backup file '" + pathname + "' after 5 attempts. Backup cancelled", Level.SEVERE);
       return;
     }
     else if (transmissionNumber == 1) {
       this.peer.fileInfoManager.setDesiredReplicationDegree(fileId, replicationDegree);
     }
     else
-      peer.LOGGER.info("Could not backup file '" + pathname + "' on attempt number " + (transmissionNumber - 1) + ". Going to try again.\n");
+      Peer.log("Could not backup file '" + pathname + "' on attempt number " + (transmissionNumber - 1) + ". Going to try again", Level.WARNING);
 
     // send PUTCHUNK messages
     this.transmitFile(fileToBackup);
@@ -82,7 +83,7 @@ public class PutchunkTransmitter implements Runnable {
     try {
       fis = new FileInputStream(fileToBackup);
     } catch (FileNotFoundException e) {
-      Peer.LOGGER.severe("Could not find the '" + fileToBackup + "' file.\n");
+      Peer.log("Could not find the '" + fileToBackup + "' file", Level.SEVERE);
     }
 
     do {
@@ -92,7 +93,7 @@ public class PutchunkTransmitter implements Runnable {
       try {
         numberBytesRead = fis.read(chunk, 0, Protocol.chunkSize);
       } catch (IOException e) {
-        Peer.LOGGER.severe("Could not read from the '" + fileToBackup + "' file.\n");
+        Peer.log("Could not read from the '" + fileToBackup + "' file", Level.SEVERE);
         break;
       }
 
@@ -111,9 +112,8 @@ public class PutchunkTransmitter implements Runnable {
       putchunkMessage = Message.PUTCHUNK(fileId,
               peer.getConfig().version, chunkNumber, this.replicationDegree, chunk);
     } catch (MessageError e) {
-      this.peer.LOGGER.severe("Could not generate PUTCHUNK message. Going to abort execution of the PUTCHUNK protocol.\n");
+      Peer.log("Could not generate PUTCHUNK message. Going to abort execution of the PUTCHUNK protocol", Level.SEVERE);
     }
-    this.peer.LOGGER.info("---- sending putchunk message");
     peer.send(putchunkMessage);
   }
 

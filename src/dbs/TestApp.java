@@ -18,42 +18,44 @@ public class TestApp {
   /**
    * The peer's access point in the RMI protocol.
    */
-  String peerAccessPoint;
+  private String peerAccessPoint;
   /**
    * The operation requested by the client.
    */
-  Operation operation;
+  private Operation operation;
   /**
    * True if the operation should be performed using the enhanced version of the
    * operation and false otherwise.
    */
-  boolean enh = false;
+  private boolean enh = false;
   /**
    * Either the path name of the file to backup/restore/delete or, in the case of
    * RECLAIM the maximum amount of disk space (in KByte) that the service can use
    * to store the chunks.
    */
-  String oper1;
+  private String oper1;
   /**
    * This operand is an integer that specifies the desired replication degree and
    * applies only to the backup protocol (or its enhancement).
    */
-  int oper2;
+  private int oper2;
+  /**
+   * Used to log important messages that can be read by the user.
+   */
   private final static Logger LOGGER = Logger.getLogger(TestApp.class.getName());
 
   public static void main(String[] args) {
-    System.out.println("number of arguments: " + args.length);
     if (!(args.length >= 2 && args.length <= 4)) {
       System.out.println("    Wrong number of arguments. Usage:");
       System.out.println("        java TestApp <peer_ap> <sub_protocol> <opnd_1> <opnd_2>");
       System.out.println("        <sub_protocol> should be one of: BACKUP, RESTORE, DELETE, RECLAIM, STATE");
       System.out.println("        The string ENH can be appended to the end of the subprotocol name.");
       System.out.println(
-          "        In the case of the BACKUP, RESTORE and DELETE subprotocols, <opnd_1> should be a path name");
+              "        In the case of the BACKUP, RESTORE and DELETE subprotocols, <opnd_1> should be a path name");
       System.out.println(
-          "        In the case of the RECLAIM subprotocols, <opnd_1> should be the maximum ammount of disk space (KByte).");
+              "        In the case of the RECLAIM subprotocols, <opnd_1> should be the maximum ammount of disk space (KByte).");
       System.out.println(
-          "        In the case of the RECLAIM subprotocols, <opnd_1> should be the maximum ammount of disk space (KByte).");
+              "        In the case of the RECLAIM subprotocols, <opnd_1> should be the maximum ammount of disk space (KByte).");
       System.exit(1);
     }
 
@@ -71,15 +73,14 @@ public class TestApp {
     this.parseOperation(args[1]);
 
     if (this.operation == Operation.BACKUP || this.operation == Operation.RESTORE
-        || this.operation == Operation.DELETE) {
+            || this.operation == Operation.DELETE) {
       this.oper1 = args[2]; // pathname
       if (this.operation == Operation.BACKUP) {
         if (args.length >= 4) {
           try {
             this.oper2 = Integer.parseInt(args[3]);
           } catch (NumberFormatException e) {
-            System.out.println("    The second operand " + args[3] + " is not allowed. " +
-                "Should be an integer for the BACKUP operation.");
+            LOGGER.severe("The second operand " + args[3] + " is not allowed. " + "Should be an integer for the BACKUP operation\n");
             System.exit(1);
           }
         }
@@ -89,8 +90,7 @@ public class TestApp {
         Integer.parseInt(args[2]);
         this.oper1 = args[2];
       } catch (NumberFormatException e) {
-        System.out.println("    The first operand " + args[2] + " is not allowed. " +
-            "Should be an integer for the RECLAIM operation.");
+        LOGGER.severe("The first operand " + args[2] + " is not allowed. " + "Should be an integer for the RECLAIM operation.\n");
         System.exit(1);
       }
     }
@@ -127,10 +127,30 @@ public class TestApp {
         this.operation = Operation.STATE;
         break;
       default:
-        System.out.println("    Operation " + operation
-            + " is not allowed. Should be one of : BACKUP, RESTORE, DELETE, RECLAIM, STATE.");
+        LOGGER.severe("Operation " + operation + " is not allowed. Should be one of : BACKUP, RESTORE, DELETE, RECLAIM, STATE.\n");
         System.exit(1);
     }
+  }
+
+  private void logInfo() {
+
+    String msg = "Successfully request a ";
+
+    switch (this.operation) {
+      case BACKUP:
+        msg += " backup of the file " + this.oper1;
+        break;
+      case RESTORE:
+        msg += " restoration of the file " + this.oper1;
+        break;
+      case DELETE:
+        msg += " deletion of the file " + this.oper1;
+        break;
+      case RECLAIM:
+        msg += " reclamation of " + this.oper1 + " KB of disk space.";
+        break;
+    }
+    LOGGER.info(msg);
   }
 
   private void run() {
@@ -152,13 +172,13 @@ public class TestApp {
           stub.reclaim(Integer.parseInt(this.oper1));
           break;
         case STATE:
-          System.out.println("waiting for state");
-          String state = stub.state();
-          System.out.println("He said: " + state);
-          break;
+          String state =  stub.state();
+          return;
         default:
           break;
       }
+      this.logInfo();
+
     } catch (Exception e) {
       LOGGER.warning("Could not invoke the remote object's method. Peer not available.\n");
     }
