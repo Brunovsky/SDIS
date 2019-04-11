@@ -410,6 +410,19 @@ public class Message {
   }
 
   /**
+   * Construct a DELETED message. Required camps: fileId.
+   *
+   * @param fileId  The id of the file whose chunks were deleted
+   * @param version The protocol's version
+   * @return The constructed Message
+   * @throws MessageError   If any of the fields has a protocol-prohibited value
+   * @throws AssertionError If any of the fields has an invalid value
+   */
+  public static Message DELETED(@NotNull String fileId, @NotNull String version) {
+    return new Message(MessageType.DELETED, version, fileId, 0, 0, null, null);
+  }
+
+  /**
    * Construct a REMOVED message. Required camps: fileId and chunkNo
    *
    * @param fileId  The removed chunk's file id

@@ -22,6 +22,9 @@ public final class Protocol {
   // time interval between the transmission of DELETE messages - s
   public static int delaySendDelete = 1;
 
+  // new message's version
+  public static String newMessagesVersion = "1.1";
+
   public static MulticastChannel mc;
   public static MulticastChannel mdb;
   public static MulticastChannel mdr;

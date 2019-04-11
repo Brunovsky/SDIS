@@ -1,6 +1,7 @@
 package dbs.processor;
 
 import dbs.Peer;
+import dbs.Protocol;
 import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.Multicaster;
@@ -57,9 +58,20 @@ public class ControlProcessor implements Multicaster.Processor {
 
     private void processDeleteMessage(Message m) {
       String fileId = m.getFileId();
+      boolean sendDeletedMessage = this.peer.fileInfoManager.hasFileInfo(fileId);
       Peer.log("Received delete message for the file with id " + fileId, Level.INFO);
-      if(!this.peer.fileInfoManager.deleteBackedUpFile(fileId))
+      if(!this.peer.fileInfoManager.deleteBackedUpFile(fileId)) {
         Peer.log("Could not delete the backed up file with id " + fileId, Level.SEVERE);
+        return;
+      }
+      if(sendDeletedMessage) this.sendDeletedMessage(fileId, this.peer.getConfig().version);
+    }
+
+    private void sendDeletedMessage(String fileId, String version) {
+      Message deletedMessage = Message.DELETED(fileId, version);
+      deletedMessage.setSenderId(Long.toString(this.peer.getId()));
+      Peer.log("Going to send deleted message for the file with id " + fileId, Level.INFO);
+      this.peer.send(deletedMessage);
     }
 
     private void processGetchunkMessage(Message m) {

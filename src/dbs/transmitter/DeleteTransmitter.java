@@ -16,21 +16,30 @@ public class DeleteTransmitter implements Runnable {
   private String pathname;
   private String fileId;
   private int transmissionNumber;
+  private boolean runEnhancedVersion;
 
-  public DeleteTransmitter(Peer peer, String pathname, int transmissionNumber) {
+  public DeleteTransmitter(Peer peer, String pathname, int transmissionNumber, boolean runEnhancedVersion) {
     this.peer = peer;
     this.pathname = pathname;
     this.transmissionNumber = transmissionNumber;
+    this.runEnhancedVersion = runEnhancedVersion;
   }
 
-  public DeleteTransmitter(Peer peer, String pathname, int transmissionNumber, String fileId) {
-    this(peer, pathname, transmissionNumber);
+  public DeleteTransmitter(Peer peer, String pathname, int transmissionNumber, String fileId, boolean runEnhancedVersion) {
+    this(peer, pathname, transmissionNumber,runEnhancedVersion);
     this.fileId = fileId;
   }
 
 
   @Override
   public void run() {
+    if(this.runEnhancedVersion)
+      this.runEnhanced();
+    else
+      this.runNotEnhanced();
+  }
+
+  public void runNotEnhanced() {
 
     if(this.transmissionNumber == 1) {
 
@@ -38,7 +47,7 @@ public class DeleteTransmitter implements Runnable {
       File fileToDelete = null;
       FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, this.peer.getId());
       if (fileRequest == null) {
-        Peer.log("Could not access the provided file", Level.SEVERE);
+        Peer.log("Could not access the provided file (" + this.pathname + ") for deletion.", Level.SEVERE);
         return;
       } else {
         fileToDelete = fileRequest.getFile();
@@ -58,11 +67,15 @@ public class DeleteTransmitter implements Runnable {
 
     if(this.transmissionNumber != Protocol.numberDeleteMessages) {
       // schedule next transmission of the delete message
-      this.peer.getPool().schedule(new DeleteTransmitter(this.peer, this.pathname, ++transmissionNumber, this.fileId),
+      this.peer.getPool().schedule(new DeleteTransmitter(this.peer, this.pathname, ++transmissionNumber, this.fileId, this.runEnhancedVersion),
               Protocol.delaySendDelete,
               TimeUnit.SECONDS);
     }
     else
       Peer.log("Sent all DELETE messages (" + Protocol.numberDeleteMessages + " messages) for the file with id " + fileId, Level.INFO);
+  }
+
+  public void runEnhanced() {
+
   }
 }

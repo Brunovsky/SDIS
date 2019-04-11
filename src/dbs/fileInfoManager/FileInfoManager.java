@@ -41,7 +41,7 @@ public class FileInfoManager {
    * @param fileId The file's id.
    * @return True if the map contains an entry for the given chunk and false otherwise.
    */
-  private boolean hasFileInfo(String fileId) {
+  public boolean hasFileInfo(String fileId) {
     return this.filesInfo.containsKey(fileId);
   }
 

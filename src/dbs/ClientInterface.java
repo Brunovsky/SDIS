@@ -10,7 +10,7 @@ public interface ClientInterface extends Remote {
 
   void restore(@NotNull String pathname) throws RemoteException;
 
-  void delete(@NotNull String pathname) throws RemoteException;
+  void delete(@NotNull String pathname, boolean runEnhancedVersion) throws RemoteException;
 
   void reclaim(int maxDiskSpaceChunks) throws RemoteException;
 

@@ -266,9 +266,9 @@ public class Peer implements ClientInterface {
     Peer.log("Received RESTORE request", Level.INFO);
   }
 
-  public void delete(@NotNull String pathname) throws RemoteException {
+  public void delete(@NotNull String pathname, boolean runEnhancedVersion) throws RemoteException {
     Peer.log("Received DELETE request", Level.INFO);
-    this.pool.submit(new DeleteTransmitter(this, pathname, 1));
+    this.pool.submit(new DeleteTransmitter(this, pathname, 1, runEnhancedVersion));
   }
 
   public void reclaim(int maxDiskSpaceChunks) throws RemoteException {
