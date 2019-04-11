@@ -5,7 +5,7 @@ public class Configuration {
     public String version = "1.0";
 
     // Folder where each peer root directory is stored.
-    public String allPeersRootDir = "dbs";
+    public String allPeersRootDir = "/tmp/dbs";
 
     // Peer's root directory.
     // TODO: Define a prefix and use "peer-$PEERID/" or use "peer/$PEERID/" ?

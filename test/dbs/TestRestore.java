@@ -2,8 +2,8 @@ package dbs;
 
 import dbs.files.FilesManager;
 import dbs.message.Message;
-import dbs.transmitter.DataRestoreTransmitter;
-import dbs.transmitter.DataRestoreTransmitter.*;
+import dbs.transmitter.RestoreHandler;
+import dbs.transmitter.RestoreHandler.*;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
@@ -49,7 +49,7 @@ class TestRestore {
     init();
 
     Peer peer = new Peer(1, "peer-1", config());
-    DataRestoreTransmitter restorer = new DataRestoreTransmitter(peer);
+    RestoreHandler restorer = new RestoreHandler(peer);
 
     Message g10 = Message.GETCHUNK(hash1, "1.0", 0);
     Message g11 = Message.GETCHUNK(hash1, "1.0", 1);
@@ -78,7 +78,7 @@ class TestRestore {
     assertNull(chunker1);
 
     // Now the peer has c10.
-    peer.fileInfoManager.filesManager.putChunk(hash1, 0, body10);
+    peer.fileInfoManager.putChunk(hash1, 0, body10);
 
     // Now the restorer creates the chunker.
     Chunker chunker2 = restorer.receiveGETCHUNK(g10);
@@ -93,11 +93,11 @@ class TestRestore {
     assertTrue(chunker2.isDone());
 
     Chunker chunker3 = restorer.receiveGETCHUNK(g11);
-    peer.fileInfoManager.filesManager.putChunk(hash1, 1, body11);
-    peer.fileInfoManager.filesManager.putChunk(hash2, 0, body20);
-    peer.fileInfoManager.filesManager.putChunk(hash2, 1, body21);
-    peer.fileInfoManager.filesManager.putChunk(hash2, 2, body22);
-    peer.fileInfoManager.filesManager.putChunk(hash3, 0, body30);
+    peer.fileInfoManager.putChunk(hash1, 1, body11);
+    peer.fileInfoManager.putChunk(hash2, 0, body20);
+    peer.fileInfoManager.putChunk(hash2, 1, body21);
+    peer.fileInfoManager.putChunk(hash2, 2, body22);
+    peer.fileInfoManager.putChunk(hash3, 0, body30);
     Chunker chunker4 = restorer.receiveGETCHUNK(g20); // exists
     Chunker chunker5 = restorer.receiveGETCHUNK(g21); // does not exist
     Chunker chunker6 = restorer.receiveGETCHUNK(g22); // exists
@@ -113,7 +113,7 @@ class TestRestore {
     assertTrue(chunker6.isDone());
     assertFalse(chunker5.isDone());
     assertFalse(chunker7.isDone());
-    peer.fileInfoManager.filesManager.deleteChunk(hash3, 0);
+    peer.fileInfoManager.deleteChunk(hash3, 0);
 
     Thread.sleep(waitChunk * 2, 0);
 

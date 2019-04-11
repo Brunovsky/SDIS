@@ -7,6 +7,15 @@ public final class Protocol {
   // Where to put this?
   public static int registryPort = 29001;
 
+  // minimum delay time (for the schedule of new threads) - ms
+  public static int minDelay = 0;
+
+  // maximum delay time (for the schedule of new threads) - ms
+  public static int maxDelay = 400;
+
+  // time interval for a putchunker to collect the STORED messages, on a first attempt - s
+  public static int delayReceiveStored = 1;
+
   public static MulticastChannel mc;
   public static MulticastChannel mdb;
   public static MulticastChannel mdr;

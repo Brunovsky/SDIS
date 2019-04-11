@@ -15,22 +15,30 @@ import java.util.logging.Logger;
 public class Utils {
   private final static Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
+  private static String bytesToHex(byte[] hash) {
+    StringBuffer hexString = new StringBuffer();
+    for (int i = 0; i < hash.length; i++) {
+      String hex = Integer.toHexString(0xff & hash[i]);
+      if(hex.length() == 1) hexString.append('0');
+      hexString.append(hex);
+    }
+    return hexString.toString();
+  }
+
   public static String hash(@NotNull File file, long peerId) throws Exception {
     String filePath = file.getPath();
     long lastModified = file.lastModified();
     String bitString = filePath + lastModified;
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
     byte[] encodedHash;
-    encodedHash = digest.digest(bitString.getBytes());
-    BigInteger hash = new BigInteger(1, encodedHash);
-
-    String hashtext = hash.toString(16);
-
-    while (hashtext.length() < 32) {
-      hashtext = "0" + hashtext;
+    try {
+      encodedHash = digest.digest(bitString.getBytes());
+    } catch (Exception e) {
+      LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
+      throw e;
     }
 
-    return hashtext;
+    return bytesToHex(encodedHash);
   }
 
   public static int numberOfChunks(long filesize) {
@@ -62,9 +70,9 @@ public class Utils {
     return registry;
   }
 
-  public static void waitRandom(int min, int max, TimeUnit timeUnit) throws InterruptedException {
+  public static int getRandom(int min, int max)  {
     Random rand = new Random();
     int delay = rand.nextInt(max) + min;
-    timeUnit.sleep(1);
+    return delay;
   }
 }

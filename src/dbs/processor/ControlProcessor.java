@@ -23,10 +23,10 @@ public class ControlProcessor implements Multicaster.Processor {
     public void run() {
       try {
         Message m = new Message(packet);
+        if (Long.toString(peer.getId()).equals(m.getSenderId())) return;
         this.processMessage(m);
-        System.out.println("[MC Processor] \n" + m.toString() + "\n");
       } catch (MessageException e) {
-        System.err.println("[MC Processor ERR] Invalid:\n" + e.getMessage() + "\n");
+        Peer.LOGGER.info("Dropped message from channel MC with unrecognized format\n");
       }
     }
 
@@ -46,8 +46,8 @@ public class ControlProcessor implements Multicaster.Processor {
           this.processRemovedMessage(m);
           break;
         default:
-          this.peer.LOGGER.severe("Could not recognized received message. Unexpected message type '" + messageType.toString() + "' in the MC channel.\n");
-          return;
+          Peer.LOGGER.info("Could not recognize received message. Unexpected message" +
+              " type '" + messageType.toString() + "' in the MC channel.\n");
       }
     }
 
@@ -60,10 +60,16 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processGetchunkMessage(Message m) {
+      peer.getRestoreHandler().receiveGETCHUNK(m);
     }
 
     private void processStoredMessage(Message m) {
-      // TODO: update hasmap
+      Long senderId = Long.parseLong(m.getSenderId());
+      if(senderId == this.peer.getId()) return;
+      this.peer.LOGGER.info("Received stored message from " + senderId + "\n");
+      String fileId = m.getFileId();
+      Integer chunkNumber = m.getChunkNo();
+      this.peer.fileInfoManager.addBackupPeer(fileId, chunkNumber, senderId);
     }
   }
 

@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -552,6 +553,7 @@ public final class FilesManager {
 
   public void writeFileDesiredReplicationDegree(String fileId, Integer desiredReplicationDegree) throws IOException {
     Path fileInfoDir = this.filesinfoDir.resolve(fileId);
+    Files.createDirectories(fileInfoDir);
     Path chunkInfoPath = fileInfoDir.resolve(config.desiredReplicationDegreeFile);
     this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
   }
@@ -573,8 +575,8 @@ public final class FilesManager {
     return (Integer) this.readObject(desiredReplicationDegreeFile);
   }
 
-  public HashMap<String, FileInfo> initFilesInfo() throws Exception {
-    HashMap<String, FileInfo> fileInfoHashMap = new HashMap<>();
+  public ConcurrentHashMap<String, FileInfo> initFilesInfo() throws Exception {
+    ConcurrentHashMap<String, FileInfo> fileInfoHashMap = new ConcurrentHashMap<>();
     File filesInfoDir = this.filesinfoDir.toFile();
 
     for(File fileinfoDir : filesInfoDir.listFiles()) {

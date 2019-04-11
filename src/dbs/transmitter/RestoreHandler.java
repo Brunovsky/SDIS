@@ -12,8 +12,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-public class DataRestoreTransmitter {
-  private static Logger LOGGER = Logger.getLogger(DataRestoreTransmitter.class.getName());
+public class RestoreHandler {
+  private static Logger LOGGER = Logger.getLogger(RestoreHandler.class.getName());
   private final Peer peer;
 
   /**
@@ -43,7 +43,7 @@ public class DataRestoreTransmitter {
    */
   private final ConcurrentHashMap<String,@NotNull Restorer> restorers;
 
-  public DataRestoreTransmitter(@NotNull Peer peer) {
+  public RestoreHandler(@NotNull Peer peer) {
     this.peer = peer;
     this.chunkers = new ConcurrentHashMap<>();
     this.getchunkers = new ConcurrentHashMap<>();
@@ -313,7 +313,7 @@ public class DataRestoreTransmitter {
       instances.remove(key);
 
       if (instances.isEmpty()) {
-        peer.fileInfoManager.filesManager.putRestore(pathname, chunks);
+        peer.fileInfoManager.putRestore(pathname, chunks);
         LOGGER.info("Restored file " + pathname);
         restorers.remove(fileId);
       }
@@ -332,11 +332,13 @@ public class DataRestoreTransmitter {
   public Chunker receiveGETCHUNK(@NotNull Message message) {
     String fileId = message.getFileId();
     int chunkNo = message.getChunkNo();
+    ChunkKey key = new ChunkKey(fileId, chunkNo);
+
+    LOGGER.info("Received GETCHUNK message for " + key);
 
     // Exit immediately if we don't have the chunk.
     if (!peer.fileInfoManager.hasChunk(fileId, chunkNo)) return null;
 
-    ChunkKey key = new ChunkKey(fileId, chunkNo);
     return chunkers.computeIfAbsent(key, Chunker::new);
   }
 
@@ -353,7 +355,7 @@ public class DataRestoreTransmitter {
     byte[] bytes = message.getBody();
     ChunkKey key = new ChunkKey(fileId, chunkNo);
 
-    LOGGER.info("Received message for " + key);
+    LOGGER.info("Received CHUNK message for " + key);
 
     // Update Getchunker
     Getchunker getchunker = getchunkers.get(key);

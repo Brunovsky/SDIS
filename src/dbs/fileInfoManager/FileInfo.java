@@ -1,6 +1,5 @@
 package dbs.fileInfoManager;
 
-import java.io.FileInputStream;
 import java.util.HashMap;
 
 public class FileInfo {
@@ -123,9 +122,17 @@ public class FileInfo {
 
   /**
    * Returns the desired replication degree of that file.
-   * @return The dersired replication degree of that file.
+   * @return The desired replication degree of that file.
    */
   public Integer getDesiredReplicationDegree() {
     return desiredReplicationDegree;
+  }
+
+  /**
+   * Sets the desired replication degree of that file.
+   * @param desiredReplicationDegree The desired replication degree of that file.
+   */
+  public void setDesiredReplicationDegree(Integer desiredReplicationDegree) {
+    this.desiredReplicationDegree = desiredReplicationDegree;
   }
 }
