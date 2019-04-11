@@ -8,6 +8,7 @@ import java.util.logging.Logger;
  * A class to represent the testing client application.
  */
 public class TestApp {
+
   /**
    * Represents the possible operations requested by the client.
    */

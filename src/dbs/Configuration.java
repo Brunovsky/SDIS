@@ -1,63 +1,64 @@
 package dbs;
 
 public class Configuration {
+
     // Which protocol version does this peer use?
-    public String version = "1.0";
+    public static String version = "1.0";
 
     // Folder where each peer root directory is stored.
-    public String allPeersRootDir = "/tmp/dbs";
+    public static String allPeersRootDir = "/tmp/dbs";
 
     // Peer's root directory.
     // TODO: Define a prefix and use "peer-$PEERID/" or use "peer/$PEERID/" ?
-    public String peerRootDirPrefix = "peer-";
+    public static String peerRootDirPrefix = "peer-";
 
     // Backup subdirectory, where chunks kept by this peer are kept.
     // Note: This might be inlined somewhere already
-    public String backupDir = "backup";
+    public static String backupDir = "backup";
 
     // Backup entry prefix
     // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
-    public String entryPrefix = "file-";
+    public static String entryPrefix = "file-";
 
     // Chunk file prefix.
     // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
-    public String chunkPrefix = "chunk-";
+    public static String chunkPrefix = "chunk-";
 
     // Restore subdirectory, where files restored are kept.
-    public String restoredDir = "restored";
+    public static String restoredDir = "restored";
 
     // My files' id mapping directory
-    public String idMapDir = "idmap";
+    public static String idMapDir = "idmap";
 
     // My files' metadata directory
-    public String chunkInfoDir = "mine";
+    public static String chunkInfoDir = "mine";
 
     // My file's info (desired replication degree and set of peers which have a backup of those files' chunks)
-    public String filesinfoDir = "filesinfo";
+    public static String filesinfoDir = "filesinfo";
 
     // My file's desired replication degree file name
-    public String desiredReplicationDegreeFile = "drd";
+    public static String desiredReplicationDegreeFile = "drd";
 
     // Multicaster's timeout for reading from multicast socket
-    public int multicastTimeout = 300; // milliseconds
+    public static int multicastTimeout = 300; // milliseconds
 
     // Peer socket's timeout for waiting on new queue message
-    public int socketTimeout = 300; // milliseconds
+    public static int socketTimeout = 300; // milliseconds
 
     // Peer socket's message queue capacity, (in datagram packets)
-    public int socketQueueCapacity = 10000;
+    public static int socketQueueCapacity = 10000;
 
-    // Peer's thread pool size (in threads)
-    public int threadPoolSize = 8;
-    //public static int putchunkerPoolSize = 10;
+    // Thread pool sizes (core pool sizes)
+    public static int peerThreadPoolSize = 8;
+    public static int putchunkPoolSize = 10;
+    public static int storedPoolSize = 25;
+    public static int removedPoolSize = 25;
+    public static int chunkPoolSize = 35;
+    public static int getChunkPoolSize = 15;
+
+    // Wait times for Getchunk and Putchunk
+    public static int waitPutchunk = 500;
 
     // Maximum number of allowed GETCHUNK for each chunk before the restore gives up
-    public int maxGetchunkAttempts = 5;
-
-    // Waiting period for GETCHUNK responses
-    public int waitGetchunk = 600; // milliseconds
-
-    // Waiting interval for CHUNK responses
-    // TODO: random delay in Restore
-    public int waitChunk = 400;
+    public static int maxGetchunkAttempts = 5;
 }

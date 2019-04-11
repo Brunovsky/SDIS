@@ -21,11 +21,9 @@ import java.util.regex.Pattern;
 
 public final class FilesManager {
   private static final Logger LOGGER = Logger.getLogger(FilesManager.class.getName());
-  private final String id;
-  private final Configuration config;
 
-  private final Path allPeersDir;
-  private final Path peerDir;
+  private static FilesManager filesManager;
+
   private final Path backupDir;
   private final Path restoredDir;
   private final Path mineDir;
@@ -34,15 +32,24 @@ public final class FilesManager {
   private final Pattern backupPattern;
   private final Pattern chunkPattern;
 
-  static private String chk(@NotNull String fileId, int chunkNo) {
+  public static FilesManager getInstance() {
+    return filesManager;
+  }
+
+  public static FilesManager createInstance() throws IOException {
+    assert filesManager == null;
+    return filesManager = new FilesManager();
+  }
+
+  private static String chk(@NotNull String fileId, int chunkNo) {
     return "chunk #" + chunkNo + " of file " + id(fileId);
   }
 
-  static private String id(@NotNull String fileId) {
+  private static String id(@NotNull String fileId) {
     return fileId.substring(0, 10) + "..";
   }
 
-  static byte[] concatenateChunks(byte @NotNull [] @NotNull [] chunks) {
+  private static byte[] concatenateChunks(byte @NotNull [] @NotNull [] chunks) {
     int length = 0;
     for (byte[] chunk : chunks) length += chunk.length;
 
@@ -80,8 +87,40 @@ public final class FilesManager {
     return directory.delete();
   }
 
+  /**
+   * Returns information with respects to the given file path.
+   *
+   * @param pathname The name of the file's path.
+   * @param peerId   The id of the peer which owns the file.
+   * @return The information regarding that file if it was successfully retrieved and
+   * null otherwise.
+   */
+  public static FileRequest retrieveFileInfo(String pathname, Long peerId) {
+    File file = new File(pathname);
+
+    // check if path name corresponds to a valid file
+    if (!file.exists() || file.isDirectory()) {
+      Peer.log("Invalid path name", Level.SEVERE);
+      return null;
+    }
+
+    // hash the pathname
+    String fileId;
+    try {
+      fileId = Utils.hash(file, peerId);
+    } catch (Exception e) {
+      Peer.log("Could not retrieve a file id for the path name " + pathname,
+          Level.SEVERE);
+      return null;
+    }
+
+    Long fileSize = file.length();
+    Integer numberChunks = (int) Math.ceil(fileSize / (double) Protocol.chunkSize);
+    return new FileRequest(file, fileId, numberChunks);
+  }
+
   private String makeBackupEntry(@NotNull String fileId) {
-    return config.entryPrefix + fileId;
+    return Configuration.entryPrefix + fileId;
   }
 
   private String extractFromBackupEntry(@NotNull String backupFilename) {
@@ -95,37 +134,8 @@ public final class FilesManager {
     return backupPattern.matcher(backupFilename).matches();
   }
 
-  /**
-   * Returns information with respects to the given file path.
-   * @param pathname The name of the file's path.
-   * @param peerId The id of the peer which owns the file.
-   * @return The information regarding that file if it was successfully retrieved and null otherwise.
-   */
-  public static FileRequest retrieveFileInfo(String pathname, Long peerId) {
-    File file = new File(pathname);
-
-    // check if path name corresponds to a valid file
-    if (!file.exists() || file.isDirectory()) {
-      Peer.log("Invalid path name", Level.SEVERE);
-      return null;
-    }
-
-    // hash the pathname
-    String fileId = null;
-    try {
-      fileId = Utils.hash(file, peerId);
-    } catch (Exception e) {
-      Peer.log("Could not retrieve a file id for the path name " + pathname, Level.SEVERE);
-      return null;
-    }
-
-    Long fileSize = file.length();
-    Integer numberChunks = (int)Math.ceil(fileSize / (double) Protocol.chunkSize);
-    return new FileRequest(file, fileId, numberChunks);
-  }
-
   private String makeChunkEntry(int chunkNo) {
-    return config.chunkPrefix + chunkNo;
+    return Configuration.chunkPrefix + chunkNo;
   }
 
   private int extractFromChunkEntry(@NotNull String chunkFilename) {
@@ -140,62 +150,48 @@ public final class FilesManager {
   }
 
   /**
-   * Construct a file manager for this given peer.
-   * The file manager only needs the peer's configuration and id.
-   *
-   * @param peer The DBS peer.
-   * @throws IOException If the directories cannot be properly set up.
-   */
-  public FilesManager(@NotNull Peer peer) throws IOException {
-    this(Long.toString(peer.getId()), peer.getConfig());
-  }
-
-  /**
    * Constructs a files manager for a peer's id and config.
    *
-   * @param id     The DBS peer's id.
-   * @param config THe configuration (contains paths)
    * @throws IOException If the directories cannot be properly set up.
    */
-  FilesManager(@NotNull String id, @NotNull Configuration config) throws IOException {
-    this.id = id;
-    this.config = config;
-
+  private FilesManager() throws IOException {
     Path path;
+    String id = Long.toString(Peer.getInstance().getId());
 
     // dbs/
-    path = Paths.get(config.allPeersRootDir);
-    allPeersDir = Files.createDirectories(path);
+    path = Paths.get(Configuration.allPeersRootDir);
+    Path allPeersDir = Files.createDirectories(path);
 
     // dbs/peer-ID
-    path = allPeersDir.resolve(config.peerRootDirPrefix + this.id);
-    peerDir = Files.createDirectories(path);
+    path = allPeersDir.resolve(Configuration.peerRootDirPrefix + id);
+    Path peerDir = Files.createDirectories(path);
 
     // dbs/peer-ID/backup/
-    path = peerDir.resolve(config.backupDir);
+    path = peerDir.resolve(Configuration.backupDir);
     backupDir = Files.createDirectories(path);
 
     // dbs/peer-ID/restored/
-    path = peerDir.resolve(config.restoredDir);
+    path = peerDir.resolve(Configuration.restoredDir);
     restoredDir = Files.createDirectories(path);
 
     // dbs/peer-ID/idmap/
-    path = peerDir.resolve(config.idMapDir);
+    path = peerDir.resolve(Configuration.idMapDir);
     idMapDir = Files.createDirectories(path);
 
     // dbs/peer-ID/mine/
-    path = peerDir.resolve(config.chunkInfoDir);
+    path = peerDir.resolve(Configuration.chunkInfoDir);
     mineDir = Files.createDirectories(path);
 
     // dbs/peer-ID/filesinfo/
-    path = peerDir.resolve(config.filesinfoDir);
+    path = peerDir.resolve(Configuration.filesinfoDir);
     filesinfoDir = Files.createDirectories(path);
 
     // prefix[FILEID]
-    backupPattern = Pattern.compile(Pattern.quote(config.entryPrefix) + "([0-9a-f]{64})");
+    backupPattern = Pattern.compile(Pattern.quote(Configuration.entryPrefix) + "([0-9a" +
+        "-f]{64})");
 
     // prefix[CHUNKNO]
-    chunkPattern = Pattern.compile(Pattern.quote(config.chunkPrefix) + "([0-9]+)");
+    chunkPattern = Pattern.compile(Pattern.quote(Configuration.chunkPrefix) + "([0-9]+)");
   }
 
   /**
@@ -583,10 +579,11 @@ public final class FilesManager {
     this.writeObject(chunkInfo, chunkInfoPath.toString());
   }
 
-  public void writeFileDesiredReplicationDegree(String fileId, Integer desiredReplicationDegree) throws IOException {
+  public void writeFileDesiredReplicationDegree(String fileId,
+                                                Integer desiredReplicationDegree) throws IOException {
     Path fileInfoDir = this.filesinfoDir.resolve(fileId);
     Files.createDirectories(fileInfoDir);
-    Path chunkInfoPath = fileInfoDir.resolve(config.desiredReplicationDegreeFile);
+    Path chunkInfoPath = fileInfoDir.resolve(Configuration.desiredReplicationDegreeFile);
     this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
   }
 
@@ -613,18 +610,21 @@ public final class FilesManager {
     return (Integer) this.readObject(desiredReplicationDegreeFile);
   }
 
-  public ConcurrentHashMap<String, FileInfo> initFilesInfo() throws Exception {
-    ConcurrentHashMap<String, FileInfo> fileInfoHashMap = new ConcurrentHashMap<>();
+  public ConcurrentHashMap<String,FileInfo> initFilesInfo() throws Exception {
+    ConcurrentHashMap<String,FileInfo> fileInfoHashMap = new ConcurrentHashMap<>();
     File filesInfoDir = this.filesinfoDir.toFile();
 
-    for(File fileinfoDir : filesInfoDir.listFiles()) {
-      if(fileinfoDir.isDirectory()) {
+    for (File fileinfoDir : filesInfoDir.listFiles()) {
+      if (fileinfoDir.isDirectory()) {
         String fileId = fileinfoDir.getName();
-        Path desiredRDFilename = fileinfoDir.toPath().resolve(config.desiredReplicationDegreeFile);
-        Integer fileDesiredReplicationDegree = (Integer) this.readObject(desiredRDFilename.toFile());
+        Path desiredRDFilename =
+            fileinfoDir.toPath().resolve(Configuration.desiredReplicationDegreeFile);
+        Integer fileDesiredReplicationDegree =
+            (Integer) this.readObject(desiredRDFilename.toFile());
         fileInfoHashMap.put(fileId, new FileInfo(fileDesiredReplicationDegree));
-        for(File chunkInfoFile : fileinfoDir.listFiles()) {
-          if(chunkInfoFile.getName().equals(config.desiredReplicationDegreeFile)) continue;
+        for (File chunkInfoFile : fileinfoDir.listFiles()) {
+          if (chunkInfoFile.getName().equals(Configuration.desiredReplicationDegreeFile))
+            continue;
           Integer chunkNumber = Integer.parseInt(chunkInfoFile.getName());
           ChunkInfo chunkInfo = this.readChunkInfo(chunkInfoFile);
           fileInfoHashMap.get(fileId).addFileChunk(chunkNumber, chunkInfo);

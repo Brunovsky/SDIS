@@ -19,6 +19,7 @@ public class ChunkInfo implements java.io.Serializable {
 
   /**
    * Adds the id of the new peer which has a backup of that chunk.
+   *
    * @param peerId The peer's id.
    */
   public void addBackupPeer(Long peerId) {
@@ -27,6 +28,7 @@ public class ChunkInfo implements java.io.Serializable {
 
   /**
    * Removes the id of the peer which could have had a backup of that chunk.
+   *
    * @param peerId The peer's id.
    */
   public void removeBackupPeer(Long peerId) {
@@ -35,6 +37,7 @@ public class ChunkInfo implements java.io.Serializable {
 
   /**
    * Returns true if the given peer has a backup of that chunk and false otherwise.
+   *
    * @param peerId The peer's id.
    * @return True if the given peer has a backup of that chunk and false otherwise.
    */
@@ -43,12 +46,13 @@ public class ChunkInfo implements java.io.Serializable {
   }
 
   /**
-   * Returns the number of peer's which have a backup of that chunk (the actual replication degree of the chunk).
-   * @return The number of peer's which have a backup of that chunk (the actual replication degree of the chunk).
+   * Returns the number of peer's which have a backup of that chunk (the actual
+   * replication degree of the chunk).
+   *
+   * @return The number of peer's which have a backup of that chunk (the actual
+   * replication degree of the chunk).
    */
   public int getReplicationDegree() {
     return this.backupPeers.size();
   }
-
-
 }

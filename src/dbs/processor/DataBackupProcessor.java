@@ -4,8 +4,10 @@ import dbs.Multicaster;
 import dbs.Peer;
 import dbs.Protocol;
 import dbs.Utils;
+import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
+import dbs.message.MessageType;
 import dbs.transmitter.StoredTransmitter;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,65 +19,84 @@ public class DataBackupProcessor implements Multicaster.Processor {
 
   private class DataBackupRunnable implements Runnable {
     private final DatagramPacket packet;
-    private final Peer peer;
 
-    DataBackupRunnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
+    DataBackupRunnable(@NotNull DatagramPacket packet) {
       this.packet = packet;
-      this.peer = peer;
     }
 
     @Override
     public final void run() {
       try {
         Message m = new Message(packet);
-        this.processPutchunkMessage(m);
+        String senderId = Long.toString(Peer.getInstance().getId());
+        if (senderId.equals(m.getSenderId())) return;
+        this.processMessage(m);
       } catch (MessageException e) {
-        System.err.print("[MDB Processor ERR] Invalid:\n" + e.getMessage() + "\n");
+        Peer.log("Dropped message from channel MDB", Level.INFO);
+      }
+    }
+
+    private void processMessage(Message m) {
+      MessageType messageType = m.getType();
+      switch (messageType) {
+        case PUTCHUNK:
+          this.processPutchunkMessage(m);
+          break;
+        default:
+          Peer.log("Dropped message from channel MDB", Level.INFO);
       }
     }
 
     private void processPutchunkMessage(Message m) {
+      Peer.log("Received PUTCHUNK from " + m.getSenderId(), Level.FINE);
       String fileId = m.getFileId();
       int chunkNumber = m.getChunkNo();
       Long senderId = Long.parseLong(m.getSenderId());
       int desiredReplicationDegree = m.getReplication();
       String version = m.getVersion();
-      byte[] chunk = null;
+      byte[] chunk;
 
       try {
         chunk = m.getBody();
-      } catch(IllegalStateException e) {
-        Peer.log("Could not process the chunk content in the PUTCHUNK message", Level.SEVERE);
+      } catch (IllegalStateException e) {
+        Peer.log("Could not process the chunk content in the PUTCHUNK message",
+            Level.SEVERE);
         return;
       }
 
-      if(senderId == this.peer.getId()) // the same peer has the one processing the message
+      // the same peer has the one processing the message
+      if (senderId == Peer.getInstance().getId())
         return;
 
-      int replicationDegree = this.peer.fileInfoManager.getChunkReplicationDegree(fileId, chunkNumber);
-      if(replicationDegree >= desiredReplicationDegree)
+      int replicationDegree =
+          FileInfoManager.getInstance().getChunkReplicationDegree(fileId,
+              chunkNumber);
+      if (replicationDegree >= desiredReplicationDegree)
         return;
 
       storeChunk(fileId, chunkNumber, chunk);
       sendStoredMessage(version, fileId, chunkNumber);
-      this.peer.fileInfoManager.addBackupPeer(fileId, chunkNumber, this.peer.getId());
-      this.peer.fileInfoManager.setDesiredReplicationDegree(fileId, desiredReplicationDegree);
+      FileInfoManager.getInstance().addBackupPeer(fileId, chunkNumber,
+          Peer.getInstance().getId());
+      FileInfoManager.getInstance().setDesiredReplicationDegree(fileId,
+          desiredReplicationDegree);
     }
 
     private void storeChunk(String fileId, int chunkNumber, byte[] chunk) {
-      this.peer.fileInfoManager.storeChunk(fileId, chunkNumber, chunk);
+      FileInfoManager.getInstance().storeChunk(fileId, chunkNumber, chunk);
     }
 
     private void sendStoredMessage(String version, String fileId, int chunkNumber) {
-      this.peer.getPool().schedule(new StoredTransmitter(version, this.peer, fileId, chunkNumber),
-              Utils.getRandom(Protocol.minDelay, Protocol.maxDelay),
-              TimeUnit.MILLISECONDS);
+      Peer.getInstance().getPool().schedule(new StoredTransmitter(version,
+              fileId,
+              chunkNumber),
+          Utils.getRandom(Protocol.minDelay, Protocol.maxDelay),
+          TimeUnit.MILLISECONDS);
     }
-
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
-    return new DataBackupRunnable(packet, peer);
+  public final Runnable runnable(@NotNull DatagramPacket packet) {
+    return new DataBackupRunnable(packet);
   }
 }

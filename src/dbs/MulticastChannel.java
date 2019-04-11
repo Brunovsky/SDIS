@@ -2,46 +2,41 @@ package dbs;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.net.*;
-import java.util.logging.Logger;
+import java.io.IOException;
+import java.net.InetAddress;
 
-public final class MulticastChannel {
+class MulticastChannel {
+
   private final InetAddress address;
   private final int port;
-  private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
 
   MulticastChannel(@NotNull InetAddress address, int port) {
     this.address = address;
     this.port = port;
   }
 
-  MulticastChannel(@NotNull String address, @NotNull String port) throws Exception {
+  MulticastChannel(@NotNull String address, @NotNull String port) throws IOException {
     // parse address
-    try {
-      this.address = InetAddress.getByName(address);
-    } catch (UnknownHostException e) {
-      LOGGER.severe("Could not get an InetAddress object for the raw IP address " + address + ".\n");
-      throw e;
-    }
+    this.address = InetAddress.getByName(address);
 
     if (!this.address.isMulticastAddress()) {
-      LOGGER.severe("Address " + address + " Is not a multicast address.\n");
-      throw new IllegalArgumentException(address);
+      throw new IOException("Given address is not a multicast address: " + address);
     }
 
     // parse port
     try {
       this.port = Integer.parseInt(port);
+      if (this.port < 0) throw new NumberFormatException();
     } catch (NumberFormatException e) {
-      throw e;
+      throw new NumberFormatException("Invalid port: " + port);
     }
   }
 
-  public InetAddress getAddress() {
+  InetAddress getAddress() {
     return address;
   }
 
-  public int getPort() {
+  int getPort() {
     return port;
   }
 }

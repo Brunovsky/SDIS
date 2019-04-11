@@ -1,12 +1,15 @@
 package dbs;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Objects;
 
 public class ChunkKey {
+
   private final String fileId;
   private final int chunkNo;
 
-  public ChunkKey(String fileId, int chunkNo) {
+  public ChunkKey(@NotNull String fileId, int chunkNo) {
     this.fileId = fileId;
     this.chunkNo = chunkNo;
   }

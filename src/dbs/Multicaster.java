@@ -7,17 +7,15 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.MulticastSocket;
 import java.net.SocketTimeoutException;
-import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public final class Multicaster implements Runnable {
+
   public interface Processor {
-    Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer);
+    Runnable runnable(@NotNull DatagramPacket packet);
   }
 
-  private final static Logger LOGGER = Logger.getLogger(Multicaster.class.getName());
-
   private MulticastSocket socket;
-  private final Peer peer;
   private final Processor processor;
   private boolean finished = false;
   private final MulticastChannel multicastChannel;
@@ -70,24 +68,22 @@ public final class Multicaster implements Runnable {
    * Create a Multicaster for a given multicast group and port, with a message
    * processor chosen by the controlling peer.
    *
-   * @param peer             The controlling peer
    * @param multicastChannel The Protocol Channel this Multicaster polls
    * @param processor        The processor of this Multicaster
    * @throws IOException If there is a problem setting up the multicast network, e.g.
    *                     invalid multicast address, port or timeout.
    */
-  public Multicaster(@NotNull Peer peer, @NotNull MulticastChannel multicastChannel,
+  public Multicaster(@NotNull MulticastChannel multicastChannel,
                      @NotNull Multicaster.Processor processor) throws IOException {
-    this.peer = peer;
     this.multicastChannel = multicastChannel;
     this.processor = processor;
     try {
-      socket = new MulticastSocket(multicastChannel.getPort());
-      socket.joinGroup(multicastChannel.getAddress());
-      socket.setSoTimeout(peer.getConfig().multicastTimeout);
-      socket.setTimeToLive(1);
+      this.socket = new MulticastSocket(multicastChannel.getPort());
+      this.socket.joinGroup(multicastChannel.getAddress());
+      this.socket.setSoTimeout(Configuration.multicastTimeout);
+      this.socket.setTimeToLive(1);
     } catch (IOException e) {
-      LOGGER.severe("Could not create socket.\n");
+      Peer.log("Could not create socket", e, Level.SEVERE);
       throw e;
     }
   }
@@ -113,7 +109,7 @@ public final class Multicaster implements Runnable {
       packet = receive();
       if (packet == null) continue;
 
-      peer.getPool().submit(processor.runnable(packet, this.peer));
+      Peer.getInstance().getPool().submit(processor.runnable(packet));
     }
 
     die();

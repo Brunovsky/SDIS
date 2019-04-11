@@ -5,27 +5,30 @@ import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.Multicaster;
 import dbs.message.MessageType;
+import dbs.transmitter.RestoreHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
+import java.util.logging.Level;
 
 public class DataRestoreProcessor implements Multicaster.Processor {
+
   private class DataRestoreRunnable implements Runnable {
     private final DatagramPacket packet;
-    private final Peer peer;
 
-    DataRestoreRunnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
+    DataRestoreRunnable(@NotNull DatagramPacket packet) {
       this.packet = packet;
-      this.peer = peer;
     }
 
     @Override
     public void run() {
       try {
         Message m = new Message(packet);
+        String senderId = Long.toString(Peer.getInstance().getId());
+        if (senderId.equals(m.getSenderId())) return;
         this.processMessage(m);
       } catch (MessageException e) {
-        Peer.LOGGER.info("Dropped message from channel MDR");
+        Peer.log("Dropped message from channel MDR", Level.INFO);
       }
     }
 
@@ -33,16 +36,21 @@ public class DataRestoreProcessor implements Multicaster.Processor {
       MessageType messageType = m.getType();
       switch (messageType) {
         case CHUNK:
-          peer.getRestoreHandler().receiveCHUNK(m);
+          this.processChunkMessage(m);
           break;
         default:
-          Peer.LOGGER.info("Dropped message from channel MDR");
+          Peer.log("Dropped message from channel MDR", Level.INFO);
       }
+    }
+
+    private void processChunkMessage(Message m) {
+      Peer.log("Received CHUNK from " + m.getSenderId(), Level.FINE);
+      RestoreHandler.getInstance().receiveCHUNK(m);
     }
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
-    return new DataRestoreRunnable(packet, peer);
+  public final Runnable runnable(@NotNull DatagramPacket packet) {
+    return new DataRestoreRunnable(packet);
   }
 }

@@ -3,7 +3,6 @@ package dbs.transmitter;
 public class ControlTransmitter implements Runnable {
 
 
-
   ControlTransmitter() {
 
   }

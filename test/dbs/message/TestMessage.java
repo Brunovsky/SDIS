@@ -98,8 +98,8 @@ class TestMessage {
     assertEquals(0, m2.getExtraHeaders().length);
 
     // Receive constructors
-    Message tr1 = new Message(m1.getBytes());
-    Message tr2 = new Message(m2.getBytes());
+    Message tr1 = new Message(m1.makeBytes());
+    Message tr2 = new Message(m2.makeBytes());
 
     assertEquals(tr1, m1);
     assertEquals(tr2, m2);
@@ -145,8 +145,8 @@ class TestMessage {
     assertEquals(0, m2.getExtraHeaders().length);
 
     // Receive constructors
-    Message tr1 = new Message(m1.getBytes());
-    Message tr2 = new Message(m2.getBytes());
+    Message tr1 = new Message(m1.makeBytes());
+    Message tr2 = new Message(m2.makeBytes());
 
     assertEquals(tr1, m1);
     assertEquals(tr2, m2);
@@ -192,8 +192,8 @@ class TestMessage {
     assertEquals(0, m2.getExtraHeaders().length);
 
     // Receive constructors
-    Message tr1 = new Message(m1.getBytes());
-    Message tr2 = new Message(m2.getBytes());
+    Message tr1 = new Message(m1.makeBytes());
+    Message tr2 = new Message(m2.makeBytes());
 
     assertEquals(tr1, m1);
     assertEquals(tr2, m2);
@@ -245,8 +245,8 @@ class TestMessage {
     assertEquals(0, m2.getExtraHeaders().length);
 
     // Receive constructors
-    Message tr1 = new Message(m1.getBytes());
-    Message tr2 = new Message(m2.getBytes());
+    Message tr1 = new Message(m1.makeBytes());
+    Message tr2 = new Message(m2.makeBytes());
 
     assertEquals(tr1, m1);
     assertEquals(tr2, m2);
@@ -289,8 +289,8 @@ class TestMessage {
     assertEquals(0, m2.getExtraHeaders().length);
 
     // Receive constructors
-    Message tr1 = new Message(m1.getBytes());
-    Message tr2 = new Message(m2.getBytes());
+    Message tr1 = new Message(m1.makeBytes());
+    Message tr2 = new Message(m2.makeBytes());
 
     assertEquals(tr1, m1);
     assertEquals(tr2, m2);
@@ -336,8 +336,8 @@ class TestMessage {
     assertEquals(0, m2.getExtraHeaders().length);
 
     // Receive constructors
-    Message tr1 = new Message(m1.getBytes());
-    Message tr2 = new Message(m2.getBytes());
+    Message tr1 = new Message(m1.makeBytes());
+    Message tr2 = new Message(m2.makeBytes());
 
     assertEquals(tr1, m1);
     assertEquals(tr2, m2);

@@ -1,6 +1,7 @@
 package dbs.transmitter;
 
 import dbs.*;
+import dbs.fileInfoManager.FileInfoManager;
 import dbs.files.FileRequest;
 import dbs.files.FilesManager;
 import dbs.message.Message;
@@ -15,15 +16,14 @@ import java.util.logging.Level;
 
 public class PutchunkTransmitter implements Runnable {
 
-  private Peer peer;
   private String pathname;
   private int replicationDegree;
   private String fileId;
   private Integer numberChunks;
   private int transmissionNumber;
 
-  public PutchunkTransmitter(Peer peer, String pathname, int replicationDegree, int transmissionNumber) {
-    this.peer = peer;
+  public PutchunkTransmitter(String pathname, int replicationDegree,
+                             int transmissionNumber) {
     this.pathname = pathname;
     this.replicationDegree = replicationDegree;
     this.transmissionNumber = transmissionNumber;
@@ -32,40 +32,40 @@ public class PutchunkTransmitter implements Runnable {
   @Override
   public void run() {
 
-    File fileToBackup = null;
+    File fileToBackup;
 
-    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, this.peer.getId());
+    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname,
+        Peer.getInstance().getId());
     if (fileRequest == null) {
       Peer.log("Could not access the provided file", Level.SEVERE);
       return;
-    }
-    else {
+    } else {
       fileToBackup = fileRequest.getFile();
       this.fileId = fileRequest.getFileId();
       this.numberChunks = fileRequest.getNumberChunks();
     }
 
-    if(this.backedUpFile()) {
+    if (this.backedUpFile()) {
       Peer.log("Successfully backed up file '" + pathname, Level.INFO);
       return;
-    }
-    else if (transmissionNumber == 6) {
-      Peer.log("Could not backup file '" + pathname + "' after 5 attempts. Backup cancelled", Level.SEVERE);
+    } else if (transmissionNumber == 6) {
+      Peer.log("Could not backup file '" + pathname + "' after 5 attempts. Backup " +
+          "cancelled", Level.SEVERE);
       return;
-    }
-    else if (transmissionNumber == 1) {
-      this.peer.fileInfoManager.setDesiredReplicationDegree(fileId, replicationDegree);
-    }
-    else
+    } else if (transmissionNumber == 1) {
+      FileInfoManager.getInstance().setDesiredReplicationDegree(fileId,
+          replicationDegree);
+    } else
       Peer.log("Could not backup file '" + pathname + "' on attempt number " + (transmissionNumber - 1) + ". Going to try again", Level.WARNING);
 
     // send PUTCHUNK messages
     this.transmitFile(fileToBackup);
 
     // schedule next data backup transmitter thread
-    this.peer.getPool().schedule(new PutchunkTransmitter(this.peer, pathname, replicationDegree, ++transmissionNumber),
-            Protocol.delayReceiveStored * this.transmissionNumber,
-            TimeUnit.SECONDS);
+    Peer.getInstance().getPool().schedule(new PutchunkTransmitter(pathname,
+            replicationDegree, ++transmissionNumber),
+        Protocol.delayReceiveStored * this.transmissionNumber,
+        TimeUnit.SECONDS);
   }
 
   private void transmitFile(File fileToBackup) {
@@ -83,7 +83,8 @@ public class PutchunkTransmitter implements Runnable {
 
     do {
       chunkNumber++;
-      Integer chunkCurrentReplicationDegree = peer.fileInfoManager.getChunkReplicationDegree(fileId, chunkNumber);
+      Integer chunkCurrentReplicationDegree =
+          FileInfoManager.getInstance().getChunkReplicationDegree(fileId, chunkNumber);
 
       try {
         numberBytesRead = fis.read(chunk, 0, Protocol.chunkSize);
@@ -105,16 +106,19 @@ public class PutchunkTransmitter implements Runnable {
     Message putchunkMessage = null;
     try {
       putchunkMessage = Message.PUTCHUNK(fileId,
-              peer.getConfig().version, chunkNumber, this.replicationDegree, chunk);
+          Configuration.version, chunkNumber, this.replicationDegree, chunk);
     } catch (MessageError e) {
-      Peer.log("Could not generate PUTCHUNK message. Going to abort execution of the PUTCHUNK protocol", Level.SEVERE);
+      Peer.log("Could not generate PUTCHUNK message. Going to abort execution of the " +
+          "PUTCHUNK protocol", Level.SEVERE);
     }
-    peer.send(putchunkMessage);
+    Peer.getInstance().send(putchunkMessage);
   }
 
   private boolean backedUpFile() {
     for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
-      Integer actualReplicationDegree = peer.fileInfoManager.getChunkReplicationDegree(fileId, chunkNumber);
+      Integer actualReplicationDegree =
+          FileInfoManager.getInstance().getChunkReplicationDegree(fileId,
+              chunkNumber);
       if (actualReplicationDegree < replicationDegree) {
         return false;
       }

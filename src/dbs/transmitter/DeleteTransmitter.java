@@ -1,6 +1,8 @@
 package dbs.transmitter;
 
+import dbs.Configuration;
 import dbs.Peer;
+import dbs.fileInfoManager.FileInfoManager;
 import dbs.files.FileRequest;
 import dbs.files.FilesManager;
 import dbs.message.Message;
@@ -10,12 +12,10 @@ import java.util.logging.Level;
 
 public class DeleteTransmitter implements Runnable {
 
-  private Peer peer;
   private String pathname;
   private String fileId;
 
-  public DeleteTransmitter(Peer peer, String pathname) {
-    this.peer = peer;
+  public DeleteTransmitter(String pathname) {
     this.pathname = pathname;
   }
 
@@ -24,8 +24,8 @@ public class DeleteTransmitter implements Runnable {
   public void run() {
 
     // check if the given pathname is valid
-    File fileToDelete= null;
-    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, this.peer.getId());
+    File fileToDelete;
+    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, Peer.getInstance().getId());
     if(fileRequest == null) {
       Peer.log("Could not access the provided file", Level.SEVERE);
       return;
@@ -36,13 +36,13 @@ public class DeleteTransmitter implements Runnable {
     }
 
     // delete file
-    if(!this.peer.fileInfoManager.deleteFile(fileToDelete, this.fileId)) {
+    if(!FileInfoManager.getInstance().deleteFile(fileToDelete, this.fileId)) {
       Peer.log("Could not perform the deletion of the file " + this.pathname, Level.SEVERE);
       return;
     }
 
     // send DELETE message
-    this.peer.send(Message.DELETE(this.fileId, peer.getConfig().version));
+    Peer.getInstance().send(Message.DELETE(this.fileId, Configuration.version));
     Peer.log("sent message delete", Level.INFO);
   }
 }

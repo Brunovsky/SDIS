@@ -6,20 +6,16 @@ import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 public class Utils {
-  private final static Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
   private static String bytesToHex(byte[] hash) {
     StringBuffer hexString = new StringBuffer();
     for (int i = 0; i < hash.length; i++) {
       String hex = Integer.toHexString(0xff & hash[i]);
-      if(hex.length() == 1) hexString.append('0');
+      if (hex.length() == 1) hexString.append('0');
       hexString.append(hex);
     }
     return hexString.toString();
@@ -30,19 +26,12 @@ public class Utils {
     long lastModified = file.lastModified();
     String bitString = filePath + lastModified;
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
-    byte[] encodedHash;
-    try {
-      encodedHash = digest.digest(bitString.getBytes());
-    } catch (Exception e) {
-      LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
-      throw e;
-    }
-
+    byte[] encodedHash = digest.digest(bitString.getBytes());
     return bytesToHex(encodedHash);
   }
 
   public static int numberOfChunks(long filesize) {
-    return (int)((filesize + Protocol.chunkSize - 1) / Protocol.chunkSize);
+    return (int) ((filesize + Protocol.chunkSize - 1) / Protocol.chunkSize);
   }
 
   public static Registry registry() {
@@ -70,9 +59,8 @@ public class Utils {
     return registry;
   }
 
-  public static int getRandom(int min, int max)  {
-    Random rand = new Random();
-    int delay = rand.nextInt(max) + min;
-    return delay;
+  public static int getRandom(int min, int max) {
+    Random rand = new Random(); // TODO: make static
+    return rand.nextInt(max - min + 1) + min;
   }
 }

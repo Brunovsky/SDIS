@@ -1,33 +1,35 @@
 package dbs.processor;
 
 import dbs.Peer;
+import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.Multicaster;
 import dbs.message.MessageType;
+import dbs.transmitter.RestoreHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
 import java.util.logging.Level;
 
 public class ControlProcessor implements Multicaster.Processor {
+
   private class ControlRunnable implements Runnable {
     private final DatagramPacket packet;
-    private final Peer peer;
 
-    ControlRunnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
+    ControlRunnable(@NotNull DatagramPacket packet) {
       this.packet = packet;
-      this.peer = peer;
     }
 
     @Override
     public void run() {
       try {
         Message m = new Message(packet);
-        if (Long.toString(peer.getId()).equals(m.getSenderId())) return;
+        String senderId = Long.toString(Peer.getInstance().getId());
+        if (senderId.equals(m.getSenderId())) return;
         this.processMessage(m);
       } catch (MessageException e) {
-        Peer.LOGGER.info("Dropped message from channel MC with unrecognized format\n");
+        Peer.log("Dropped message from channel MC", Level.INFO);
       }
     }
 
@@ -47,33 +49,36 @@ public class ControlProcessor implements Multicaster.Processor {
           this.processRemovedMessage(m);
           break;
         default:
-          Peer.log("Could not recognized received message. Unexpected message type '" + messageType.toString() + "' in the MC channel", Level.SEVERE);
+          Peer.log("Dropped message from channel MC", Level.INFO);
       }
     }
 
     private void processRemovedMessage(Message m) {
-
+      Peer.log("Received REMOVED from " + m.getSenderId(), Level.FINE);
+      // TODO...
     }
 
     private void processDeleteMessage(Message m) {
-      Peer.log("received deleted message from " + m.getSenderId(), Level.INFO);
+      Peer.log("Received DELETE from " + m.getSenderId(), Level.FINE);
+      // TODO...
     }
 
     private void processGetchunkMessage(Message m) {
-      peer.getRestoreHandler().receiveGETCHUNK(m);
+      Peer.log("Received GETCHUNK from " + m.getSenderId(), Level.FINE);
+      RestoreHandler.getInstance().receiveGETCHUNK(m);
     }
 
     private void processStoredMessage(Message m) {
+      Peer.log("Received STORED from " + m.getSenderId(), Level.FINE);
       Long senderId = Long.parseLong(m.getSenderId());
-      if(senderId == this.peer.getId()) return;
       String fileId = m.getFileId();
       Integer chunkNumber = m.getChunkNo();
-      this.peer.fileInfoManager.addBackupPeer(fileId, chunkNumber, senderId);
+      FileInfoManager.getInstance().addBackupPeer(fileId, chunkNumber, senderId);
     }
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet, @NotNull Peer peer) {
-    return new ControlRunnable(packet, peer);
+  public final Runnable runnable(@NotNull DatagramPacket packet) {
+    return new ControlRunnable(packet);
   }
 }

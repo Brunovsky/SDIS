@@ -12,29 +12,26 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 
 public final class PeerSocket implements Runnable {
+
   private DatagramSocket socket;
-  private final Peer peer;
   private final LinkedBlockingDeque<DatagramPacket> queue;
   private boolean finished = false;
   // set to true to quit after next message.
 
-  public PeerSocket(@NotNull Peer peer, int port, @NotNull InetAddress address)
+  PeerSocket(int port, @NotNull InetAddress address)
       throws IOException {
-    this.peer = peer;
     this.socket = new DatagramSocket(port, address);
-    this.queue = new LinkedBlockingDeque<>(peer.getConfig().socketQueueCapacity);
+    this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
-  public PeerSocket(@NotNull Peer peer, int port) throws IOException {
-    this.peer = peer;
+  PeerSocket(int port) throws IOException {
     this.socket = new DatagramSocket(port);
-    this.queue = new LinkedBlockingDeque<>(peer.getConfig().socketQueueCapacity);
+    this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
-  public PeerSocket(@NotNull Peer peer) throws IOException {
-    this.peer = peer;
+  PeerSocket() throws IOException {
     this.socket = new DatagramSocket();
-    this.queue = new LinkedBlockingDeque<>(peer.getConfig().socketQueueCapacity);
+    this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
   /**
@@ -75,8 +72,8 @@ public final class PeerSocket implements Runnable {
    */
   public void sendTo(@NotNull Message message, MulticastChannel channel) {
     if (finished) return;
-    queue.add(message.getPacket(Long.toString(peer.getId()), channel.getPort(),
-        channel.getAddress()));
+    String id = Long.toString(Peer.getInstance().getId());
+    queue.add(message.getPacket(id, channel.getPort(), channel.getAddress()));
   }
 
   /**
@@ -102,7 +99,7 @@ public final class PeerSocket implements Runnable {
     sendTo(message, destinationChannel);
   }
 
-  public final void finish() {
+  final void finish() {
     this.finished = true;
   }
 
@@ -118,7 +115,7 @@ public final class PeerSocket implements Runnable {
 
     while (!finished) {
       try {
-        packet = queue.poll(peer.getConfig().socketTimeout, TimeUnit.MILLISECONDS);
+        packet = queue.poll(Configuration.socketTimeout, TimeUnit.MILLISECONDS);
       } catch (InterruptedException e) {
         continue;
       }
