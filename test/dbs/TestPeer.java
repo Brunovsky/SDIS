@@ -40,7 +40,7 @@ public class TestPeer {
     Message m7 = Message.PUTCHUNK(hash7, "1.0", 63, 2, body3);
     Message m8 = Message.CHUNK(hash8, "1.0", 930, body4);
 
-    Peer peer = new Peer(1337, "peer1337");
+    Peer peer = Peer.createInstance(1337, "peer1337");
 
     peer.send(m1);
     peer.send(m2);

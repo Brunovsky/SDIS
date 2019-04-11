@@ -18,12 +18,14 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Peer implements ClientInterface {
 
-  public final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
+  private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
+  // ^^^ Enforce use of Peer.log ?
 
   private static Peer peer;
 
@@ -35,24 +37,27 @@ public class Peer implements ClientInterface {
   private Multicaster mdr;
   private PeerSocket socket;
 
-  private ScheduledThreadPoolExecutor pool;
+  private ScheduledThreadPoolExecutor pool; // TODO: do not use scheduled
 
   public static Peer getInstance() {
     assert peer != null;
     return peer;
   }
 
-  public static Peer createInstance(String accessPoint) throws Exception {
-    assert peer == null;
-    return peer = new Peer(accessPoint);
+  public static Peer createInstance(long id, String accessPoint) throws IOException {
+    return peer == null ? (peer = new Peer(id, accessPoint)) : peer;
   }
 
-  public static Peer createInstance(long id, String accessPoint) throws Exception {
-    assert peer == null;
-    return peer = new Peer(id, accessPoint);
+  public static Peer createInstance(String accessPoint) throws IOException {
+    return peer == null ? (peer = new Peer(accessPoint)) : peer;
+  }
+
+  public static Peer createInstance() throws IOException {
+    return peer == null ? (peer = new Peer()) : peer;
   }
 
   public static void main(String[] args) {
+    // Note: avoid using the Logger until we're alive
     // 1. Process args and create peer
     try {
       parseArgs(args);
@@ -115,7 +120,8 @@ public class Peer implements ClientInterface {
     try {
       id = Long.parseLong(args[1]);
     } catch (NumberFormatException e) {
-      throw new NumberFormatException("Invalid server id: " + args[1]);
+      System.err.println("Wrong format for the second argument (peer id)");
+      throw e;
     }
 
     // parse access point
@@ -143,6 +149,13 @@ public class Peer implements ClientInterface {
   private Peer(@NotNull String accessPoint) throws IOException {
     this.id = ThreadLocalRandom.current().nextLong();
     this.accessPoint = accessPoint;
+
+    setup();
+  }
+
+  private Peer() throws IOException {
+    this.id = ThreadLocalRandom.current().nextLong();
+    this.accessPoint = getAccessPoint();
 
     setup();
   }
@@ -183,6 +196,8 @@ public class Peer implements ClientInterface {
 
   private void initPool() {
     this.pool = new ScheduledThreadPoolExecutor(Configuration.peerThreadPoolSize);
+    // TODO: do not use scheduled, use a limited-size thread pool executor instead,
+    // TODO: dropping received messages when we're overworked and can't handle them.
   }
 
   private void launchThreads() {
@@ -249,17 +264,17 @@ public class Peer implements ClientInterface {
 
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
-    Peer.log("Received BACKUP request", Level.INFO);
+    Peer.log("Received BACKUP request", Level.FINE);
     this.pool.submit(new PutchunkTransmitter(pathname, replicationDegree, 1));
   }
 
   public void restore(@NotNull String pathname) throws RemoteException {
-    Peer.log("Received RESTORE request", Level.INFO);
+    Peer.log("Received RESTORE request", Level.FINE);
   }
 
-  public void delete(@NotNull String pathname) throws RemoteException {
-    Peer.log("Received DELETE request", Level.INFO);
-    this.pool.submit(new DeleteTransmitter(pathname));
+  public void delete(@NotNull String pathname, boolean runEnhancedVersion) throws RemoteException {
+    Peer.log("Received DELETE request", Level.FINE);
+    this.pool.submit(new DeleteTransmitter(pathname, 1, runEnhancedVersion));
   }
 
   public void reclaim(int maxDiskSpaceChunks) throws RemoteException {
@@ -267,6 +282,6 @@ public class Peer implements ClientInterface {
   }
 
   public String state() throws RemoteException {
-    return "Hi there!";
+    return "Hi there! Hey there!";
   }
 }

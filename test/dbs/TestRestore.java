@@ -1,9 +1,11 @@
 package dbs;
 
+import dbs.fileInfoManager.FileInfo;
+import dbs.fileInfoManager.FileInfoManager;
 import dbs.files.FilesManager;
 import dbs.message.Message;
+import dbs.transmitter.ChunkTransmitter;
 import dbs.transmitter.RestoreHandler;
-import dbs.transmitter.RestoreHandler.*;
 import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
@@ -18,19 +20,19 @@ class TestRestore {
     Protocol.mdb = new MulticastChannel(InetAddress.getByName("237.0.0.2"), 29501);
     Protocol.mdr = new MulticastChannel(InetAddress.getByName("237.0.0.3"), 29502);
     FilesManager.deleteRecursive(Paths.get("/tmp/dbs").toFile());
+    config();
   }
 
-  Configuration config() {
-    Configuration config = new Configuration();
+  void config() {
+    Configuration.allPeersRootDir = "/tmp/dbs";
+    Configuration.peerRootDirPrefix = "peer-";
+    Configuration.backupDir = "backup";
+    Configuration.restoredDir = "restored";
+    Configuration.filesinfoDir = "filesinfo";
 
-    config.allPeersRootDir = "/tmp/dbs";
-    config.peerRootDirPrefix = "peer-";
-    config.backupDir = "backup";
-    config.restoredDir = "restored";
-    config.filesinfoDir = "filesinfo";
-    config.waitChunk = 1000;
-
-    return config;
+    Configuration.entryPrefix = "file-";
+    Configuration.chunkPrefix = "chunk-";
+    Configuration.peerRootDirPrefix = "peer-";
   }
 
   String hash1 = "1000000000000000000000000000000000000000000000000000000000000000";
@@ -48,8 +50,9 @@ class TestRestore {
   void chunkers() throws Exception {
     init();
 
-    Peer peer = new Peer(1, "peer-1", config());
-    RestoreHandler restorer = new RestoreHandler(peer);
+    Peer peer = Peer.createInstance(1000, "peer-1000");
+    FilesManager.createInstance();
+    RestoreHandler restorer = RestoreHandler.getInstance();
 
     Message g10 = Message.GETCHUNK(hash1, "1.0", 0);
     Message g11 = Message.GETCHUNK(hash1, "1.0", 1);
@@ -71,17 +74,17 @@ class TestRestore {
     assertEquals(k1, k2);
     assertEquals(k1.hashCode(), k2.hashCode());
 
-    int waitChunk = peer.getConfig().waitChunk;
+    int waitChunk = Protocol.maxDelay;
 
     // The peer doesn't have chunk c10, so the chunker is never created.
-    Chunker chunker1 = restorer.receiveGETCHUNK(g10);
+    ChunkTransmitter chunker1 = restorer.receiveGETCHUNK(g10);
     assertNull(chunker1);
 
     // Now the peer has c10.
-    peer.fileInfoManager.putChunk(hash1, 0, body10);
+    FileInfoManager.getInstance().putChunk(hash1, 0, body10);
 
     // Now the restorer creates the chunker.
-    Chunker chunker2 = restorer.receiveGETCHUNK(g10);
+    ChunkTransmitter chunker2 = restorer.receiveGETCHUNK(g10);
 
     assertNotNull(chunker2);
     assertFalse(chunker2.isDone());
@@ -92,16 +95,17 @@ class TestRestore {
 
     assertTrue(chunker2.isDone());
 
-    Chunker chunker3 = restorer.receiveGETCHUNK(g11);
-    peer.fileInfoManager.putChunk(hash1, 1, body11);
-    peer.fileInfoManager.putChunk(hash2, 0, body20);
-    peer.fileInfoManager.putChunk(hash2, 1, body21);
-    peer.fileInfoManager.putChunk(hash2, 2, body22);
-    peer.fileInfoManager.putChunk(hash3, 0, body30);
-    Chunker chunker4 = restorer.receiveGETCHUNK(g20); // exists
-    Chunker chunker5 = restorer.receiveGETCHUNK(g21); // does not exist
-    Chunker chunker6 = restorer.receiveGETCHUNK(g22); // exists
-    Chunker chunker7 = restorer.receiveGETCHUNK(g30); // does not exist, will be deleted
+    ChunkTransmitter chunker3 = restorer.receiveGETCHUNK(g11);
+    FileInfoManager.getInstance().putChunk(hash1, 1, body11);
+    FileInfoManager.getInstance().putChunk(hash2, 0, body20);
+    FileInfoManager.getInstance().putChunk(hash2, 1, body21);
+    FileInfoManager.getInstance().putChunk(hash2, 2, body22);
+    FileInfoManager.getInstance().putChunk(hash3, 0, body30);
+    ChunkTransmitter chunker4 = restorer.receiveGETCHUNK(g20); // exists
+    ChunkTransmitter chunker5 = restorer.receiveGETCHUNK(g21); // does not exist
+    ChunkTransmitter chunker6 = restorer.receiveGETCHUNK(g22); // exists
+    ChunkTransmitter chunker7 = restorer.receiveGETCHUNK(g30); // does not exist, will be
+    // deleted
     assertNull(chunker3);
     assertNotNull(chunker4);
     assertNotNull(chunker5);
@@ -113,7 +117,7 @@ class TestRestore {
     assertTrue(chunker6.isDone());
     assertFalse(chunker5.isDone());
     assertFalse(chunker7.isDone());
-    peer.fileInfoManager.deleteChunk(hash3, 0);
+    FileInfoManager.getInstance().deleteChunk(hash3, 0);
 
     Thread.sleep(waitChunk * 2, 0);
 

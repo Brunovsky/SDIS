@@ -9,7 +9,7 @@ import java.util.logging.Level;
 
 public class FileInfoManager {
 
-  private static FileInfoManager filesInfoManager;
+  private static FileInfoManager manager;
 
   /**
    * Maps the id of a file to the information of that file.
@@ -23,12 +23,11 @@ public class FileInfoManager {
   private final ConcurrentHashMap<String,FileInfo> filesInfo;
 
   public static FileInfoManager getInstance() {
-    return filesInfoManager;
+    return manager;
   }
 
   public static FileInfoManager createInstance() throws Exception {
-    assert filesInfoManager == null;
-    return filesInfoManager = new FileInfoManager();
+    return manager == null ? (manager = new FileInfoManager()) : manager;
   }
 
   /**
@@ -44,7 +43,7 @@ public class FileInfoManager {
    * @param fileId The file's id.
    * @return True if the map contains an entry for the given chunk and false otherwise.
    */
-  private boolean hasFileInfo(String fileId) {
+  public boolean hasFileInfo(String fileId) {
     return this.filesInfo.containsKey(fileId);
   }
 
@@ -133,6 +132,29 @@ public class FileInfoManager {
       return false;
     }
     FilesManager.getInstance().deleteFileInfo(fileId);
+    return true;
+  }
+
+  /**
+   * Deletes a backed up file and its records.
+   *
+   * @param fileId The file's id.
+   * @return True if the backed up file and its records were successfully deleted and
+   * false otherwise.
+   */
+  public boolean deleteBackedUpFile(String fileId) {
+    if (!this.hasFileInfo(fileId)) return true;
+    if (!FilesManager.getInstance().deleteBackupFile(fileId)) {
+      Peer.log("Could not delete the backup folder for the file with id " + fileId,
+          Level.SEVERE);
+      return false;
+    }
+    this.deleteFileInfo(fileId);
+    if (!FilesManager.getInstance().deleteFileInfo(fileId)) {
+      Peer.log("Could not delete the records for the file with id " + fileId,
+          Level.SEVERE);
+      return false;
+    }
     return true;
   }
 

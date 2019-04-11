@@ -20,6 +20,15 @@ public final class Protocol {
   // time internal for a getchunker to wait for a CHUNK message before retrying
   public static int delayGetchunker = 500;
 
+  // number of times the DELETE message is sent
+  public static int numberDeleteMessages = 5;
+
+  // time interval between the transmission of DELETE messages - s
+  public static int delaySendDelete = 1;
+
+  // new message's version
+  public static String newMessagesVersion = "1.1";
+
   public static MulticastChannel mc;
   public static MulticastChannel mdb;
   public static MulticastChannel mdr;

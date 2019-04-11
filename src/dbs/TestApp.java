@@ -135,20 +135,20 @@ public class TestApp {
 
   private void logInfo() {
 
-    String msg = "Successfully request a ";
+    String msg = "Successfully requested a ";
 
     switch (this.operation) {
       case BACKUP:
-        msg += " backup of the file " + this.oper1;
+        msg += "backup of the file " + this.oper1;
         break;
       case RESTORE:
-        msg += " restoration of the file " + this.oper1;
+        msg += "restoration of the file " + this.oper1;
         break;
       case DELETE:
-        msg += " deletion of the file " + this.oper1;
+        msg += "deletion of the file " + this.oper1;
         break;
       case RECLAIM:
-        msg += " reclamation of " + this.oper1 + " KB of disk space.";
+        msg += "reclamation of " + this.oper1 + " KB of disk space.";
         break;
     }
     LOGGER.info(msg);
@@ -167,7 +167,7 @@ public class TestApp {
           stub.restore(this.oper1);
           break;
         case DELETE:
-          stub.delete(this.oper1);
+          stub.delete(this.oper1, this.enh);
           break;
         case RECLAIM:
           stub.reclaim(Integer.parseInt(this.oper1));

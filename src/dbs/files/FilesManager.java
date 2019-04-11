@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 public final class FilesManager {
   private static final Logger LOGGER = Logger.getLogger(FilesManager.class.getName());
 
-  private static FilesManager filesManager;
+  private static FilesManager manager;
 
   private final Path backupDir;
   private final Path restoredDir;
@@ -33,12 +33,11 @@ public final class FilesManager {
   private final Pattern chunkPattern;
 
   public static FilesManager getInstance() {
-    return filesManager;
+    return manager;
   }
 
   public static FilesManager createInstance() throws IOException {
-    assert filesManager == null;
-    return filesManager = new FilesManager();
+    return manager == null ? (manager = new FilesManager()) : manager;
   }
 
   private static String chk(@NotNull String fileId, int chunkNo) {
@@ -587,10 +586,10 @@ public final class FilesManager {
     this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
   }
 
-  public void deleteFileInfo(String fileId) {
+  public boolean deleteFileInfo(String fileId) {
     Path fileInfoDir = this.filesinfoDir.resolve(fileId);
     File file = fileInfoDir.toFile();
-    FilesManager.deleteRecursive(file);
+    return FilesManager.deleteRecursive(file);
   }
 
   public Object readObject(File objectFile) throws Exception {

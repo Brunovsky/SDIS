@@ -5,12 +5,12 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.net.InetAddress;
 
-class MulticastChannel {
+public class MulticastChannel {
 
   private final InetAddress address;
   private final int port;
 
-  MulticastChannel(@NotNull InetAddress address, int port) {
+  public MulticastChannel(@NotNull InetAddress address, int port) {
     this.address = address;
     this.port = port;
   }

@@ -8,7 +8,8 @@ public enum MessageType {
   GETCHUNK("GETCHUNK"),
   CHUNK("CHUNK"),
   DELETE("DELETE"),
-  REMOVED("REMOVED");
+  REMOVED("REMOVED"),
+  DELETED ("DELETED");
 
   String str;
 
@@ -30,6 +31,8 @@ public enum MessageType {
         return DELETE;
       case "REMOVED":
         return REMOVED;
+      case "DELETED":
+        return DELETED;
       default:
         throw new MessageException("Unrecognized message type: " + s);
     }
@@ -45,6 +48,7 @@ public enum MessageType {
       case REMOVED:
         return 5;
       case DELETE:
+      case DELETED:
         return 4;
       default:
         throw new IllegalStateException("Invalid message type state for fields() call");
@@ -73,3 +77,4 @@ public enum MessageType {
 // CHUNK    <Version> <SenderId> <FileId> <ChunkNo> . <Body>
 // DELETE   <Version> <SenderId> <FileId> .
 // REMOVED  <Version> <SenderId> <FileId> <ChunkNo> .
+// DELETED  <Version> <SenderId> <FileId> .

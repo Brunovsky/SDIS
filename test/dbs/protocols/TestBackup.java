@@ -50,7 +50,7 @@ public class TestBackup {
     Process peer_2 = TestPeer.launchPeer("1.0", 2, "peer_2");
     Process peer_3 = TestPeer.launchPeer("1.0", 3, "peer_3");
 
-    TimeUnit.SECONDS.sleep(20);
+    TimeUnit.SECONDS.sleep(5);
     // destroy processes
     backupRequest.destroy();
     peer_1.destroy();
