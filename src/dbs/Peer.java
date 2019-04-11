@@ -6,6 +6,7 @@ import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
 import dbs.transmitter.PutchunkTransmitter;
+import dbs.transmitter.RestoreHandler;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -26,6 +27,7 @@ public class Peer implements ClientInterface {
   private Multicaster mdb;
   private Multicaster mdr;
   private PeerSocket socket;
+  private RestoreHandler restoreHandler;
   private ScheduledThreadPoolExecutor pool;
   public FileInfoManager fileInfoManager;
   public final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
@@ -165,15 +167,9 @@ public class Peer implements ClientInterface {
     this.fileInfoManager = new FileInfoManager(this);
   }
 
-  private void initMulticasters() throws IOException {
-    try {
-      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
-      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
-      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
-    } catch (IOException e) {
-      LOGGER.severe("Could not create multicasters.\n");
-      throw e;
-    }
+  private void initTransmitters() {
+    restoreHandler = new RestoreHandler(this);
+    // ...
   }
 
   private void initSocket() throws IOException {
@@ -187,6 +183,17 @@ public class Peer implements ClientInterface {
 
   private void initPool() {
     this.pool = new ScheduledThreadPoolExecutor(config.threadPoolSize);
+  }
+
+  private void initMulticasters() throws IOException {
+    try {
+      this.mc = new Multicaster(this, Protocol.mc, new ControlProcessor());
+      this.mdb = new Multicaster(this, Protocol.mdb, new DataBackupProcessor());
+      this.mdr = new Multicaster(this, Protocol.mdr, new DataRestoreProcessor());
+    } catch (IOException e) {
+      LOGGER.severe("Could not create multicasters.\n");
+      throw e;
+    }
   }
 
   private void launchThreads() {
@@ -218,6 +225,7 @@ public class Peer implements ClientInterface {
     initPool();
     initMulticasters();
     initFileInfoManager();
+    initTransmitters();
     launchThreads();
   }
 
@@ -246,6 +254,8 @@ public class Peer implements ClientInterface {
     return pool;
   }
 
+  public RestoreHandler getRestoreHandler() { return restoreHandler; }
+
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
     LOGGER.info("Received BACKUP request.\n");
@@ -253,7 +263,7 @@ public class Peer implements ClientInterface {
   }
 
   public void restore(@NotNull String pathname) throws RemoteException {
-    return;
+    LOGGER.info("Received RESTORE request.\n");
   }
 
   public void delete(@NotNull String pathname) throws RemoteException {

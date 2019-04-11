@@ -54,7 +54,7 @@ public final class FilesManager {
     return join;
   }
 
-  static boolean deleteRecursive(@NotNull File file) {
+  public static boolean deleteRecursive(@NotNull File file) {
     if (file.isDirectory()) {
       File[] subfiles = file.listFiles();
       if (subfiles != null) {
@@ -66,7 +66,7 @@ public final class FilesManager {
     return file.delete();
   }
 
-  static boolean deleteDirectory(@NotNull File directory) {
+  public static boolean deleteDirectory(@NotNull File directory) {
     if (!directory.isDirectory()) return false;
     File[] files = directory.listFiles();
     if (files != null) {

@@ -24,10 +24,10 @@ public class ControlProcessor implements Multicaster.Processor {
     public void run() {
       try {
         Message m = new Message(packet);
+        if (Long.toString(peer.getId()).equals(m.getSenderId())) return;
         this.processMessage(m);
-        //System.out.println("[MC Processor] \n" + m.toString() + "\n");
       } catch (MessageException e) {
-        System.err.println("[MC Processor ERR] Invalid:\n" + e.getMessage() + "\n");
+        Peer.LOGGER.info("Dropped message from channel MC with unrecognized format\n");
       }
     }
 
@@ -48,7 +48,6 @@ public class ControlProcessor implements Multicaster.Processor {
           break;
         default:
           Peer.log("Could not recognized received message. Unexpected message type '" + messageType.toString() + "' in the MC channel", Level.SEVERE);
-          return;
       }
     }
 
@@ -61,6 +60,7 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processGetchunkMessage(Message m) {
+      peer.getRestoreHandler().receiveGETCHUNK(m);
     }
 
     private void processStoredMessage(Message m) {

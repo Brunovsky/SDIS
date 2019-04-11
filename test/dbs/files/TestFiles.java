@@ -63,8 +63,8 @@ public class TestFiles {
     clean();
 
     Configuration config = config();
-    FilesManager manager1 = new FilesManager("1000", config);
-    FilesManager manager2 = new FilesManager("2000", config);
+    new FilesManager("1000", config);
+    new FilesManager("2000", config);
 
     String peer1000 = "/tmp/dbs/peer-1000/";
     assertTrue(Files.deleteIfExists(Paths.get(peer1000 + config.backupDir)));

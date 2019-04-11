@@ -35,10 +35,14 @@ public class Utils {
       encodedHash = digest.digest(bitString.getBytes());
     } catch (Exception e) {
       LOGGER.severe("Could not execute hash function using the bit string '" + bitString + "'\n");
-      return null;
+      throw e;
     }
 
     return bytesToHex(encodedHash);
+  }
+
+  public static int numberOfChunks(long filesize) {
+    return (int)((filesize + Protocol.chunkSize - 1) / Protocol.chunkSize);
   }
 
   public static Registry registry() {

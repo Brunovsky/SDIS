@@ -202,4 +202,16 @@ public class FileInfoManager {
       Peer.log("Could not update the desired replication degree of the file with id " + fileId, Level.SEVERE);
     }
   }
+
+  public boolean putRestore(String filename, byte[][] chunks) {
+    return this.filesManager.putRestore(filename, chunks);
+  }
+
+  public boolean putChunk(String fileId, Integer chunkNumber, byte[] chunk) {
+    return this.filesManager.putChunk(fileId, chunkNumber, chunk);
+  }
+
+  public boolean deleteChunk(String fileId, Integer chunkNumber) {
+    return this.filesManager.deleteChunk(fileId, chunkNumber);
+  }
 }
