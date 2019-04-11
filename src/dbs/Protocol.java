@@ -16,6 +16,12 @@ public final class Protocol {
   // time interval for a putchunker to collect the STORED messages, on a first attempt - s
   public static int delayReceiveStored = 1;
 
+  // number of times the DELETE message is sent
+  public static int numberDeleteMessages = 5;
+
+  // time interval between the transmission of DELETE messages - s
+  public static int delaySendDelete = 1;
+
   public static MulticastChannel mc;
   public static MulticastChannel mdb;
   public static MulticastChannel mdr;

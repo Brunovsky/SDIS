@@ -15,7 +15,6 @@ import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -269,7 +268,7 @@ public class Peer implements ClientInterface {
 
   public void delete(@NotNull String pathname) throws RemoteException {
     Peer.log("Received DELETE request", Level.INFO);
-    this.pool.submit(new DeleteTransmitter(this, pathname));
+    this.pool.submit(new DeleteTransmitter(this, pathname, 1));
   }
 
   public void reclaim(int maxDiskSpaceChunks) throws RemoteException {
