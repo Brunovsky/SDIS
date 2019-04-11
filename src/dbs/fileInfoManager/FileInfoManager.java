@@ -3,6 +3,7 @@ package dbs.fileInfoManager;
 import dbs.Peer;
 import dbs.files.FilesManager;
 
+import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -91,6 +92,31 @@ public class FileInfoManager {
   public void addFileInfo(String fileId) {
     if(!this.hasFileInfo(fileId))
       this.filesInfo.put(fileId, new FileInfo());
+  }
+
+  /**
+   * Removes the entry from the filesInfo map that corresponds to given file's id.
+   * @param fileId The id of the file to be deletes from the records.
+   */
+  public void deleteFileInfo(String fileId) {
+    this.filesInfo.remove(fileId);
+  }
+
+  /**
+   * Deletes the provided file and its records.
+   * @param file The file to delete.
+   * @param fileId The file's id.
+   * @return True if the provided file and its records were successfully deleted and false otherwise.
+   */
+  public boolean deleteFile(File file, String fileId) {
+    if(FilesManager.deleteRecursive(file))
+      Peer.log("Successfully deleted file " + file.getPath() + " and its records", Level.INFO);
+    else {
+      Peer.log("Could not delete file " + file.getPath() + " and its records", Level.SEVERE);
+      return false;
+    }
+    this.filesManager.deleteFileInfo(fileId);
+    return true;
   }
 
   /**

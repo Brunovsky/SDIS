@@ -2,6 +2,8 @@ package dbs.files;
 
 import dbs.Configuration;
 import dbs.Peer;
+import dbs.Protocol;
+import dbs.Utils;
 import dbs.fileInfoManager.ChunkInfo;
 import dbs.fileInfoManager.FileInfo;
 import org.jetbrains.annotations.NotNull;
@@ -12,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -90,6 +93,35 @@ public final class FilesManager {
 
   private boolean validBackupEntry(@NotNull String backupFilename) {
     return backupPattern.matcher(backupFilename).matches();
+  }
+
+  /**
+   * Returns information with respects to the given file path.
+   * @param pathname The name of the file's path.
+   * @param peerId The id of the peer which owns the file.
+   * @return The information regarding that file if it was successfully retrieved and null otherwise.
+   */
+  public static FileRequest retrieveFileInfo(String pathname, Long peerId) {
+    File file = new File(pathname);
+
+    // check if path name corresponds to a valid file
+    if (!file.exists() || file.isDirectory()) {
+      Peer.log("Invalid path name", Level.SEVERE);
+      return null;
+    }
+
+    // hash the pathname
+    String fileId = null;
+    try {
+      fileId = Utils.hash(file, peerId);
+    } catch (Exception e) {
+      Peer.log("Could not retrieve a file id for the path name " + pathname, Level.SEVERE);
+      return null;
+    }
+
+    Long fileSize = file.length();
+    Integer numberChunks = (int)Math.ceil(fileSize / (double) Protocol.chunkSize);
+    return new FileRequest(file, fileId, numberChunks);
   }
 
   private String makeChunkEntry(int chunkNo) {
@@ -556,6 +588,12 @@ public final class FilesManager {
     Files.createDirectories(fileInfoDir);
     Path chunkInfoPath = fileInfoDir.resolve(config.desiredReplicationDegreeFile);
     this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
+  }
+
+  public void deleteFileInfo(String fileId) {
+    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
+    File file = fileInfoDir.toFile();
+    FilesManager.deleteRecursive(file);
   }
 
   public Object readObject(File objectFile) throws Exception {

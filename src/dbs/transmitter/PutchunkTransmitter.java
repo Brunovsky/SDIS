@@ -1,6 +1,8 @@
 package dbs.transmitter;
 
 import dbs.*;
+import dbs.files.FileRequest;
+import dbs.files.FilesManager;
 import dbs.message.Message;
 import dbs.message.MessageError;
 
@@ -17,7 +19,7 @@ public class PutchunkTransmitter implements Runnable {
   private String pathname;
   private int replicationDegree;
   private String fileId;
-  private int numberChunks;
+  private Integer numberChunks;
   private int transmissionNumber;
 
   public PutchunkTransmitter(Peer peer, String pathname, int replicationDegree, int transmissionNumber) {
@@ -30,25 +32,18 @@ public class PutchunkTransmitter implements Runnable {
   @Override
   public void run() {
 
-    File fileToBackup = new File(pathname);
+    File fileToBackup = null;
 
-    // check if path name corresponds to a valid file
-    if (!fileToBackup.exists() || fileToBackup.isDirectory()) {
-      Peer.log("Invalid path name", Level.SEVERE);
+    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, this.peer.getId());
+    if (fileRequest == null) {
+      Peer.log("Could not access the provided file", Level.SEVERE);
       return;
     }
-
-    // hash the pathname
-    this.fileId = null;
-    try {
-      this.fileId = Utils.hash(fileToBackup, peer.getId());
-    } catch (Exception e) {
-      Peer.log("Could not retrieve a file id for the path name " + pathname, Level.SEVERE);
-      return;
+    else {
+      fileToBackup = fileRequest.getFile();
+      this.fileId = fileRequest.getFileId();
+      this.numberChunks = fileRequest.getNumberChunks();
     }
-
-    Long fileSize = fileToBackup.length();
-    this.numberChunks = (int)Math.ceil(fileSize / (double)Protocol.chunkSize);
 
     if(this.backedUpFile()) {
       Peer.log("Successfully backed up file '" + pathname, Level.INFO);

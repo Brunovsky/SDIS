@@ -166,7 +166,7 @@ public class TestApp {
           stub.restore(this.oper1);
           break;
         case DELETE:
-          stub.restore(this.oper1);
+          stub.delete(this.oper1);
           break;
         case RECLAIM:
           stub.reclaim(Integer.parseInt(this.oper1));

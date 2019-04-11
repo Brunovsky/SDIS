@@ -56,7 +56,7 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processDeleteMessage(Message m) {
-
+      Peer.log("received deleted message from " + m.getSenderId(), Level.INFO);
     }
 
     private void processGetchunkMessage(Message m) {

@@ -5,6 +5,7 @@ import dbs.message.Message;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
+import dbs.transmitter.DeleteTransmitter;
 import dbs.transmitter.PutchunkTransmitter;
 import dbs.transmitter.RestoreHandler;
 import org.jetbrains.annotations.NotNull;
@@ -258,16 +259,17 @@ public class Peer implements ClientInterface {
 
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
-    LOGGER.info("Received BACKUP request.\n");
+    Peer.log("Received BACKUP request", Level.INFO);
     this.pool.submit(new PutchunkTransmitter(this, pathname, replicationDegree, 1));
   }
 
   public void restore(@NotNull String pathname) throws RemoteException {
-    LOGGER.info("Received RESTORE request.\n");
+    Peer.log("Received RESTORE request", Level.INFO);
   }
 
   public void delete(@NotNull String pathname) throws RemoteException {
-    return;
+    Peer.log("Received DELETE request", Level.INFO);
+    this.pool.submit(new DeleteTransmitter(this, pathname));
   }
 
   public void reclaim(int maxDiskSpaceChunks) throws RemoteException {
