@@ -1,6 +1,5 @@
 package dbs;
 
-import dbs.fileInfoManager.FileInfo;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
@@ -11,7 +10,6 @@ import dbs.transmitter.DeleteTransmitter;
 import dbs.transmitter.PutchunkTransmitter;
 import dbs.transmitter.ReclaimHandler;
 import dbs.transmitter.RestoreHandler;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.rmi.RemoteException;
@@ -24,7 +22,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Peer implements ClientInterface {
-
   private final static Logger LOGGER = Logger.getLogger(Peer.class.getName());
   // ^^^ Enforce use of Peer.log ?
 
@@ -38,7 +35,7 @@ public class Peer implements ClientInterface {
   private Multicaster mdr;
   private PeerSocket socket;
 
-  private ScheduledThreadPoolExecutor pool; // TODO: do not use scheduled
+  private ScheduledThreadPoolExecutor pool;  // TODO: do not use scheduled
 
   public static Peer getInstance() {
     assert peer != null;
@@ -102,8 +99,9 @@ public class Peer implements ClientInterface {
 
   private static void parseArgs(String[] args) throws Exception {
     if (args.length != 9) {
-      System.err.println("Wrong number of arguments. Usage:\n" +
-          "java Peer <protocol_version> <id> <access_point> <mc> <mdb> <mdr>");
+      System.err.println(
+          "Wrong number of arguments. Usage:\n"
+          + "java Peer <protocol_version> <id> <access_point> <mc> <mdb> <mdr>");
       throw new IllegalArgumentException("Wrong number of arguments");
     }
 
@@ -140,14 +138,14 @@ public class Peer implements ClientInterface {
     peer = new Peer(id, accessPoint);
   }
 
-  private Peer(long id, @NotNull String accessPoint) throws IOException {
+  private Peer(long id, String accessPoint) throws IOException {
     this.id = id;
     this.accessPoint = accessPoint;
 
     setup();
   }
 
-  private Peer(@NotNull String accessPoint) throws IOException {
+  private Peer(String accessPoint) throws IOException {
     this.id = ThreadLocalRandom.current().nextLong();
     this.accessPoint = accessPoint;
 
@@ -172,7 +170,7 @@ public class Peer implements ClientInterface {
     mdr.finish();
   }
 
-  public void send(@NotNull Message message) {
+  public void send(Message message) {
     this.socket.send(message);
   }
 
@@ -243,11 +241,11 @@ public class Peer implements ClientInterface {
    * @param msg   The string message (or a key in the message catalog)
    * @param level One of the message level identifiers, e.g., SEVERE
    */
-  public static void log(@NotNull String msg, Level level) {
+  public static void log(String msg, Level level) {
     LOGGER.log(level, msg + ".\n");
   }
 
-  public static void log(@NotNull String msg, Throwable e, Level level) {
+  public static void log(String msg, Throwable e, Level level) {
     LOGGER.log(level, msg + ".\n" + e.getMessage());
   }
 
@@ -265,27 +263,29 @@ public class Peer implements ClientInterface {
 
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
-    Peer.log("Received BACKUP request", Level.FINE);
+    Peer.log("Received BACKUP request", Level.INFO);
     this.pool.submit(new PutchunkTransmitter(pathname, replicationDegree, 1));
   }
 
-  public void restore(@NotNull String pathname) throws RemoteException {
-    Peer.log("Received RESTORE request for " + pathname, Level.FINE);
+  public void restore(String pathname) throws RemoteException {
+    Peer.log("Received RESTORE request for " + pathname, Level.INFO);
     RestoreHandler.getInstance().initRestore(pathname);
   }
 
-  public void delete(@NotNull String pathname, boolean runEnhancedVersion) throws RemoteException {
-    Peer.log("Received DELETE request for " + pathname, Level.FINE);
+  public void delete(String pathname, boolean runEnhancedVersion) throws RemoteException {
+    Peer.log("Received DELETE request for " + pathname, Level.INFO);
     this.pool.submit(new DeleteTransmitter(pathname, 1, runEnhancedVersion));
   }
 
   public void reclaim(long maxDiskSpace) throws RemoteException {
-    Peer.log("Received RECLAIM request with maximum " + maxDiskSpace, Level.FINE);
+    Peer.log("Received RECLAIM request with maximum " + maxDiskSpace, Level.INFO);
     ReclaimHandler.getInstance().initReclaim(maxDiskSpace);
   }
 
   public String state() throws RemoteException {
-    Peer.log("Received STATE request", Level.FINE);
-    return FileInfoManager.getInstance().dumpState();
+    Peer.log("Received STATE request", Level.INFO);
+    String state = FileInfoManager.getInstance().dumpState();
+    System.out.print(state);
+    return state;
   }
 }

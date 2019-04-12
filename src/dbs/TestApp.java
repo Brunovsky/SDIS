@@ -174,6 +174,7 @@ public class TestApp {
           break;
         case STATE:
           String state =  stub.state();
+          System.out.println(state);
           return;
         default:
           break;

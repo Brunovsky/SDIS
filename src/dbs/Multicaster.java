@@ -1,7 +1,5 @@
 package dbs;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOError;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -12,7 +10,7 @@ import java.util.logging.Level;
 public final class Multicaster implements Runnable {
 
   public interface Processor {
-    Runnable runnable(@NotNull DatagramPacket packet);
+    Runnable runnable(DatagramPacket packet);
   }
 
   private MulticastSocket socket;
@@ -73,8 +71,8 @@ public final class Multicaster implements Runnable {
    * @throws IOException If there is a problem setting up the multicast network, e.g.
    *                     invalid multicast address, port or timeout.
    */
-  public Multicaster(@NotNull MulticastChannel multicastChannel,
-                     @NotNull Multicaster.Processor processor) throws IOException {
+  public Multicaster(MulticastChannel multicastChannel,
+                     Multicaster.Processor processor) throws IOException {
     this.multicastChannel = multicastChannel;
     this.processor = processor;
     try {

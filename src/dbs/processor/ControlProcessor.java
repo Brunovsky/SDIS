@@ -1,15 +1,14 @@
 package dbs.processor;
 
 import dbs.Configuration;
+import dbs.Multicaster;
 import dbs.Peer;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
-import dbs.Multicaster;
 import dbs.message.MessageType;
 import dbs.transmitter.ReclaimHandler;
 import dbs.transmitter.RestoreHandler;
-import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
 import java.util.logging.Level;
@@ -19,7 +18,7 @@ public class ControlProcessor implements Multicaster.Processor {
   private class ControlRunnable implements Runnable {
     private final DatagramPacket packet;
 
-    ControlRunnable(@NotNull DatagramPacket packet) {
+    ControlRunnable(DatagramPacket packet) {
       this.packet = packet;
     }
 
@@ -56,12 +55,12 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processRemovedMessage(Message m) {
-      Peer.log("Received REMOVED from " + m.getSenderId(), Level.FINE);
+      Peer.log("Received REMOVED from " + m.getSenderId(), Level.INFO);
       ReclaimHandler.getInstance().receiveREMOVED(m);
     }
 
     private void processDeleteMessage(Message m) {
-      Peer.log("Received DELETE from " + m.getSenderId(), Level.FINE);
+      Peer.log("Received DELETE from " + m.getSenderId(), Level.INFO);
       String fileId = m.getFileId();
       boolean sendDeletedMessage = FileInfoManager.getInstance().hasFileInfo(fileId);
       Peer.log("Received delete message for the file with id " + fileId, Level.INFO);
@@ -80,12 +79,12 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processGetchunkMessage(Message m) {
-      Peer.log("Received GETCHUNK from " + m.getSenderId(), Level.FINE);
+      Peer.log("Received GETCHUNK from " + m.getSenderId(), Level.INFO);
       RestoreHandler.getInstance().receiveGETCHUNK(m);
     }
 
     private void processStoredMessage(Message m) {
-      Peer.log("Received STORED from " + m.getSenderId(), Level.FINE);
+      Peer.log("Received STORED from " + m.getSenderId(), Level.INFO);
       Long senderId = Long.parseLong(m.getSenderId());
       String fileId = m.getFileId();
       Integer chunkNumber = m.getChunkNo();
@@ -94,7 +93,7 @@ public class ControlProcessor implements Multicaster.Processor {
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet) {
+  public final Runnable runnable(DatagramPacket packet) {
     return new ControlRunnable(packet);
   }
 }

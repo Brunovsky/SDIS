@@ -3,7 +3,6 @@ package dbs.transmitter;
 import dbs.*;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -22,14 +21,14 @@ public class ChunkTransmitter implements Runnable {
 
   private final ChunkKey key;
   private Future task;
-  private AtomicBoolean done = new AtomicBoolean(false);
+  private final AtomicBoolean done = new AtomicBoolean(false);
 
   /**
    * Construct a Chunker for a GETCHUNK message with this key.
    *
    * @param key The requested chunk identifier (and also the key in the chunkers map)
    */
-  ChunkTransmitter(@NotNull ChunkKey key) {
+  ChunkTransmitter(ChunkKey key) {
     this.key = key;
     int wait = Utils.getRandom(Protocol.minDelay, Protocol.maxDelay);
     task = RestoreHandler.getInstance().chunkPool.schedule(this, wait,

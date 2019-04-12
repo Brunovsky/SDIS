@@ -1,7 +1,5 @@
 package dbs;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.File;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -10,7 +8,6 @@ import java.security.MessageDigest;
 import java.util.Random;
 
 public class Utils {
-
   private static String bytesToHex(byte[] hash) {
     StringBuffer hexString = new StringBuffer();
     for (int i = 0; i < hash.length; i++) {
@@ -21,7 +18,7 @@ public class Utils {
     return hexString.toString();
   }
 
-  public static String hash(@NotNull File file, long peerId) throws Exception {
+  public static String hash(File file, long peerId) throws Exception {
     String filePath = file.getPath();
     long lastModified = file.lastModified();
     String bitString = filePath + lastModified;
@@ -39,19 +36,19 @@ public class Utils {
 
     try {
       // Try to get the already open registry.
-      registry = LocateRegistry.getRegistry();
+      registry = LocateRegistry.getRegistry("localhost");
     } catch (RemoteException e1) {
       try {
         // Race: There is no open registry. Create one.
         // TODO: where to find selected port?
-        registry = LocateRegistry.createRegistry(Protocol.registryPort);
+        registry = LocateRegistry.createRegistry(Registry.REGISTRY_PORT);
       } catch (RemoteException e2) {
         // Lost race: someone created a registry in the meanwhile.
         try {
-          registry = LocateRegistry.getRegistry();
+          registry = LocateRegistry.getRegistry("localhost");
         } catch (RemoteException e3) {
           // Something very bad happened.
-          throw new Error(e1); // throw the first error
+          throw new Error(e1);  // throw the first error
         }
       }
     }
@@ -60,23 +57,23 @@ public class Utils {
   }
 
   public static int getRandom(int min, int max) {
-    Random rand = new Random(); // TODO: make static
+    Random rand = new Random();  // TODO: make static
     return rand.nextInt(max - min + 1) + min;
   }
 
-  public static boolean validVersion(@NotNull String version) {
+  public static boolean validVersion(String version) {
     return version.matches("[0-9]\\.[0-9]");
   }
 
-  public static boolean validSenderId(@NotNull String senderId) {
+  public static boolean validSenderId(String senderId) {
     return senderId.matches("[0-9]+");
   }
 
-  public static boolean validFileId(@NotNull String fileId) {
+  public static boolean validFileId(String fileId) {
     return fileId.length() == 64 && fileId.matches("[a-fA-F0-9]+");
   }
 
-  public static boolean validChunkNo(@NotNull String chunkNo) {
+  public static boolean validChunkNo(String chunkNo) {
     return chunkNo.matches("[0-9]+");
   }
 
@@ -84,7 +81,7 @@ public class Utils {
     return chunkNo >= 0;
   }
 
-  public static boolean validReplicationDegree(@NotNull String replication) {
+  public static boolean validReplicationDegree(String replication) {
     return replication.matches("[0-9]");
   }
 

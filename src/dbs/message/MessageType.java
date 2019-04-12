@@ -1,7 +1,5 @@
 package dbs.message;
 
-import org.jetbrains.annotations.NotNull;
-
 public enum MessageType {
   PUTCHUNK("PUTCHUNK"),
   STORED("STORED"),
@@ -13,11 +11,11 @@ public enum MessageType {
 
   String str;
 
-  MessageType(@NotNull String s) {
+  MessageType(String s) {
     this.str = s;
   }
 
-  public static MessageType from(@NotNull String s) throws MessageException {
+  public static MessageType from(String s) throws MessageException {
     switch (s) {
       case "PUTCHUNK":
         return PUTCHUNK;

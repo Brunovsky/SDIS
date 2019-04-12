@@ -1,12 +1,11 @@
 package dbs.processor;
 
+import dbs.Multicaster;
 import dbs.Peer;
 import dbs.message.Message;
 import dbs.message.MessageException;
-import dbs.Multicaster;
 import dbs.message.MessageType;
 import dbs.transmitter.RestoreHandler;
-import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
 import java.util.logging.Level;
@@ -16,7 +15,7 @@ public class DataRestoreProcessor implements Multicaster.Processor {
   private class DataRestoreRunnable implements Runnable {
     private final DatagramPacket packet;
 
-    DataRestoreRunnable(@NotNull DatagramPacket packet) {
+    DataRestoreRunnable(DatagramPacket packet) {
       this.packet = packet;
     }
 
@@ -44,13 +43,13 @@ public class DataRestoreProcessor implements Multicaster.Processor {
     }
 
     private void processChunkMessage(Message m) {
-      Peer.log("Received CHUNK from " + m.getSenderId(), Level.FINE);
+      Peer.log("Received CHUNK from " + m.getSenderId(), Level.INFO);
       RestoreHandler.getInstance().receiveCHUNK(m);
     }
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet) {
+  public final Runnable runnable(DatagramPacket packet) {
     return new DataRestoreRunnable(packet);
   }
 }

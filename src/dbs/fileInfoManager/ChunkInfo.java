@@ -55,4 +55,12 @@ public class ChunkInfo implements java.io.Serializable {
   public int getReplicationDegree() {
     return this.backupPeers.size();
   }
+
+  @Override
+  public String toString() {
+    StringBuilder string = new StringBuilder();
+    string.append('{').append(backupPeers.size()).append("} ");
+    for (long peer : backupPeers) string.append(peer).append(' ');
+    return string.toString();
+  }
 }

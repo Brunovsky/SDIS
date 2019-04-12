@@ -7,3 +7,4 @@ old/
 out/
 *.iml
 peersState/
+script/dbs

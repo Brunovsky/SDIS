@@ -9,7 +9,6 @@ import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.message.MessageType;
 import dbs.transmitter.StoredTransmitter;
-import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +19,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
   private class DataBackupRunnable implements Runnable {
     private final DatagramPacket packet;
 
-    DataBackupRunnable(@NotNull DatagramPacket packet) {
+    DataBackupRunnable(DatagramPacket packet) {
       this.packet = packet;
     }
 
@@ -48,7 +47,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
     }
 
     private void processPutchunkMessage(Message m) {
-      Peer.log("Received PUTCHUNK from " + m.getSenderId(), Level.FINE);
+      Peer.log("Received PUTCHUNK from " + m.getSenderId(), Level.INFO);
       String fileId = m.getFileId();
       int chunkNumber = m.getChunkNo();
       Long senderId = Long.parseLong(m.getSenderId());
@@ -96,7 +95,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
   }
 
   @Override
-  public final Runnable runnable(@NotNull DatagramPacket packet) {
+  public final Runnable runnable(DatagramPacket packet) {
     return new DataBackupRunnable(packet);
   }
 }

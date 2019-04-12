@@ -6,7 +6,6 @@ import dbs.Configuration;
 import dbs.Peer;
 import dbs.Protocol;
 import dbs.message.Message;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,14 +25,14 @@ public class GetchunkTransmitter implements Runnable {
   private volatile byte[] chunk;
   private int attempts = 0;
   private Future task;
-  private AtomicBoolean done = new AtomicBoolean(false);
+  private final AtomicBoolean done = new AtomicBoolean(false);
 
   /**
    * Construct a Getchunker for this chunk key.
    *
    * @param key The request chunk's key (and also the key in the getchunkers map)
    */
-  GetchunkTransmitter(@NotNull ChunkKey key, @NotNull Restorer restorer) {
+  GetchunkTransmitter(ChunkKey key, Restorer restorer) {
     String fileId = key.getFileId();
     int chunkNo = key.getChunkNo();
 
@@ -88,7 +87,7 @@ public class GetchunkTransmitter implements Runnable {
    *
    * @param received The chunk detected by the chunk receiver
    */
-  void assign(byte @NotNull [] received) {
+  void assign(byte[] received) {
     if (done.getAndSet(true)) return;
     RestoreHandler.getInstance().getchunkers.remove(key);
     if (task != null) task.cancel(true);

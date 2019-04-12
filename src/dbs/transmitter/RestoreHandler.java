@@ -6,7 +6,6 @@ import dbs.Peer;
 import dbs.Utils;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +32,7 @@ public class RestoreHandler {
    * This map is used by the Chunker and the chunk receive handler.
    * Entries in this map are never null.
    */
-  final ConcurrentHashMap<ChunkKey,@NotNull ChunkTransmitter> chunkers;
+  final ConcurrentHashMap<ChunkKey,ChunkTransmitter> chunkers;
 
   /**
    * A registry of active Getchunkers. Whenever a Getchunker is launched for a given
@@ -43,14 +42,14 @@ public class RestoreHandler {
    * This map is used by the Getchunker and the chunk receive handler.
    * Entries in this map are never null.
    */
-  final ConcurrentHashMap<ChunkKey,@NotNull GetchunkTransmitter> getchunkers;
+  final ConcurrentHashMap<ChunkKey,GetchunkTransmitter> getchunkers;
 
   /**
    * A registry of active Restorers. Whenever a Restorer is launched for a given FILEID,
    * it registers itself here.
    * Entries in this map are never null.
    */
-  final ConcurrentHashMap<String,@NotNull Restorer> restorers;
+  final ConcurrentHashMap<String,Restorer> restorers;
 
   final ScheduledThreadPoolExecutor chunkPool;
 
@@ -76,7 +75,7 @@ public class RestoreHandler {
    * @return The Chunker responsible for managing this GETCHUNK, or null if we don't
    * have this chunk.
    */
-  public ChunkTransmitter receiveGETCHUNK(@NotNull Message message) {
+  public ChunkTransmitter receiveGETCHUNK(Message message) {
     String fileId = message.getFileId();
     int chunkNo = message.getChunkNo();
     ChunkKey key = new ChunkKey(fileId, chunkNo);
@@ -94,7 +93,7 @@ public class RestoreHandler {
    *
    * @param message The CHUNK message received. Presumed valid CHUNK message.
    */
-  public void receiveCHUNK(@NotNull Message message) {
+  public void receiveCHUNK(Message message) {
     String fileId = message.getFileId();
     int chunkNo = message.getChunkNo();
     byte[] bytes = message.getBody();
@@ -113,7 +112,7 @@ public class RestoreHandler {
    * Called to create a RESTORE initiator that will retrieve all chunks for a given
    * file id. It will create all necessary Getchunkers and wait for all of them.
    */
-  public Restorer initRestore(@NotNull String pathname) {
+  public Restorer initRestore(String pathname) {
     try {
       File file = new File(pathname);
       String fileId = Utils.hash(file, Peer.getInstance().getId());

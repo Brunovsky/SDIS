@@ -1,7 +1,5 @@
 package dbs;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.IOException;
 import java.net.InetAddress;
 
@@ -10,12 +8,12 @@ public class MulticastChannel {
   private final InetAddress address;
   private final int port;
 
-  public MulticastChannel(@NotNull InetAddress address, int port) {
+  public MulticastChannel(InetAddress address, int port) {
     this.address = address;
     this.port = port;
   }
 
-  MulticastChannel(@NotNull String address, @NotNull String port) throws IOException {
+  MulticastChannel(String address, String port) throws IOException {
     // parse address
     this.address = InetAddress.getByName(address);
 
@@ -38,5 +36,10 @@ public class MulticastChannel {
 
   int getPort() {
     return port;
+  }
+
+  @Override
+  public String toString() {
+    return address.toString() + ':' + port;
   }
 }

@@ -18,7 +18,6 @@ public class StoredTransmitter implements Runnable {
   @Override
   public void run() {
     Message message = Message.STORED(this.fileId, this.version, this.chunkNumber);
-    message.setSenderId(Long.toString(Peer.getInstance().getId()));
     Peer.getInstance().send(message);
   }
 }

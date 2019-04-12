@@ -1,12 +1,6 @@
 package dbs.transmitter;
 
-import dbs.ChunkKey;
-import dbs.Configuration;
 import dbs.message.Message;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class BackupHandler {
 
@@ -21,9 +15,9 @@ public class BackupHandler {
     return handler == null ? (handler = new BackupHandler()) : handler;
   }
 
-  //final ConcurrentHashMap<ChunkKey,@NotNull PutchunkTransmitter> putchunkers;
+  //final ConcurrentHashMap<ChunkKey,PutchunkTransmitter> putchunkers;
 
-  //final ConcurrentHashMap<ChunkKey,@NotNull GetchunkTransmitter> storers;
+  //final ConcurrentHashMap<ChunkKey,GetchunkTransmitter> storers;
 
   //final ScheduledThreadPoolExecutor putchunkPool;
 
@@ -33,17 +27,17 @@ public class BackupHandler {
   }
 
   // ...
-  public void receivePUTCHUNK(@NotNull Message message) {
+  public void receivePUTCHUNK(Message message) {
 
   }
 
   // ...
-  public void receiveSTORED(@NotNull Message message) {
+  public void receiveSTORED(Message message) {
 
   }
 
   // ...
-  public void initBackup(@NotNull String pathname, int replicationDegree) {
+  public void initBackup(String pathname, int replicationDegree) {
 
   }
 }

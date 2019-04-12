@@ -5,7 +5,6 @@ import dbs.ChunkKey;
 import dbs.Protocol;
 import dbs.Utils;
 import dbs.fileInfoManager.FileInfoManager;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +21,7 @@ public class RemovedWaiter implements Runnable {
    *
    * @param key The requested chunk identifier (and also the key in the waiters map)
    */
-  RemovedWaiter(@NotNull ChunkKey key) {
+  RemovedWaiter(ChunkKey key) {
     this.key = key;
     int delay = Utils.getRandom(Protocol.minDelay, Protocol.maxDelay);
     this.scheduled = ReclaimHandler.getInstance().waiterPool.schedule(this, delay,

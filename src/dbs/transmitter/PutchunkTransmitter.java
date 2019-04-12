@@ -105,6 +105,7 @@ public class PutchunkTransmitter implements Runnable {
   private void sendMessage(String fileId, int chunkNumber, byte[] chunk) {
     Message putchunkMessage = null;
     try {
+      Peer.log("Sending PUTCHUNK for chunk " + chunkNumber, Level.INFO);
       putchunkMessage = Message.PUTCHUNK(fileId,
           Configuration.version, chunkNumber, this.replicationDegree, chunk);
     } catch (MessageError e) {
@@ -115,7 +116,7 @@ public class PutchunkTransmitter implements Runnable {
   }
 
   private boolean backedUpFile() {
-    for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
+    for (int chunkNumber = 0; chunkNumber < this.numberChunks; chunkNumber++) {
       Integer actualReplicationDegree =
           FileInfoManager.getInstance().getChunkReplicationDegree(fileId,
               chunkNumber);

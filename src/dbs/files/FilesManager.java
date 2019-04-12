@@ -2,17 +2,18 @@ package dbs.files;
 
 import dbs.Configuration;
 import dbs.Peer;
-import dbs.Protocol;
 import dbs.Utils;
 import dbs.fileInfoManager.ChunkInfo;
 import dbs.fileInfoManager.FileInfo;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,15 +41,15 @@ public final class FilesManager {
     return manager == null ? (manager = new FilesManager()) : manager;
   }
 
-  private static String chk(@NotNull String fileId, int chunkNo) {
+  private static String chk(String fileId, int chunkNo) {
     return "chunk #" + chunkNo + " of file " + id(fileId);
   }
 
-  private static String id(@NotNull String fileId) {
+  private static String id(String fileId) {
     return fileId.substring(0, 10) + "..";
   }
 
-  private static byte[] concatenateChunks(byte @NotNull [] @NotNull [] chunks) {
+  private static byte[] concatenateChunks(byte[][] chunks) {
     int length = 0;
     for (byte[] chunk : chunks) length += chunk.length;
 
@@ -63,7 +64,7 @@ public final class FilesManager {
     return join;
   }
 
-  public static boolean deleteRecursive(@NotNull File file) {
+  public static boolean deleteRecursive(File file) {
     if (file.isDirectory()) {
       File[] subfiles = file.listFiles();
       if (subfiles != null) {
@@ -75,7 +76,7 @@ public final class FilesManager {
     return file.delete();
   }
 
-  public static boolean deleteDirectory(@NotNull File directory) {
+  public static boolean deleteDirectory(File directory) {
     if (!directory.isDirectory()) return false;
     File[] files = directory.listFiles();
     if (files != null) {
@@ -113,23 +114,23 @@ public final class FilesManager {
       return null;
     }
 
-    Long fileSize = file.length();
-    Integer numberChunks = (int) Math.ceil(fileSize / (double) Protocol.chunkSize);
+    long filesize = file.length();
+    Integer numberChunks = Utils.numberOfChunks(filesize);
     return new FileRequest(file, fileId, numberChunks);
   }
 
-  private String makeBackupEntry(@NotNull String fileId) {
+  private String makeBackupEntry(String fileId) {
     return Configuration.entryPrefix + fileId;
   }
 
-  private String extractFromBackupEntry(@NotNull String backupFilename) {
+  private String extractFromBackupEntry(String backupFilename) {
     Matcher matcher = backupPattern.matcher(backupFilename);
     if (!matcher.matches()) return null;
 
     return matcher.group(1);
   }
 
-  private boolean validBackupEntry(@NotNull String backupFilename) {
+  private boolean validBackupEntry(String backupFilename) {
     return backupPattern.matcher(backupFilename).matches();
   }
 
@@ -137,14 +138,14 @@ public final class FilesManager {
     return Configuration.chunkPrefix + chunkNo;
   }
 
-  private int extractFromChunkEntry(@NotNull String chunkFilename) {
+  private int extractFromChunkEntry(String chunkFilename) {
     Matcher matcher = chunkPattern.matcher(chunkFilename);
     if (!matcher.matches()) return -1;
 
     return Integer.parseInt(matcher.group(1));
   }
 
-  private boolean validChunkEntry(@NotNull String chunkFilename) {
+  private boolean validChunkEntry(String chunkFilename) {
     return chunkPattern.matcher(chunkFilename).matches();
   }
 
@@ -199,7 +200,7 @@ public final class FilesManager {
    * @param fileId The file id
    * @return true if the folder exists, and false otherwise.
    */
-  public boolean hasBackupFolder(@NotNull String fileId) {
+  public boolean hasBackupFolder(String fileId) {
     Path filepath = backupDir.resolve(makeBackupEntry(fileId));
     return Files.exists(filepath) && Files.isDirectory(filepath);
   }
@@ -211,7 +212,7 @@ public final class FilesManager {
    * @return false if the folder existed and could not be completely deleted, and true
    * otherwise.
    */
-  public boolean deleteBackupFile(@NotNull String fileId) {
+  public boolean deleteBackupFile(String fileId) {
     Path filepath = backupDir.resolve(makeBackupEntry(fileId));
     return deleteDirectory(filepath.toFile());
   }
@@ -223,7 +224,7 @@ public final class FilesManager {
    * @param chunkNo The chunk number
    * @return true if the file exists, and false otherwise.
    */
-  public boolean hasChunk(@NotNull String fileId, int chunkNo) {
+  public boolean hasChunk(String fileId, int chunkNo) {
     Path filepath = backupDir.resolve(makeBackupEntry(fileId));
     Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
     return Files.exists(chunkpath) && Files.isRegularFile(chunkpath);
@@ -238,7 +239,7 @@ public final class FilesManager {
    * @return The entire chunk content, or null if the chunk does not exist/could not be
    * read.
    */
-  public byte[] getChunk(@NotNull String fileId, int chunkNo) {
+  public byte[] getChunk(String fileId, int chunkNo) {
     try {
       Path filepath = backupDir.resolve(makeBackupEntry(fileId));
       Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
@@ -259,7 +260,7 @@ public final class FilesManager {
    * @param chunk   The chunk content
    * @return true if the file was successfully written, false otherwise
    */
-  public boolean putChunk(@NotNull String fileId, int chunkNo, byte @NotNull [] chunk) {
+  public boolean putChunk(String fileId, int chunkNo, byte[] chunk) {
     try {
       Path path = backupDir.resolve(makeBackupEntry(fileId));
       Path filepath = Files.createDirectories(path);
@@ -279,7 +280,7 @@ public final class FilesManager {
    * @param chunkNo The chunk number
    * @return false if the file existed and could not be deleted, and true otherwise.
    */
-  public boolean deleteChunk(@NotNull String fileId, int chunkNo) {
+  public boolean deleteChunk(String fileId, int chunkNo) {
     try {
       Path filepath = backupDir.resolve(makeBackupEntry(fileId));
       Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
@@ -298,7 +299,7 @@ public final class FilesManager {
    * @param filename The filename being restored
    * @return true if the file exists, and false otherwise.
    */
-  public boolean hasRestore(@NotNull String filename) {
+  public boolean hasRestore(String filename) {
     Path filepath = restoredDir.resolve(filename);
     return Files.exists(filepath);
   }
@@ -310,7 +311,7 @@ public final class FilesManager {
    * @param filename The filename being restored
    * @return The entire file content, or null if it does not exist/could not be read.
    */
-  public byte[] getRestore(@NotNull String filename) {
+  public byte[] getRestore(String filename) {
     try {
       Path filepath = restoredDir.resolve(filename);
       if (Files.notExists(filepath)) return null;
@@ -329,8 +330,8 @@ public final class FilesManager {
    * @param chunks   The various chunks composing the file
    * @return true if the file was successfully written, false otherwise
    */
-  public boolean putRestore(@NotNull String filename,
-                            byte @NotNull [] @NotNull [] chunks) {
+  public boolean putRestore(String filename,
+                            byte[][] chunks) {
     try {
       Path filepath = restoredDir.resolve(filename);
       Files.write(filepath, concatenateChunks(chunks));
@@ -341,13 +342,13 @@ public final class FilesManager {
     }
   }
 
-  private File[] backupFilterFilesList(@NotNull File @NotNull [] files) {
+  private File[] backupFilterFilesList(File[] files) {
     return Arrays.stream(files)
         .filter(file -> validBackupEntry(file.getName()))
         .toArray(File[]::new);
   }
 
-  private File[] backupFilterChunksList(@NotNull File @NotNull [] chunks) {
+  private File[] backupFilterChunksList(File[] chunks) {
     return Arrays.stream(chunks)
         .filter(chunk -> validChunkEntry(chunk.getName()))
         .toArray(File[]::new);
@@ -362,7 +363,7 @@ public final class FilesManager {
     }
   }
 
-  private File[] backupChunksList(@NotNull File file) {
+  private File[] backupChunksList(File file) {
     if (!file.exists() || !file.isDirectory()) return new File[0];
     File[] chunks = file.listFiles();
     if (chunks == null) {
@@ -372,7 +373,7 @@ public final class FilesManager {
     }
   }
 
-  private File[] backupChunksList(@NotNull String fileId) {
+  private File[] backupChunksList(String fileId) {
     Path filepath = backupDir.resolve(makeBackupEntry(fileId));
     if (Files.notExists(filepath)) return new File[0];
 
@@ -390,7 +391,7 @@ public final class FilesManager {
     return set;
   }
 
-  public TreeSet<Integer> backupChunksSet(@NotNull String fileId) {
+  public TreeSet<Integer> backupChunksSet(String fileId) {
     File[] files = backupChunksList(fileId);
     TreeSet<Integer> set = new TreeSet<>();
 
@@ -418,11 +419,11 @@ public final class FilesManager {
    * @param file A file object, presumably valid and inside the backup/ subdirectory
    * @return The total amount of disk space, 0 if it does not exist or is not a folder.
    */
-  private long backupFileTotalSpace(@NotNull File file) {
+  private long backupFileTotalSpace(File file) {
     File[] chunks = backupChunksList(file);
 
     long total = 0;
-    for (File chunk : chunks) total += chunk.getTotalSpace();
+    for (File chunk : chunks) total += chunk.length();
     return total;
   }
 
@@ -433,7 +434,7 @@ public final class FilesManager {
    * @return The total amount of disk space used, or 0 if it does not exist or is not a
    * folder.
    */
-  public long backupFileTotalSpace(@NotNull String fileId) {
+  public long backupFileTotalSpace(String fileId) {
     return backupFileTotalSpace(backupDir.resolve(makeBackupEntry(fileId)).toFile());
   }
 
@@ -448,119 +449,6 @@ public final class FilesManager {
     long total = 0;
     for (File file : files) total += backupFileTotalSpace(file);
     return total;
-  }
-
-  public boolean isKeepingFilename(@NotNull String filename) {
-    Path ownpath = idMapDir.resolve(filename);
-    return Files.exists(ownpath);
-  }
-
-  public boolean isKeepingFileId(@NotNull String fileId) {
-    Path minepath = mineDir.resolve(fileId);
-    return Files.exists(minepath);
-  }
-
-  public String getFileId(@NotNull String filename) {
-    try {
-      Path ownpath = idMapDir.resolve(filename);
-      if (Files.notExists(ownpath)) return null;
-      byte[] bytes = Files.readAllBytes(ownpath);
-      return new String(bytes);
-    } catch (IOException e) {
-      LOGGER.warning("Failed to read idmap file for " + filename + "\n" + e.getMessage());
-      return null;
-    }
-  }
-
-  public boolean putKeepingFile(@NotNull String filename, @NotNull String fileId) {
-    try {
-      Path ownpath = idMapDir.resolve(filename);
-      Files.write(ownpath, fileId.getBytes());
-      return true;
-    } catch (IOException e) {
-      LOGGER.warning("Failed to write idmap file " + filename + "\n" + e.getMessage());
-      return false;
-    }
-  }
-
-  public boolean deleteKeepingFile(@NotNull String filename) {
-    if (!isKeepingFilename(filename)) return true;
-
-    String fileId = getFileId(filename);
-    try {
-      Path ownpath = idMapDir.resolve(filename);
-      if (Files.notExists(ownpath)) return true;
-      Files.deleteIfExists(ownpath);
-      return true;
-    } catch (IOException e) {
-      LOGGER.warning("Failed to delete idmap file " + filename + "\n" + e.getMessage());
-      return false;
-    }
-  }
-
-  public Object getMetadataOfFileId(@NotNull String fileId) {
-    Path minepath = mineDir.resolve(fileId);
-    if (Files.notExists(minepath)) return null;
-
-    try (
-        FileInputStream fis = new FileInputStream(minepath.toFile());
-        ObjectInputStream ois = new ObjectInputStream(fis)) {
-      return ois.readObject();
-    } catch (IOException e) {
-      LOGGER.severe("Failed to read metadata for " + id(fileId) + "\n" + e.getMessage());
-      return null;
-    } catch (ClassNotFoundException e) {
-      LOGGER.severe("Invalid class in serializable of " + id(fileId) + "\n" + e.getMessage());
-      return null;
-    }
-  }
-
-  public Object getMetadataOfFilename(@NotNull String filename) {
-    String fileId = getFileId(filename);
-    if (fileId == null) return null;
-
-    return getMetadataOfFileId(fileId);
-  }
-
-  public boolean putMetadataOfFileId(@NotNull String fileId, @NotNull Serializable ser) {
-    Path minepath = mineDir.resolve(fileId);
-
-    try (
-        FileOutputStream fos = new FileOutputStream(minepath.toFile());
-        ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-      oos.writeObject(ser);
-      return true;
-    } catch (IOException e) {
-      LOGGER.severe("Failed to write metadata for " + id(fileId) + "\n" + e.getMessage());
-      return false;
-    }
-  }
-
-  public boolean putMetadataOfFilename(@NotNull String filename,
-                                       @NotNull Serializable ser) {
-    String fileId = getFileId(filename);
-    if (fileId == null) return false;
-
-    return putMetadataOfFileId(fileId, ser);
-  }
-
-  public boolean deleteMetadataOfFileId(@NotNull String fileId) {
-    try {
-      Path minepath = mineDir.resolve(fileId);
-      if (Files.notExists(minepath)) return true;
-      Files.deleteIfExists(minepath);
-      return true;
-    } catch (IOException e) {
-      LOGGER.severe("Failed to delete metadata for " + id(fileId) + "\n" + e.getMessage());
-      return false;
-    }
-  }
-
-  public boolean deleteMetadataOfFilename(@NotNull String filename) {
-    String fileId = getFileId(filename);
-    if (fileId == null) return true;
-
-    return deleteMetadataOfFileId(filename);
   }
 
   public void writeObject(Object object, String objectPathName) throws IOException {

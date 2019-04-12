@@ -59,4 +59,7 @@ public class Configuration {
 
     // Maximum number of allowed GETCHUNK for each chunk before the restore gives up
     public static int maxGetchunkAttempts = 5;
+
+    // Maximum storage capacity for chunks.
+    public static long storageCapacity = 40000; // KB ?
 }

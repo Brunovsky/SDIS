@@ -4,7 +4,6 @@ import dbs.ChunkKey;
 import dbs.Configuration;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -32,7 +31,7 @@ public class ReclaimHandler {
    * This map is used by the RemovedWaiter and the putchunk receive handler.
    * Entries in this map are never null.
    */
-  final ConcurrentHashMap<ChunkKey,@NotNull RemovedWaiter> waiters;
+  final ConcurrentHashMap<ChunkKey,RemovedWaiter> waiters;
 
   final ScheduledThreadPoolExecutor waiterPool;
 
@@ -52,7 +51,7 @@ public class ReclaimHandler {
    * @return The RemovedWaiter responsible for managing the eventual PUTCHUNK
    * subprotocol instance, null in any other case.
    */
-  public RemovedWaiter receiveREMOVED(@NotNull Message message) {
+  public RemovedWaiter receiveREMOVED(Message message) {
     String fileId = message.getFileId();
     int chunkNo = message.getChunkNo();
     ChunkKey key = new ChunkKey(fileId, chunkNo);

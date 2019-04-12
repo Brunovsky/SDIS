@@ -303,6 +303,12 @@ public class FileInfoManager {
    * Constructs a string that contains the state of this peer's filesystem.
    */
   public String dumpState() {
-    return null;
+    StringBuilder string = new StringBuilder();
+    for (String fileId : filesInfo.keySet()) {
+      FileInfo fileinfo = filesInfo.get(fileId);
+      string.append(" File ").append(fileId).append('\n');
+      string.append(fileinfo.toString());
+    }
+    return string.toString();
   }
 }

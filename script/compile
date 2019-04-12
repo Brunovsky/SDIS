@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cd .. && echo "Compiling java..."
+
+mkdir --parents script/dbs
+javac -sourcepath src -d script --release 10 -Werror src/**/*.java

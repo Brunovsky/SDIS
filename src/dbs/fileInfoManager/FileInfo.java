@@ -1,6 +1,6 @@
 package dbs.fileInfoManager;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FileInfo {
 
@@ -8,7 +8,7 @@ public class FileInfo {
    * Maps the number of a file's chunk (greater or equal to 0) to the information of
    * that chunk.
    */
-  private HashMap<Integer,ChunkInfo> fileChunks;
+  private ConcurrentHashMap<Integer,ChunkInfo> fileChunks;
   /**
    * The desired replication degree of that file.
    */
@@ -18,7 +18,7 @@ public class FileInfo {
    * Constructs a new object of the FileInfo class.
    */
   public FileInfo() {
-    this.fileChunks = new HashMap<>();
+    this.fileChunks = new ConcurrentHashMap<>();
     this.desiredReplicationDegree = 0;
   }
 
@@ -29,7 +29,7 @@ public class FileInfo {
    * @param desiredReplicationDegree The desired replication degree for that file.
    */
   public FileInfo(Integer desiredReplicationDegree) {
-    this.fileChunks = new HashMap<>();
+    this.fileChunks = new ConcurrentHashMap<>();
     this.desiredReplicationDegree = desiredReplicationDegree;
   }
 
@@ -153,5 +153,17 @@ public class FileInfo {
    */
   public void setDesiredReplicationDegree(Integer desiredReplicationDegree) {
     this.desiredReplicationDegree = desiredReplicationDegree;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder string = new StringBuilder();
+    string.append("  Replication Degree: ").append(desiredReplicationDegree).append('\n');
+    for (Integer chunkNumber : fileChunks.keySet()) {
+      ChunkInfo chunkinfo = fileChunks.get(chunkNumber);
+      string.append("   Chunk ").append(chunkNumber).append(": ");
+      string.append(chunkinfo.toString()).append('\n');
+    }
+    return string.toString();
   }
 }

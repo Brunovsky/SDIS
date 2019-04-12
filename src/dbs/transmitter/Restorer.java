@@ -1,12 +1,11 @@
 package dbs.transmitter;
 
-
 import dbs.ChunkKey;
 import dbs.Peer;
-import dbs.fileInfoManager.FileInfoManager;
 import dbs.files.FilesManager;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 /**
@@ -21,6 +20,7 @@ public class Restorer implements Runnable {
   private final byte[][] chunks;
   private final int chunksNo;
   private final ConcurrentHashMap<ChunkKey,GetchunkTransmitter> instances;
+  private final AtomicBoolean done = new AtomicBoolean(false);
 
   Restorer(String pathname, String fileId, int chunksNo) {
     this.pathname = pathname;
@@ -48,7 +48,8 @@ public class Restorer implements Runnable {
     }
   }
 
-  synchronized void failed(ChunkKey key) {
+  void failed(ChunkKey key) {
+    if (done.getAndSet(true)) return;
     instances.remove(key);
     for (GetchunkTransmitter getchunker : instances.values()) {
       getchunker.cancel();
@@ -58,6 +59,7 @@ public class Restorer implements Runnable {
   }
 
   synchronized void assigned(ChunkKey key) {
+    if (done.get()) return;
     GetchunkTransmitter getchunker = instances.get(key);
     chunks[key.getChunkNo()] = getchunker.getChunk();
     instances.remove(key);
@@ -66,6 +68,7 @@ public class Restorer implements Runnable {
   }
 
   private void succeed() {
+    done.set(true);
     FilesManager.getInstance().putRestore(pathname, chunks);
     RestoreHandler.getInstance().restorers.remove(fileId);
     Peer.log("Successfully restored file " + pathname, Level.INFO);
