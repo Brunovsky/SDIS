@@ -56,6 +56,14 @@ public class ChunkInfo implements java.io.Serializable {
     return this.backupPeers.size();
   }
 
+  /**
+   * Returns true if the chunk has a backup on other peer and false otherwise.
+   * @return True if the chunk has a backup on other peer and false otherwise.
+   */
+  public boolean hasBackupPeers() {
+    return (this.getReplicationDegree() != 0);
+  }
+
   @Override
   public String toString() {
     StringBuilder string = new StringBuilder();

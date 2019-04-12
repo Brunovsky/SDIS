@@ -63,8 +63,7 @@ public class PutchunkTransmitter implements Runnable {
 
     // schedule next data backup transmitter thread
     Peer.getInstance().getPool().schedule(new PutchunkTransmitter(pathname,
-            replicationDegree, ++transmissionNumber),
-        Protocol.delayReceiveStored * this.transmissionNumber,
+            replicationDegree, ++transmissionNumber), (int)Math.pow(2, this.transmissionNumber - 1),
         TimeUnit.SECONDS);
   }
 
@@ -116,7 +115,7 @@ public class PutchunkTransmitter implements Runnable {
   }
 
   private boolean backedUpFile() {
-    for (int chunkNumber = 0; chunkNumber < this.numberChunks; chunkNumber++) {
+    for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
       Integer actualReplicationDegree =
           FileInfoManager.getInstance().getChunkReplicationDegree(fileId,
               chunkNumber);

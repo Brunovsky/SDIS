@@ -89,7 +89,7 @@ public class Peer implements ClientInterface {
       // Bind the remote object's stub in the registry
       Registry registry = LocateRegistry.getRegistry();
       registry.rebind(peer.getAccessPoint(), stub);
-      Peer.log("Ready to receive requests.\n", Level.INFO);
+      Peer.log("Ready to receive requests", Level.INFO);
     } catch (Exception e) {
       System.err.println("Could not bind stub to the name " + peer.getAccessPoint());
       e.printStackTrace();

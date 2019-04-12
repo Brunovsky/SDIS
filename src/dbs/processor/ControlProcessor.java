@@ -49,6 +49,9 @@ public class ControlProcessor implements Multicaster.Processor {
         case REMOVED:
           this.processRemovedMessage(m);
           break;
+        case DELETED:
+          this.processDeletedMessage(m);
+          break;
         default:
           Peer.log("Dropped message from channel MC", Level.INFO);
       }
@@ -63,7 +66,6 @@ public class ControlProcessor implements Multicaster.Processor {
       Peer.log("Received DELETE from " + m.getSenderId(), Level.INFO);
       String fileId = m.getFileId();
       boolean sendDeletedMessage = FileInfoManager.getInstance().hasFileInfo(fileId);
-      Peer.log("Received delete message for the file with id " + fileId, Level.INFO);
       if(!FileInfoManager.getInstance().deleteBackedUpFile(fileId)) {
         Peer.log("Could not delete the backed up file with id " + fileId, Level.SEVERE);
         return;
@@ -86,9 +88,17 @@ public class ControlProcessor implements Multicaster.Processor {
     private void processStoredMessage(Message m) {
       Peer.log("Received STORED from " + m.getSenderId(), Level.INFO);
       Long senderId = Long.parseLong(m.getSenderId());
+      if(senderId == Peer.getInstance().getId()) return;
       String fileId = m.getFileId();
       Integer chunkNumber = m.getChunkNo();
       FileInfoManager.getInstance().addBackupPeer(fileId, chunkNumber, senderId);
+    }
+
+    private void processDeletedMessage(Message m) {
+      Peer.log("Received DELETED from " + m.getSenderId(), Level.INFO);
+      Long senderId = Long.parseLong(m.getSenderId());
+      String fileId = m.getFileId();
+      FileInfoManager.getInstance().removeBackupPeer(fileId, senderId);
     }
   }
 
