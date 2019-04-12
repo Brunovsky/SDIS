@@ -1,6 +1,7 @@
 package dbs.transmitter;
 
 import dbs.ChunkKey;
+import dbs.Configuration;
 import dbs.Peer;
 import dbs.Utils;
 import dbs.fileInfoManager.FileInfoManager;
@@ -9,18 +10,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class RestoreHandler {
-  private static RestoreHandler restoreHandler;
+
+  private static RestoreHandler handler;
 
   public static RestoreHandler getInstance() {
-    assert restoreHandler != null;
-    return restoreHandler;
+    assert handler != null;
+    return handler;
   }
 
   public static RestoreHandler createInstance() {
-    assert restoreHandler == null;
-    return restoreHandler = new RestoreHandler();
+    return handler == null ? (handler = new RestoreHandler()) : handler;
   }
 
   /**
@@ -50,10 +52,19 @@ public class RestoreHandler {
    */
   final ConcurrentHashMap<String,@NotNull Restorer> restorers;
 
-  public RestoreHandler() {
+  final ScheduledThreadPoolExecutor chunkPool;
+
+  final ScheduledThreadPoolExecutor getchunkPool;
+
+  final ScheduledThreadPoolExecutor restorerPool;
+
+  private RestoreHandler() {
     this.chunkers = new ConcurrentHashMap<>();
     this.getchunkers = new ConcurrentHashMap<>();
     this.restorers = new ConcurrentHashMap<>();
+    this.chunkPool = new ScheduledThreadPoolExecutor(Configuration.chunkPoolSize);
+    this.getchunkPool = new ScheduledThreadPoolExecutor(Configuration.getChunkPoolSize);
+    this.restorerPool = new ScheduledThreadPoolExecutor(Configuration.restorerPoolSize);
   }
 
   /**
@@ -102,11 +113,15 @@ public class RestoreHandler {
    * Called to create a RESTORE initiator that will retrieve all chunks for a given
    * file id. It will create all necessary Getchunkers and wait for all of them.
    */
-  private Restorer initRestore(@NotNull String pathname) throws Exception {
-    File file = new File(pathname);
-    String fileId = Utils.hash(file, Peer.getInstance().getId());
-    int chunksNo = Utils.numberOfChunks(file.length());
-    return restorers.computeIfAbsent(fileId,
-        id -> new Restorer(pathname, id, chunksNo));
+  public Restorer initRestore(@NotNull String pathname) {
+    try {
+      File file = new File(pathname);
+      String fileId = Utils.hash(file, Peer.getInstance().getId());
+      int chunksNo = Utils.numberOfChunks(file.length());
+      return restorers.computeIfAbsent(fileId, id -> new Restorer(pathname, id,
+          chunksNo));
+    } catch (Exception e) {
+      return null;
+    }
   }
 }

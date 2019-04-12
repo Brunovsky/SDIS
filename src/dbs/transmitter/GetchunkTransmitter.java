@@ -9,14 +9,14 @@ import dbs.message.Message;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Handles one instance of the GETCHUNK protocol initiated by this peer. The
  * GetchunkTransmitter starts by sending a GETCHUNK message to the multicast network, and
  * awaits its response in the form of an alert (assign) from the chunk receiver. If no
  * alert comes, it tries again, up to a maximum number of times before aborting.
- * TODO: A GetchunkTransmitter instance is public only for testing purposes.
+ * TODO: A Getchunker instance is public only for testing purposes.
  */
 public class GetchunkTransmitter implements Runnable {
 
@@ -25,11 +25,11 @@ public class GetchunkTransmitter implements Runnable {
   private final Message message;
   private volatile byte[] chunk;
   private int attempts = 0;
-  private Future scheduled;
-  private volatile boolean done;
+  private Future task;
+  private AtomicBoolean done = new AtomicBoolean(false);
 
   /**
-   * Construct a GetchunkTransmitter for this chunk key.
+   * Construct a Getchunker for this chunk key.
    *
    * @param key The request chunk's key (and also the key in the getchunkers map)
    */
@@ -45,72 +45,66 @@ public class GetchunkTransmitter implements Runnable {
   /**
    * Schedule the GETCHUNK message to be resent in the near future.
    */
-  private synchronized void schedule() {
-    if (done) return;
-    int time = Protocol.delayGetchunker * (1 << attempts);
-    scheduled = Peer.getInstance().getPool().schedule(this, time, TimeUnit.MILLISECONDS);
+  private void sleep() throws InterruptedException {
+    if (done.get() || task == null) return;
+    Thread.sleep(Protocol.delayGetchunker * (1 << attempts++));
   }
 
   /**
-   * Submit the GetchunkTransmitter to the thread pool.
+   * Submit the Getchunker to the thread pool.
    */
-  synchronized void submit() {
-    if (done || scheduled != null) return;
-    scheduled = Peer.getInstance().getPool().submit(this);
+  void submit() {
+    if (done.get() || task != null) return;
+    task = RestoreHandler.getInstance().getchunkPool.submit(this);
   }
 
   /**
-   * Terminate this GetchunkTransmitter unsuccessfully because the number of retries ran
-   * out.
-   * Alert the parent Restorer to this fact, so it can cancel the other Getchunkers
+   * Terminate this Getchunker unsuccessfully because the number of retries ran
+   * out. Alert the parent Restorer to this fact, so it can cancel the other Getchunkers
    * of this file.
+   * Called by the owner thread.
    */
-  private synchronized void end() {
-    if (done) return;
-    done = true;
+  private void fail() {
+    if (done.getAndSet(true)) return;
     RestoreHandler.getInstance().getchunkers.remove(key);
     restorer.failed(key);
   }
 
   /**
-   * Terminate this GetchunkTransmitter unsuccessfully because another
-   * GetchunkTransmitter
-   * for
-   * the
-   * same
-   * file ran out of retries. This is called by the parent Restorer.
+   * Terminate this Getchunker unsuccessfully because another Getchunker
+   * for the same file ran out of retries.
+   * Called by another Getchunk thread, from Restorer.failed().
    */
-  synchronized void cancel() {
-    if (done) return;
-    done = true;
+  void cancel() {
+    if (done.getAndSet(true)) return;
     RestoreHandler.getInstance().getchunkers.remove(key);
-    if (scheduled != null) scheduled.cancel(false);
+    if (task != null) task.cancel(true);
   }
 
   /**
-   * Terminate this GetchunkTransmitter successfully, assigning the received chunk to the
+   * Terminate this Getchunker successfully, assigning the received chunk to the
    * promise, and alert the parent Restorer to the conclusion.
+   * Called by the chunk receiver.
    *
    * @param received The chunk detected by the chunk receiver
    */
-  synchronized void assign(byte @NotNull [] received) {
-    if (done) return;
-    done = true;
+  void assign(byte @NotNull [] received) {
+    if (done.getAndSet(true)) return;
     RestoreHandler.getInstance().getchunkers.remove(key);
-    if (scheduled != null) scheduled.cancel(false);
+    if (task != null) task.cancel(true);
     chunk = received;
     restorer.assigned(key);
   }
 
   /**
-   * @return This GetchunkTransmitter's key
+   * @return This Getchunker's key
    */
   public ChunkKey getKey() {
     return key;
   }
 
   /**
-   * @return This GetchunkTransmitter's retrieved chunk
+   * @return This Getchunker's retrieved chunk
    */
   public byte[] getChunk() {
     return chunk;
@@ -120,26 +114,25 @@ public class GetchunkTransmitter implements Runnable {
    * @return true if this Chunker has ended (whichever way), and false otherwise
    */
   public boolean isDone() {
-    return done;
+    return done.get();
   }
 
   /**
-   * Scheduled function, run when the GetchunkTransmitter is not aborted by the chunk
+   * Scheduled function, run when the Getchunker is not aborted by the chunk
    * receiver
    * and it decides to resend the GETCHUNK message. It may run out of retries.
    */
   @Override
-  public synchronized void run() {
-    if (done) return;
-
-    // Ran out of attempts. Quit (done status) without having received the chunk.
-    if (attempts++ > Configuration.maxGetchunkAttempts) {
-      end();
-      return;
+  public void run() {
+    while (!done.get() && attempts <= Configuration.maxGetchunkAttempts) {
+      Peer.getInstance().send(message);
+      try {
+        sleep();
+      } catch (InterruptedException e) {
+        fail();
+        return;
+      }
     }
-
-    // Try again
-    Peer.getInstance().send(message);
-    schedule();
+    fail();
   }
 }

@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Handles the response to a GETCHUNK message, as it must consider the possibility of
@@ -20,8 +21,8 @@ import java.util.concurrent.TimeUnit;
 public class ChunkTransmitter implements Runnable {
 
   private final ChunkKey key;
-  private Future scheduled;
-  private boolean done;
+  private Future task;
+  private AtomicBoolean done = new AtomicBoolean(false);
 
   /**
    * Construct a Chunker for a GETCHUNK message with this key.
@@ -30,15 +31,8 @@ public class ChunkTransmitter implements Runnable {
    */
   ChunkTransmitter(@NotNull ChunkKey key) {
     this.key = key;
-    randomSchedule();
-  }
-
-  /**
-   * Randomly schedule the CHUNK message to be sent in the near future.
-   */
-  private void randomSchedule() {
     int wait = Utils.getRandom(Protocol.minDelay, Protocol.maxDelay);
-    this.scheduled = Peer.getInstance().getPool().schedule(this, wait,
+    task = RestoreHandler.getInstance().chunkPool.schedule(this, wait,
         TimeUnit.MILLISECONDS);
   }
 
@@ -46,22 +40,22 @@ public class ChunkTransmitter implements Runnable {
    * Finish the Chunker, removing it from the map to release memory.
    * Called if the Chunker decided to respond with the requested chunk, regardless of
    * whether or not it succeeded.
+   * Called by the owner thread.
    */
-  private synchronized void end() {
-    if (done) return;
-    done = true;
+  private void end() {
+    if (done.getAndSet(true)) return;
     RestoreHandler.getInstance().chunkers.remove(key);
   }
 
   /**
    * Finish the Chunker, removing it from the map to release memory.
    * Called by the chunk receiver if it receives a chunk with this Chunker's key.
+   * Called by the chunk receiver.
    */
-  synchronized void detect() {
-    if (done) return;
-    done = true;
+  void detect() {
+    if (done.getAndSet(true)) return;
     RestoreHandler.getInstance().chunkers.remove(key);
-    scheduled.cancel(false);
+    task.cancel(true);
   }
 
   /**
@@ -74,8 +68,8 @@ public class ChunkTransmitter implements Runnable {
   /**
    * @return true if this Chunker has ended (either way), and false otherwise
    */
-  public synchronized boolean isDone() {
-    return done;
+  public boolean isDone() {
+    return done.get();
   }
 
   /**
@@ -83,20 +77,17 @@ public class ChunkTransmitter implements Runnable {
    * and it decides to send the message.
    */
   @Override
-  public synchronized void run() {
-    if (done) return;
+  public void run() {
+    if (done.get()) return;
+    end();
 
     String fileId = key.getFileId();
     int chunkNo = key.getChunkNo();
 
     // Get the chunk. Ensure we still have it and no unexpected IO error occurred.
     byte[] chunk = FileInfoManager.getInstance().getChunk(fileId, chunkNo);
-    if (chunk == null) {
-      end();
-      return;
-    }
+    if (chunk == null) return;
 
-    end();
     Message message = Message.CHUNK(fileId, Configuration.version, chunkNo, chunk);
     Peer.getInstance().send(message);
   }

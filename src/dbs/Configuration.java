@@ -52,12 +52,10 @@ public class Configuration {
     public static int peerThreadPoolSize = 8;
     public static int putchunkPoolSize = 10;
     public static int storedPoolSize = 25;
-    public static int removedPoolSize = 25;
     public static int chunkPoolSize = 35;
     public static int getChunkPoolSize = 15;
-
-    // Wait times for Getchunk and Putchunk
-    public static int waitPutchunk = 500;
+    public static int restorerPoolSize = 5;
+    public static int removedPoolSize = 25;
 
     // Maximum number of allowed GETCHUNK for each chunk before the restore gives up
     public static int maxGetchunkAttempts = 5;

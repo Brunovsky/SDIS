@@ -1,6 +1,5 @@
 package dbs;
 
-import dbs.fileInfoManager.FileInfo;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.files.FilesManager;
 import dbs.message.Message;
@@ -51,7 +50,7 @@ class TestRestore {
     init();
 
     Peer peer = Peer.createInstance(1000, "peer-1000");
-    FilesManager.createInstance();
+    FileInfoManager.createInstance();
     RestoreHandler restorer = RestoreHandler.getInstance();
 
     Message g10 = Message.GETCHUNK(hash1, "1.0", 0);
@@ -81,14 +80,13 @@ class TestRestore {
     assertNull(chunker1);
 
     // Now the peer has c10.
-    FileInfoManager.getInstance().putChunk(hash1, 0, body10);
+    FileInfoManager.getInstance().storeChunk(hash1, 0, body10);
 
     // Now the restorer creates the chunker.
     ChunkTransmitter chunker2 = restorer.receiveGETCHUNK(g10);
 
     assertNotNull(chunker2);
     assertFalse(chunker2.isDone());
-    assertEquals(1, peer.getPool().getQueue().size());
 
     // The chunk receiver alerts chunker2 that the chunk c10 was detected.
     restorer.receiveCHUNK(c10);
@@ -96,11 +94,11 @@ class TestRestore {
     assertTrue(chunker2.isDone());
 
     ChunkTransmitter chunker3 = restorer.receiveGETCHUNK(g11);
-    FileInfoManager.getInstance().putChunk(hash1, 1, body11);
-    FileInfoManager.getInstance().putChunk(hash2, 0, body20);
-    FileInfoManager.getInstance().putChunk(hash2, 1, body21);
-    FileInfoManager.getInstance().putChunk(hash2, 2, body22);
-    FileInfoManager.getInstance().putChunk(hash3, 0, body30);
+    FileInfoManager.getInstance().storeChunk(hash1, 1, body11);
+    FileInfoManager.getInstance().storeChunk(hash2, 0, body20);
+    FileInfoManager.getInstance().storeChunk(hash2, 1, body21);
+    FileInfoManager.getInstance().storeChunk(hash2, 2, body22);
+    FileInfoManager.getInstance().storeChunk(hash3, 0, body30);
     ChunkTransmitter chunker4 = restorer.receiveGETCHUNK(g20); // exists
     ChunkTransmitter chunker5 = restorer.receiveGETCHUNK(g21); // does not exist
     ChunkTransmitter chunker6 = restorer.receiveGETCHUNK(g22); // exists

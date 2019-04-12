@@ -31,7 +31,7 @@ public class Utils {
   }
 
   public static int numberOfChunks(long filesize) {
-    return (int) ((filesize + Protocol.chunkSize - 1) / Protocol.chunkSize);
+    return (int) ((filesize + Protocol.chunkSize) / Protocol.chunkSize);
   }
 
   public static Registry registry() {

@@ -3,11 +3,11 @@ package dbs.processor;
 import dbs.Configuration;
 import dbs.Peer;
 import dbs.fileInfoManager.FileInfoManager;
-import dbs.Protocol;
 import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.Multicaster;
 import dbs.message.MessageType;
+import dbs.transmitter.ReclaimHandler;
 import dbs.transmitter.RestoreHandler;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,7 +57,7 @@ public class ControlProcessor implements Multicaster.Processor {
 
     private void processRemovedMessage(Message m) {
       Peer.log("Received REMOVED from " + m.getSenderId(), Level.FINE);
-      // TODO...
+      ReclaimHandler.getInstance().receiveREMOVED(m);
     }
 
     private void processDeleteMessage(Message m) {

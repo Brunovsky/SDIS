@@ -13,7 +13,7 @@ public interface ClientInterface extends Remote {
 
   void delete(@NotNull String pathname, boolean runEnhancedVersion) throws RemoteException;
 
-  void reclaim(int maxDiskSpaceChunks) throws RemoteException;
+  void reclaim(long maxDiskSpace) throws RemoteException;
 
   String state() throws RemoteException;
 }

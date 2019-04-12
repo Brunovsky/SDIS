@@ -1,5 +1,6 @@
 package dbs;
 
+import dbs.fileInfoManager.FileInfo;
 import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
@@ -8,6 +9,7 @@ import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
 import dbs.transmitter.DeleteTransmitter;
 import dbs.transmitter.PutchunkTransmitter;
+import dbs.transmitter.ReclaimHandler;
 import dbs.transmitter.RestoreHandler;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,7 +20,6 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -269,19 +270,22 @@ public class Peer implements ClientInterface {
   }
 
   public void restore(@NotNull String pathname) throws RemoteException {
-    Peer.log("Received RESTORE request", Level.FINE);
+    Peer.log("Received RESTORE request for " + pathname, Level.FINE);
+    RestoreHandler.getInstance().initRestore(pathname);
   }
 
   public void delete(@NotNull String pathname, boolean runEnhancedVersion) throws RemoteException {
-    Peer.log("Received DELETE request", Level.FINE);
+    Peer.log("Received DELETE request for " + pathname, Level.FINE);
     this.pool.submit(new DeleteTransmitter(pathname, 1, runEnhancedVersion));
   }
 
-  public void reclaim(int maxDiskSpaceChunks) throws RemoteException {
-    return;
+  public void reclaim(long maxDiskSpace) throws RemoteException {
+    Peer.log("Received RECLAIM request with maximum " + maxDiskSpace, Level.FINE);
+    ReclaimHandler.getInstance().initReclaim(maxDiskSpace);
   }
 
   public String state() throws RemoteException {
-    return "Hi there! Hey there!";
+    Peer.log("Received STATE request", Level.FINE);
+    return FileInfoManager.getInstance().dumpState();
   }
 }

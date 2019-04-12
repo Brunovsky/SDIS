@@ -13,12 +13,9 @@ public class FileInfoManager {
 
   /**
    * Maps the id of a file to the information of that file.
-   * This is useful in order to keep track of the actual number of peer's which back up
-   * the same files has the owner of the FileInfoManager object (a peer), and to
-   * compare it
-   * against the desired replication degree of those chunks. The information regarding
-   * the files
-   * owned by that same peer may also be tracked.
+   * This is useful in order to keep track of the actual number of peers which back up
+   * the same files we do, and to compare it against the desired replication degree of
+   * those chunks. The information regarding the files owned by us is also tracked.
    */
   private final ConcurrentHashMap<String,FileInfo> filesInfo;
 
@@ -59,11 +56,11 @@ public class FileInfoManager {
   }
 
   /**
-   * Returns true if the given chunk is backed up by that peer and false otherwise.
+   * Returns true if the given chunk is backed up by this peer and false otherwise.
    *
    * @param fileId      The file's id.
    * @param chunkNumber The chunk's number.
-   * @return True if the given chunk is backed up by that peer and false otherwise.
+   * @return True if the given chunk is backed up by this peer and false otherwise.
    */
   public boolean hasChunk(String fileId, Integer chunkNumber) {
     return FilesManager.getInstance().hasChunk(fileId, chunkNumber);
@@ -103,6 +100,17 @@ public class FileInfoManager {
   public void addFileInfo(String fileId) {
     if (!this.hasFileInfo(fileId))
       this.filesInfo.put(fileId, new FileInfo());
+  }
+
+  /**
+   * Deletes a stored chunk.
+   *
+   * @param fileId      The file's id
+   * @param chunkNumber The chunk's number
+   * @return true if successful, and false otherwise
+   */
+  public boolean deleteChunk(String fileId, Integer chunkNumber) {
+    return FilesManager.getInstance().deleteChunk(fileId, chunkNumber);
   }
 
   /**
@@ -224,8 +232,9 @@ public class FileInfoManager {
    * @return True if the given peer has a backup of the given chunk.
    */
   public boolean hasBackupPeer(String fileId, Integer chunkNumber, Long peerId) {
-    if (!this.hasFileInfo(fileId)) return false;
-    return this.getFileInfo(fileId).hasBackupPeer(chunkNumber, peerId);
+    FileInfo info = this.getFileInfo(fileId);
+    if (info == null) return false;
+    return info.hasBackupPeer(chunkNumber, peerId);
   }
 
   /**
@@ -238,8 +247,9 @@ public class FileInfoManager {
    * replication degree of the chunk).
    */
   public int getChunkReplicationDegree(String fileId, Integer chunkNumber) {
-    if (!this.hasFileInfo(fileId)) return 0;
-    return this.getFileInfo(fileId).getChunkReplicationDegree(chunkNumber);
+    FileInfo info = this.getFileInfo(fileId);
+    if (info == null) return 0;
+    return info.getChunkReplicationDegree(chunkNumber);
   }
 
   /**
@@ -251,8 +261,9 @@ public class FileInfoManager {
    * unknown to the peer.
    */
   public Integer getDesiredReplicationDegree(String fileId) {
-    if (!this.hasFileInfo(fileId)) return null;
-    return this.getFileInfo(fileId).getDesiredReplicationDegree();
+    FileInfo info = this.getFileInfo(fileId);
+    if (info == null) return null;
+    return info.getDesiredReplicationDegree();
   }
 
   /**
@@ -288,15 +299,10 @@ public class FileInfoManager {
     }
   }
 
-  public boolean putRestore(String filename, byte[][] chunks) {
-    return FilesManager.getInstance().putRestore(filename, chunks);
-  }
-
-  public boolean putChunk(String fileId, Integer chunkNumber, byte[] chunk) {
-    return FilesManager.getInstance().putChunk(fileId, chunkNumber, chunk);
-  }
-
-  public boolean deleteChunk(String fileId, Integer chunkNumber) {
-    return FilesManager.getInstance().deleteChunk(fileId, chunkNumber);
+  /**
+   * Constructs a string that contains the state of this peer's filesystem.
+   */
+  public String dumpState() {
+    return null;
   }
 }
