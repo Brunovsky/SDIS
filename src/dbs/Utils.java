@@ -63,4 +63,32 @@ public class Utils {
     Random rand = new Random(); // TODO: make static
     return rand.nextInt(max - min + 1) + min;
   }
+
+  public static boolean validVersion(@NotNull String version) {
+    return version.matches("[0-9]\\.[0-9]");
+  }
+
+  public static boolean validSenderId(@NotNull String senderId) {
+    return senderId.matches("[0-9]+");
+  }
+
+  public static boolean validFileId(@NotNull String fileId) {
+    return fileId.length() == 64 && fileId.matches("[a-fA-F0-9]+");
+  }
+
+  public static boolean validChunkNo(@NotNull String chunkNo) {
+    return chunkNo.matches("[0-9]+");
+  }
+
+  public static boolean validChunkNo(int chunkNo) {
+    return chunkNo >= 0;
+  }
+
+  public static boolean validReplicationDegree(@NotNull String replication) {
+    return replication.matches("[0-9]");
+  }
+
+  public static boolean validReplicationDegree(int replication) {
+    return replication >= 0 && replication <= 9;
+  }
 }

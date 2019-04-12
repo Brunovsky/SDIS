@@ -1,5 +1,6 @@
 package dbs.message;
 
+import dbs.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.DatagramPacket;
@@ -84,50 +85,49 @@ public class Message {
 
     if (parts.length != type.fields()) {
       throw new MessageException("Incomplete message header for " + parts[0]
-          + " message: expected " + type.fields() + " fields, got "
-          + parts.length + ".");
+          + " message: expected " + type.fields() + " fields, got " + parts.length + ".");
     }
   }
 
   public static void validateVersion(@NotNull String version) throws MessageException {
-    if (!version.matches("[0-9]\\.[0-9]")) {
+    if (!Utils.validVersion(version)) {
       throw new MessageException("Invalid protocol version: " + version);
     }
   }
 
   private static void validateSenderId(@NotNull String senderId) throws MessageException {
-    if (!senderId.matches("[0-9]+")) {
+    if (!Utils.validSenderId(senderId)) {
       throw new MessageException("Invalid sender id: " + senderId);
     }
   }
 
   private static void validateFileId(@NotNull String fileId) throws MessageException {
-    if (fileId.length() != 64 || !fileId.matches("[a-fA-F0-9]+")) {
+    if (!Utils.validFileId(fileId)) {
       throw new MessageException("Invalid file hash: " + fileId);
     }
   }
 
   private static void validateChunkNo(@NotNull String chunkNo) throws MessageException {
-    if (!chunkNo.matches("[0-9]+")) {
+    if (!Utils.validChunkNo(chunkNo)) {
       throw new MessageException("Invalid chunkNo: " + chunkNo);
     }
   }
 
   private static void validateChunkNo(int chunkNo) throws MessageException {
-    if (chunkNo < 0) {
+    if (!Utils.validChunkNo(chunkNo)) {
       throw new MessageException("Invalid chunkNo: " + chunkNo);
     }
   }
 
   private static void validateReplicationDegree(@NotNull String replication)
       throws MessageException {
-    if (!replication.matches("[0-9]")) {
+    if (!Utils.validReplicationDegree(replication)) {
       throw new MessageException("Invalid replication degree: " + replication);
     }
   }
 
   private static void validateReplicationDegree(int replication) throws MessageException {
-    if (replication < 0 || replication >= 10) {
+    if (!Utils.validReplicationDegree(replication)) {
       throw new MessageException("Replication degree should be 1..9: " + replication);
     }
   }
