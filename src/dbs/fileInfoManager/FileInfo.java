@@ -1,5 +1,9 @@
 package dbs.fileInfoManager;
 
+import dbs.ChunkKey;
+
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FileInfo {
@@ -113,6 +117,18 @@ public class FileInfo {
   }
 
   /**
+   * Removes the id of the peer which could have had a backup of a chunk of the given file
+   * @param peerId The id of the peer which could have had a backup of a chunk of the given file
+   */
+  public void removeBackupPeer(Long peerId) {
+    Iterator it = this.fileChunks.entrySet().iterator();
+    while(it.hasNext()) {
+      Map.Entry pair = (Map.Entry)it.next();
+      this.removeBackupPeer((Integer)pair.getKey(), peerId);
+    }
+  }
+
+  /**
    * Returns true if the given peer has a backup of that chunk and false otherwise.
    *
    * @param chunkNumber The chunk's number.
@@ -122,6 +138,20 @@ public class FileInfo {
   public boolean hasBackupPeer(Integer chunkNumber, Long peerId) {
     if (!this.hasChunk(chunkNumber)) return false;
     return this.getChunkInfo(chunkNumber).hasBackupPeer(peerId);
+  }
+
+  /**
+   * Checks if any of the file's chunks has a backup on other peers
+   * @return True if any of the file's chunks has a backup on other peers and false otherwise.
+   */
+  public boolean hasBackupPeers() {
+    Iterator it = this.fileChunks.entrySet().iterator();
+    while(it.hasNext()) {
+      Map.Entry pair = (Map.Entry)it.next();
+      if(((ChunkInfo)pair.getValue()).hasBackupPeers())
+        return true;
+    }
+    return false;
   }
 
   /**

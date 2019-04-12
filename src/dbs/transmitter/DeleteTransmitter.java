@@ -38,31 +38,34 @@ public class DeleteTransmitter implements Runnable {
       this.runNotEnhanced();
   }
 
-  public void runNotEnhanced() {
-
-    if(this.transmissionNumber == 1) {
-
-      // check if the given pathname is valid
-      File fileToDelete;
-      FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, Peer.getInstance().getId());
-      if (fileRequest == null) {
-        Peer.log("Could not access the provided file (" + this.pathname + ") for deletion.", Level.SEVERE);
-        return;
-      } else {
-        fileToDelete = fileRequest.getFile();
-        this.fileId = fileRequest.getFileId();
-      }
-
-      // delete file
-      if (!FileInfoManager.getInstance().deleteFile(fileToDelete, this.fileId)) {
-        Peer.log("Could not perform the deletion of the file " + this.pathname, Level.SEVERE);
-        return;
-      }
+  private void deleteFile() {
+    if(this.transmissionNumber != 1) return;
+    // check if the given pathname is valid
+    File fileToDelete;
+    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, Peer.getInstance().getId());
+    if (fileRequest == null) {
+      Peer.log("Could not access the provided file (" + this.pathname + ") for deletion.", Level.SEVERE);
+      return;
+    } else {
+      fileToDelete = fileRequest.getFile();
+      this.fileId = fileRequest.getFileId();
+    }
+    // delete file
+    if(!FileInfoManager.getInstance().deleteFile(fileToDelete)) {
+      Peer.log("Could not perform the deletion of the file " + this.pathname, Level.SEVERE);
+      return;
     }
 
+    if(!this.runEnhancedVersion)
+      FileInfoManager.getInstance().deleteFileInfo(this.fileId);
+  }
+
+  public void runNotEnhanced() {
+
+    this.deleteFile();
+
     // send DELETE message
-    Peer.log("Going to send the delete message for the file with id " + this.fileId + " (transmission number " + this.transmissionNumber + ")", Level.INFO);
-    Peer.getInstance().send(Message.DELETE(this.fileId, Configuration.version));
+    this.sendDeleteMessage();
 
     if(this.transmissionNumber != Protocol.numberDeleteMessages) {
       // schedule next transmission of the delete message
@@ -74,7 +77,30 @@ public class DeleteTransmitter implements Runnable {
       Peer.log("Sent all DELETE messages (" + Protocol.numberDeleteMessages + " messages) for the file with id " + fileId, Level.INFO);
   }
 
-  public void runEnhanced() {
+  private void sendDeleteMessage() {
+    Peer.log("Going to send the delete message for the file with id " + this.fileId + " (transmission number " + this.transmissionNumber + ")", Level.INFO);
+    Peer.getInstance().send(Message.DELETE(this.fileId, Configuration.version));
+  }
 
+  private void scheduleNextDeleteMessage() {
+    Peer.getInstance().getPool().schedule(new DeleteTransmitter(this.pathname, ++transmissionNumber, this.fileId, this.runEnhancedVersion),
+            (int)Math.pow(2, this.transmissionNumber - 1),
+            TimeUnit.SECONDS);
+  }
+
+
+  public void runEnhanced() {
+    this.deleteFile();
+    if(FileInfoManager.getInstance().hasBackupPeers(this.fileId))
+    {
+      Peer.getInstance().log("Not all peers have deleted the file with id " + fileId + ". Sending delete message (attempt " + this.transmissionNumber + ")", Level.INFO);
+      this.sendDeleteMessage();
+      this.scheduleNextDeleteMessage();
+    }
+    else {
+      Peer.getInstance().log("All peers have deleted the file with id " + fileId, Level.INFO);
+      FileInfoManager.getInstance().deleteFileInfo(this.fileId);
+      return;
+    }
   }
 }

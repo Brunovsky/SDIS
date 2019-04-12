@@ -116,10 +116,28 @@ public class FileInfoManager {
   /**
    * Removes the entry from the filesInfo map that corresponds to given file's id.
    *
-   * @param fileId The id of the file to be deletes from the records.
+   * @param fileId The id of the file to be deleted from the records.
    */
   public void deleteFileInfo(String fileId) {
     this.filesInfo.remove(fileId);
+    FilesManager.getInstance().deleteFileInfo(fileId);
+  }
+
+  /**
+   * Deletes the provided file.
+   * @param file The file to delete.
+   * @return
+   */
+  public boolean deleteFile(File file) {
+    if (FilesManager.deleteRecursive(file))
+      Peer.log("Successfully deleted file " + file.getPath() + " and its records",
+              Level.INFO);
+    else {
+      Peer.log("Could not delete file " + file.getPath() + " and its records",
+              Level.SEVERE);
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -130,15 +148,8 @@ public class FileInfoManager {
    * @return True if the provided file and its records were successfully deleted and
    * false otherwise.
    */
-  public boolean deleteFile(File file, String fileId) {
-    if (FilesManager.deleteRecursive(file))
-      Peer.log("Successfully deleted file " + file.getPath() + " and its records",
-          Level.INFO);
-    else {
-      Peer.log("Could not delete file " + file.getPath() + " and its records",
-          Level.SEVERE);
-      return false;
-    }
+  public boolean deleteFileAndRecords(File file, String fileId) {
+    if(!this.deleteFile(file)) return false;
     FilesManager.getInstance().deleteFileInfo(fileId);
     return true;
   }
@@ -158,11 +169,6 @@ public class FileInfoManager {
       return false;
     }
     this.deleteFileInfo(fileId);
-    if (!FilesManager.getInstance().deleteFileInfo(fileId)) {
-      Peer.log("Could not delete the records for the file with id " + fileId,
-          Level.SEVERE);
-      return false;
-    }
     return true;
   }
 
@@ -220,6 +226,26 @@ public class FileInfoManager {
     if (!this.hasFileInfo(fileId)) return;
     this.getFileInfo(fileId).removeBackupPeer(chunkNumber, peerId);
     this.writeChunkInfoFile(fileId, chunkNumber);
+  }
+
+  /**
+   * Checks if any of the file's chunks has a backup on other peers
+   * @param fileId The file's id.
+   * @return True if any of the file's chunks has a backup on other peers and false otherwise.
+   */
+  public boolean hasBackupPeers(String fileId) {
+    if(!this.hasFileInfo(fileId)) return false;
+    return this.getFileInfo(fileId).hasBackupPeers();
+  }
+
+  /**
+   * Removes a backup peer from the chunk of the given file
+   * @param fileId The file's id.
+   * @param peerId The id of the peer which could have had a backup of a chunk of the given file.
+   */
+  public void removeBackupPeer(String fileId, Long peerId) {
+    if(!this.hasFileInfo(fileId)) return;
+    this.getFileInfo(fileId).removeBackupPeer(peerId);
   }
 
   /**

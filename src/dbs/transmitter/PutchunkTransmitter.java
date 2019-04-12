@@ -62,7 +62,6 @@ public class PutchunkTransmitter implements Runnable {
     this.transmitFile(fileToBackup);
 
     // schedule next data backup transmitter thread
-    Peer.log("waiting: " + (int)Math.pow(2, this.transmissionNumber - 1), Level.INFO);
     Peer.getInstance().getPool().schedule(new PutchunkTransmitter(pathname,
             replicationDegree, ++transmissionNumber), (int)Math.pow(2, this.transmissionNumber - 1),
         TimeUnit.SECONDS);
