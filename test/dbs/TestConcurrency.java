@@ -1,12 +1,18 @@
 package dbs;
 
+import dbs.message.Message;
+import dbs.message.MessageException;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestConcurrency {
   private final class Printer implements Runnable {
@@ -70,5 +76,35 @@ public class TestConcurrency {
     assertTrue(f6.isCancelled());
 
     Thread.sleep(6000);
+  }
+
+  String hash1 = "1000000000000000000000000000000000000000000000000000000000000000";
+
+  @Test
+  void testComms() throws IOException, MessageException {
+    DatagramSocket d1 = new DatagramSocket(30001);
+    MulticastSocket s2 = new MulticastSocket(29501);
+    assertNotNull(d1);
+    assertNotNull(s2);
+    InetAddress address = InetAddress.getByName("230.0.0.1");
+    s2.joinGroup(address);
+    s2.setSoTimeout(Configuration.multicastTimeout);
+    s2.setTimeToLive(1);
+
+    Message sent = Message.STORED(hash1, "1.0", 7);
+    DatagramPacket packet = sent.getPacket("1000",29501, address);
+    d1.send(packet);
+
+    byte[] buffer = new byte[65000];
+    DatagramPacket rec = new DatagramPacket(buffer, buffer.length);
+    s2.receive(rec);
+
+    Message received = new Message(packet);
+    System.out.println(sent);
+    System.out.println(received);
+  }
+
+  public static void main(String[] args) throws InterruptedException {
+    new TestConcurrency().testCancel();
   }
 }
