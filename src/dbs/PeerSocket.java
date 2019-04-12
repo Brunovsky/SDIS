@@ -23,12 +23,12 @@ public final class PeerSocket implements Runnable {
   }
 
   PeerSocket(int port) throws IOException {
-    this.socket = new DatagramSocket(port, InetAddress.getByName("localhost"));
+    this.socket = new DatagramSocket();
     this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
   PeerSocket() throws IOException {
-    this.socket = new DatagramSocket(0, InetAddress.getByName("localhost"));
+    this.socket = new DatagramSocket();
     this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 
@@ -70,9 +70,9 @@ public final class PeerSocket implements Runnable {
    */
   public void sendTo(Message message, MulticastChannel channel) {
     if (finished) return;
-    Peer.log("Added " + message.getType() + " to out queue", Level.INFO);
     String id = Long.toString(Peer.getInstance().getId());
     queue.add(message.getPacket(id, channel.getPort(), channel.getAddress()));
+    Peer.log("Added " + message.getType() + " to out queue", Level.INFO);
   }
 
   /**

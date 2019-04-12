@@ -116,7 +116,7 @@ public class PutchunkTransmitter implements Runnable {
   }
 
   private boolean backedUpFile() {
-    for (int chunkNumber = 0; chunkNumber < this.numberChunks; chunkNumber++) {
+    for (int chunkNumber = 1; chunkNumber <= this.numberChunks; chunkNumber++) {
       Integer actualReplicationDegree =
           FileInfoManager.getInstance().getChunkReplicationDegree(fileId,
               chunkNumber);

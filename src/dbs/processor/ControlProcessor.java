@@ -86,6 +86,7 @@ public class ControlProcessor implements Multicaster.Processor {
     private void processStoredMessage(Message m) {
       Peer.log("Received STORED from " + m.getSenderId(), Level.INFO);
       Long senderId = Long.parseLong(m.getSenderId());
+      if(senderId == Peer.getInstance().getId()) return;
       String fileId = m.getFileId();
       Integer chunkNumber = m.getChunkNo();
       FileInfoManager.getInstance().addBackupPeer(fileId, chunkNumber, senderId);
