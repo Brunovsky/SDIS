@@ -21,7 +21,7 @@ public class Utils {
   public static String hash(File file, long peerId) throws Exception {
     String filePath = file.getPath();
     long lastModified = file.lastModified();
-    String bitString = filePath + lastModified;
+    String bitString = filePath + lastModified + peerId;
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
     byte[] encodedHash = digest.digest(bitString.getBytes());
     return bytesToHex(encodedHash);

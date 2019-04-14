@@ -14,6 +14,8 @@ import java.util.logging.Level;
 public class Putchunker implements Runnable {
 
   private final ChunkKey key;
+  private final String fileId;
+  private final int chunkNo;
   private final Message message;
   private final int desiredReplicationDegree;
   private final byte[] chunk;
@@ -22,8 +24,8 @@ public class Putchunker implements Runnable {
   private final AtomicBoolean done = new AtomicBoolean(false);
 
   Putchunker(ChunkKey key, int replication, byte[] chunk) {
-    String fileId = key.getFileId();
-    int chunkNo = key.getChunkNo();
+    fileId = key.getFileId();
+    chunkNo = key.getChunkNo();
 
     this.key = key;
     this.desiredReplicationDegree = replication;
@@ -33,6 +35,10 @@ public class Putchunker implements Runnable {
     task = BackupHandler.getInstance().putchunkPool.submit(this);
   }
 
+  private int getPerceived() {
+    return FileInfoManager.getInstance().getChunkReplicationDegree(fileId, chunkNo);
+  }
+
   private void sleep() throws InterruptedException {
     if (done.get() || task == null) return;
     Thread.sleep(Protocol.delayPutchunker * (1 << attempts++));
@@ -40,22 +46,20 @@ public class Putchunker implements Runnable {
 
   // Return true if the perceived replication degree is satisfactory.
   private boolean verify() {
-    String fileId = key.getFileId();
-    int no = key.getChunkNo();
-    int perceived = FileInfoManager.getInstance().getChunkReplicationDegree(fileId, no);
-    return perceived >= desiredReplicationDegree;
+    return getPerceived() >= desiredReplicationDegree;
   }
 
   private void fail() {
     if (done.getAndSet(true)) return;
     Peer.log("Failed to backup " + key + " with desired replication degree of "
-        + desiredReplicationDegree, Level.WARNING);
+        + desiredReplicationDegree + ", perceived replication degree is currently "
+        + getPerceived(), Level.WARNING);
     BackupHandler.getInstance().putchunkers.remove(key);
   }
 
   private void succeed() {
     if (done.getAndSet(true)) return;
-    Peer.log("Successfully backed up " + key + " with desired replication degree.",
+    Peer.log("Successfully backed up " + key + " with desired replication degree",
         Level.INFO);
     BackupHandler.getInstance().putchunkers.remove(key);
   }

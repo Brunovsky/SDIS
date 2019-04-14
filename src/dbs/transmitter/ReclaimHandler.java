@@ -2,11 +2,14 @@ package dbs.transmitter;
 
 import dbs.ChunkKey;
 import dbs.Configuration;
+import dbs.Peer;
 import dbs.files.FileInfoManager;
 import dbs.message.Message;
 
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.logging.Level;
 
 // TODO: THIS IS NOT FINISHED. lul
 public class ReclaimHandler {
@@ -33,11 +36,17 @@ public class ReclaimHandler {
    */
   final ConcurrentHashMap<ChunkKey,RemovedWaiter> waiters;
 
+  final ConcurrentHashMap<ChunkKey,RemovedTransmitter> removers;
+
   final ScheduledThreadPoolExecutor waiterPool;
+
+  final ScheduledThreadPoolExecutor removerPool;
 
   private ReclaimHandler() {
     this.waiters = new ConcurrentHashMap<>();
-    this.waiterPool = new ScheduledThreadPoolExecutor(Configuration.removedPoolSize);
+    this.waiterPool = new ScheduledThreadPoolExecutor(Configuration.waiterPoolSize);
+    this.removers = new ConcurrentHashMap<>();
+    this.removerPool = new ScheduledThreadPoolExecutor(Configuration.removerPoolSize);
   }
 
   /**
@@ -54,21 +63,44 @@ public class ReclaimHandler {
   public RemovedWaiter receiveREMOVED(Message message) {
     String fileId = message.getFileId();
     int chunkNo = message.getChunkNo();
+    Long senderId = Long.parseLong(message.getSenderId());
     ChunkKey key = new ChunkKey(fileId, chunkNo);
 
     // Exit immediately if we don't have the chunk.
     if (!FileInfoManager.getInstance().hasChunk(fileId, chunkNo)) return null;
 
+    FileInfoManager.getInstance().removeBackupPeer(fileId, chunkNo, senderId);
     int perce = FileInfoManager.getInstance().getChunkReplicationDegree(fileId, chunkNo);
     int expec = FileInfoManager.getInstance().getDesiredReplicationDegree(fileId);
 
     if (perce >= expec) return null;
+    Peer.log("Creating a RemovedWaiter for " + key, Level.INFO);
 
     return waiters.computeIfAbsent(key, RemovedWaiter::new);
   }
 
-  public void initReclaim(long maxDiskSpace) {
-    // TODO...
+  public synchronized void initReclaim(long maxDiskSpaceKB) {
+    long currentMaxKB = Configuration.storageCapacityKB;
+    Configuration.storageCapacityKB = maxDiskSpaceKB;
+
+    // The total capacity increased!
+    if (currentMaxKB <= maxDiskSpaceKB) {
+      if (currentMaxKB < maxDiskSpaceKB)
+        Peer.log("Peer's maximum storage capacity increased from " + currentMaxKB + " to "
+            + maxDiskSpaceKB, Level.INFO);
+      else
+        Peer.log("Peer's maximum storage capacity matches requested " + maxDiskSpaceKB,
+            Level.INFO);
+      return;
+    }
+
+    // Need to trim the backup system.
+    TreeSet<ChunkKey> removeTree = FileInfoManager.getInstance().trimBackup();
+
+    for (ChunkKey key : removeTree) {
+      FileInfoManager.getInstance().deleteChunk(key.getFileId(), key.getChunkNo());
+      removers.computeIfAbsent(key, RemovedTransmitter::new);
+    }
   }
 
   void alertPUTCHUNK(Message message) {

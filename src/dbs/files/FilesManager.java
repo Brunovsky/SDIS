@@ -384,6 +384,14 @@ public final class FilesManager {
     return total;
   }
 
+  public long backupChunkTotalSpace(String fileId, int chunkNo) {
+    Path filepath = backupDir.resolve(makeBackupEntry(fileId));
+    Path chunkpath = filepath.resolve(makeChunkEntry(chunkNo));
+    File file = chunkpath.toFile();
+    if (!file.exists() || !file.isFile()) return -1;
+    return file.length();
+  }
+
   /**
    * Total amount of space occupied by the backup file with this id.
    *

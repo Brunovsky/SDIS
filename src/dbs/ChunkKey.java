@@ -2,7 +2,7 @@ package dbs;
 
 import java.util.Objects;
 
-public class ChunkKey {
+public class ChunkKey implements Comparable<ChunkKey> {
 
   private final String fileId;
   private final int chunkNo;
@@ -36,6 +36,16 @@ public class ChunkKey {
 
   @Override
   public String toString() {
-    return "ChunkKey{" + "fileId='" + fileId + '\'' + ", chunkNo=" + chunkNo + '}';
+    return "chunk(" + fileId.substring(0, 10) + "," + chunkNo + ')';
+  }
+
+  @Override
+  public int compareTo(ChunkKey other) {
+    assert other != null;
+    if (this == other) return 0;
+    if (!fileId.equals(other.fileId)) {
+      return fileId.compareTo(other.fileId);
+    }
+    return chunkNo - other.chunkNo;
   }
 }

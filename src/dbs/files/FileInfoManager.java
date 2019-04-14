@@ -1,10 +1,12 @@
 package dbs.files;
 
+import dbs.ChunkKey;
+import dbs.Configuration;
 import dbs.Peer;
 
-import java.io.File;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 
 public class FileInfoManager {
@@ -30,6 +32,10 @@ public class FileInfoManager {
    */
   private final ConcurrentHashMap<String,OwnFileInfo> pathnameMap;
 
+  private final AtomicLong usedSpace = new AtomicLong(0);
+
+  private Set<ChunkKey> missingChunks;
+
   public static FileInfoManager getInstance() {
     return manager;
   }
@@ -48,6 +54,9 @@ public class FileInfoManager {
     if (this.ownFilesInfo == null) this.ownFilesInfo = new ConcurrentHashMap<>();
     if (this.otherFilesInfo == null) this.otherFilesInfo = new ConcurrentHashMap<>();
 
+    cleanup();
+    usedSpace.set(FilesManager.getInstance().backupTotalSpace());
+
     // Populate pathname Map.
     this.pathnameMap = new ConcurrentHashMap<>();
     for (Map.Entry<String,OwnFileInfo> entry : ownFilesInfo.entrySet()) {
@@ -56,6 +65,88 @@ public class FileInfoManager {
     }
 
     Runtime.getRuntime().addShutdownHook(new Thread(this::storeState));
+  }
+
+  /**
+   * There might be disagreement between the metadata files and the actual backed up
+   * chunks files we are keeping from other peers.
+   *
+   * We must consider: whether we have Chunk(K, N) in backup/K/N (we have the data) and
+   * whether we have Chunk(K, N) in otherFilesInfo (we have the metadata)
+   *
+   * Case 1.
+   *   We have the data and the metadata. Great, nothing to do here.
+   *
+   * Case 2.
+   *   We have the data but not the metadata. Delete the data and move on, reclaiming
+   *   unused disk space. This philosophy follows from the assumption that the metadata
+   *   in each peer is never lost.
+   *
+   * Case 3.
+   *   We have the metadata but not the data. Add this Chunk(K, N) to a passively
+   *   removed list, to be later handled by the Peer sending 'Removed' messages for
+   *   this chunks to the network. This might start a Putchunk that brings the chunks
+   *   back to this peer.
+   */
+  private void cleanup() {
+    missingChunks = new HashSet<>();
+
+    findMissingMetadata();
+
+    findMissingData();
+  }
+
+  private void findMissingMetadata() {
+    FilesManager manager = FilesManager.getInstance();
+    HashMap<String,TreeSet<Integer>> chunkData = manager.backupAllChunksMap();
+
+    // Handle case 2
+    for (Map.Entry<String,TreeSet<Integer>> entry : chunkData.entrySet()) {
+      String fileId = entry.getKey();
+      TreeSet<Integer> numbers = entry.getValue();
+
+      FileInfo info = otherFilesInfo.get(fileId);
+
+      if (info == null) {
+        // Add all chunks to the missingChunks set
+        for (Integer chunkNumber : numbers) {
+          missingChunks.add(new ChunkKey(fileId, chunkNumber));
+        }
+      } else {
+        // Check each chunk number
+        for (Integer chunkNumber : numbers) {
+          if (!info.hasChunk(chunkNumber)) {
+            missingChunks.add(new ChunkKey(fileId, chunkNumber));
+          }
+        }
+      }
+    }
+  }
+
+  private void findMissingData() {
+    FilesManager manager = FilesManager.getInstance();
+
+    Set<Map.Entry<String,FileInfo>> filesInfoSet = otherFilesInfo.entrySet();
+    Iterator<Map.Entry<String,FileInfo>> filesIterator = filesInfoSet.iterator();
+
+    while (filesIterator.hasNext()) {
+      Map.Entry<String,FileInfo> file = filesIterator.next();
+      String fileId = file.getKey();
+      FileInfo fileInfo = file.getValue();
+
+      if (!manager.hasBackupFolder(fileId)) {
+        filesIterator.remove();
+      } else {
+        Set<Integer> chunkSet = fileInfo.fileChunks.keySet();
+        chunkSet.removeIf(chunkNumber -> !manager.hasChunk(fileId, chunkNumber));
+      }
+    }
+  }
+
+  public Set<ChunkKey> getMissingChunks() {
+    Set<ChunkKey> missing = this.missingChunks;
+    this.missingChunks = null;
+    return missing;
   }
 
   // ***** Methods concerning map entries (has, get, add, delete on the maps)
@@ -174,19 +265,30 @@ public class FileInfoManager {
   }
 
   /**
-   * Stores a new chunk. If another chunk with the same name exists, it will be
-   * overwritten.
-   * TODO: fix race
+   * Stores a new chunk. If another chunk with the same name exists, we overwrite it.
    *
    * @param fileId      The file's id
    * @param chunkNumber The chunk's number
    * @param chunk       The chunk's content
    */
-  public void storeChunk(String fileId, Integer chunkNumber, byte[] chunk) {
+  public boolean storeChunk(String fileId, Integer chunkNumber, byte[] chunk) {
     FileInfo info = this.otherFilesInfo.computeIfAbsent(fileId, FileInfo::new);
+    // NOTE: Annoying race here... ...
+    long size = FilesManager.getInstance().backupChunkTotalSpace(fileId, chunkNumber);
+    long increment = chunk.length - (size == -1 ? 0 : size);
+
+    if (increment > 0) {
+      long newTotal = usedSpace.addAndGet(increment);
+      if (newTotal > Configuration.storageCapacityKB * 1000) {
+        usedSpace.addAndGet(-increment);
+        return false;
+      }
+    }
+
     info.addChunkInfo(chunkNumber);
     info.addBackupPeer(chunkNumber, Peer.getInstance().getId());
     FilesManager.getInstance().putChunk(fileId, chunkNumber, chunk);
+    return true;
   }
 
   /**
@@ -194,31 +296,16 @@ public class FileInfoManager {
    *
    * @param fileId      The file's id
    * @param chunkNumber The chunk's number
-   * @return true if successful, and false otherwise
    */
-  public boolean deleteChunk(String fileId, Integer chunkNumber) {
+  public void deleteChunk(String fileId, Integer chunkNumber) {
     FileInfo info = this.otherFilesInfo.get(fileId);
-    if (info == null) return true;
+    if (info == null) return;
     info.removeBackupPeer(chunkNumber, Peer.getInstance().getId());
-    return FilesManager.getInstance().deleteChunk(fileId, chunkNumber);
-  }
 
-  /**
-   * Deletes the provided file.
-   *
-   * @param file The file to delete.
-   * @return true if successfully deleted, false otherwise
-   */
-  public boolean deleteFile(File file) {
-    if (FilesManager.deleteRecursive(file))
-      Peer.log("Successfully deleted file " + file.getPath() + " and its records",
-          Level.INFO);
-    else {
-      Peer.log("Could not delete file " + file.getPath() + " and its records",
-          Level.SEVERE);
-      return false;
-    }
-    return true;
+    long size = FilesManager.getInstance().backupChunkTotalSpace(fileId, chunkNumber);
+    if (size == -1) return;
+    usedSpace.addAndGet(-size);
+    FilesManager.getInstance().deleteChunk(fileId, chunkNumber);
   }
 
   // ***** Methods concerning replication degrees
@@ -381,7 +468,64 @@ public class FileInfoManager {
     return info != null && info.hasBackupPeers();
   }
 
-  public void storeState() {
+  // ***** Methods concerning storage capacity
+  public synchronized TreeSet<ChunkKey> trimBackup() {
+    long maxDiskSpaceKB = Configuration.storageCapacityKB;
+    long maxDiskSpace = maxDiskSpaceKB * 1000; // 9000000
+    long used = usedSpace.get(); // 10000000
+    long usedKB = used / 1000;
+
+    System.out.println("maxDiskSpace: " + maxDiskSpace);
+    System.out.println("used: " + used);
+
+    // The used storage is lower than the maximum!
+    if (used <= maxDiskSpace) {
+      Peer.log("Peer is using " + usedKB + "KB of backup space, which is already " +
+          "lower than the capacity " + maxDiskSpaceKB + "KB. Therefore no files need to" +
+          " be removed just yet", Level.INFO);
+      return null;
+    }
+
+    // Get a map of all chunks.
+    TreeSet<ChunkInfo> set = getChunkSet();
+    TreeSet<ChunkKey> filtered = new TreeSet<>();
+
+    long recoverTotal = used - maxDiskSpace;
+    long total = 0;
+
+    for (ChunkInfo chunkInfo : set) {
+      String fileId = chunkInfo.getFileId();
+      int chunkNumber = chunkInfo.getChunkNumber();
+      long length = FilesManager.getInstance().backupChunkTotalSpace(fileId, chunkNumber);
+
+      total += length;
+      filtered.add(chunkInfo.getKey());
+
+      // Check if we have selected enough chunks for removal.
+      if (total >= recoverTotal) break;
+    }
+
+    long totalKB = total / 1000;
+
+    Peer.log("Removing " + filtered.size() + " external chunks to reclaim memory space." +
+            " Recovered " + totalKB + "KB total memory", Level.INFO);
+
+    return filtered;
+  }
+
+  private TreeSet<ChunkInfo> getChunkSet() {
+    TreeSet<ChunkInfo> set = new TreeSet<>(new ChunkInfo.ComparisonReplication());
+
+    for (FileInfo file : otherFilesInfo.values()) {
+      set.addAll(file.fileChunks.values());
+    }
+
+    System.out.println("Set size: " + set.size());
+
+    return set;
+  }
+
+  private void storeState() {
     FilesManager.getInstance().writeOwnFilesInfo(ownFilesInfo);
     FilesManager.getInstance().writeOtherFilesInfo(otherFilesInfo);
   }
@@ -397,9 +541,11 @@ public class FileInfoManager {
     for (Map.Entry<String,FileInfo> entry : otherFilesInfo.entrySet()) {
       string.append(entry.getValue().toString());
     }
-    long space = FilesManager.getInstance().backupTotalSpace();
+    long space = usedSpace.get();
     string.append("Total used backup space: ");
     string.append(space / 1000).append(" KB\n");
+    string.append("Total allowed storage space for backup subsystem: ");
+    string.append(Configuration.storageCapacityKB).append(" KB\n");
     return string.toString();
   }
 }

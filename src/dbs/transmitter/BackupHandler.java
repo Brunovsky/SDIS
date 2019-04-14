@@ -46,20 +46,23 @@ public class BackupHandler {
     ReclaimHandler.getInstance().alertPUTCHUNK(message);
 
     String fileId = message.getFileId();
+
+    // Exit immediately if this is our chunk.
+    if (FileInfoManager.getInstance().hasOwnFileInfo(fileId)) return;
+    
     int chunkNumber = message.getChunkNo();
     int desiredReplicationDegree = message.getReplication();
     byte[] chunk = message.getBody();
     ChunkKey key = new ChunkKey(fileId, chunkNumber);
 
-    // TODO: Backup memory used too high => no-store and no-response logic goes here
-    // ...
-    // TODO: proceed iff we decide to store the chunk.
+    if (!FileInfoManager.getInstance().hasChunk(fileId, chunkNumber)) {
+      // this adds us as backup peer:
+      boolean stored = FileInfoManager.getInstance().storeChunk(fileId, chunkNumber, chunk);
+      if (!stored) return;
 
-    // TODO: Enhancement PUTCHUNK: [no-store]/no-response logic
-    FileInfoManager.getInstance().storeChunk(fileId, chunkNumber, chunk);
-    // ^^^ this adds us as backup peers
-    FileInfoManager.getInstance().setDesiredReplicationDegree(fileId,
-        desiredReplicationDegree);
+      FileInfoManager.getInstance().setDesiredReplicationDegree(fileId,
+          desiredReplicationDegree);
+    }
 
     storers.computeIfAbsent(key, StoredTransmitter::new);
   }

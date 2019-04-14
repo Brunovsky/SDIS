@@ -73,21 +73,26 @@ public class RemovedWaiter implements Runnable {
   @Override
   public void run() {
     if (done.get()) return;
-    end();
 
     String fileId = key.getFileId();
     int chunkNo = key.getChunkNo();
 
     // Get the chunk. Ensure we still have it and no unexpected IO error occurred.
     byte[] chunk = FilesManager.getInstance().getChunk(fileId, chunkNo);
-    if (chunk == null) return;
+    if (chunk == null) {
+      end();
+      return;
+    }
 
     // Get the replication degree. Ensure we still have it
     int perce = FileInfoManager.getInstance().getChunkReplicationDegree(fileId, chunkNo);
     int expec = FileInfoManager.getInstance().getDesiredReplicationDegree(fileId);
 
+    if (done.get()) return;
     if (perce < expec) {
-      // TODO: LAUNCH PUTCHUNKER
+      BackupHandler.getInstance().putchunkers.computeIfAbsent(key,
+          k -> new Putchunker(key, expec, chunk));
     }
+    end();
   }
 }

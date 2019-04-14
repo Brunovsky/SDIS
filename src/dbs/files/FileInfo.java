@@ -13,7 +13,7 @@ class FileInfo implements Serializable {
    * Maps the number of a file's chunk (greater or equal to 0) to the information of
    * that chunk.
    */
-  private final ConcurrentHashMap<Integer,ChunkInfo> fileChunks;
+  final ConcurrentHashMap<Integer,ChunkInfo> fileChunks;
 
   /**
    * The desired replication degree of that file.
@@ -68,7 +68,8 @@ class FileInfo implements Serializable {
    * @param chunkNumber The number of the new chunk of that file.
    */
   ChunkInfo addChunkInfo(Integer chunkNumber) {
-    return this.fileChunks.computeIfAbsent(chunkNumber, ChunkInfo::new);
+    return this.fileChunks.computeIfAbsent(chunkNumber,
+        n -> new ChunkInfo(this, chunkNumber));
   }
 
   /**
