@@ -33,6 +33,8 @@ public class ControlProcessor implements Multicaster.Processor {
         this.processMessage(m);
       } catch (MessageException e) {
         Peer.log("Dropped message from channel MC", e, Level.INFO);
+        System.out.println(new String(packet.getData(), packet.getOffset(),
+            packet.getLength()));
       }
     }
 
