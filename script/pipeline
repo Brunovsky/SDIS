@@ -16,20 +16,20 @@ read
 ./reclaim 4 11000
 ./reclaim 5 9000
 
-./backup 1 s1.txt 3
-./backup 2 s2.txt 4
-./backup 3 s3.txt 2
-./backup 4 s4.txt 1
-./backup 5 s5.txt 1
+./backup 1 s1.txt 3 &
+./backup 2 s2.txt 4 &
+./backup 3 s3.txt 2 &
+./backup 4 s4.txt 1 &
+./backup 5 s5.txt 1 &
 
 echo "Deployed backup requests. Proceed when finished."
 read
 
-./restore 1 s1.txt
-./restore 2 s2.txt
-./restore 3 s3.txt
-./restore 4 s4.txt
-./restore 5 s5.txt
+./restore 1 s1.txt &
+./restore 2 s2.txt &
+./restore 3 s3.txt &
+./restore 4 s4.txt &
+./restore 5 s5.txt &
 
 echo "Deployed restore requests. Proceed when finished."
 read
@@ -44,8 +44,8 @@ cmp s5.txt /tmp/dbs/peer-5/restored/s5.txt || echo "s5.txt differs"
 echo "Finished comparisons. Proceed to delete all files."
 read
 
-./delete 1 s1.txt
-./delete 2 s2.txt
-./delete 3 s3.txt
-./delete 4 s4.txt
-./delete 5 s5.txt
+./delete 1 s1.txt &
+./delete 2 s2.txt &
+./delete 3 s3.txt &
+./delete 4 s4.txt &
+./delete 5 s5.txt &

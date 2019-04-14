@@ -247,13 +247,16 @@ public class FileInfoManager {
   }
 
   public void deleteOtherFile(String fileId) {
-    FileInfo info = otherFilesInfo.get(fileId);
+    FileInfo info = otherFilesInfo.remove(fileId);
     if (info == null) return;
 
-    for (ChunkInfo chunkInfo : info.fileChunks.values()) {
-      deleteChunk(fileId, chunkInfo.getChunkNumber());
+    for (Map.Entry<Integer,ChunkInfo> chunkInfo : info.fileChunks.entrySet()) {
+      int chunkNo = chunkInfo.getKey();
+      long size = FilesManager.getInstance().backupChunkTotalSpace(fileId, chunkNo);
+      if (size == -1) continue;
+      if (size > 0) usedSpace.addAndGet(-size);
+      FilesManager.getInstance().deleteChunk(fileId, chunkNo);
     }
-    otherFilesInfo.remove(fileId);
     FilesManager.getInstance().deleteBackupFile(fileId);
   }
 

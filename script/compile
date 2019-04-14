@@ -1,6 +1,6 @@
 #!/bin/bash
 
 cd .. && echo "Compiling java and resetting peers..."
-rm -rf /tmp/dbs
+
 mkdir --parents script/dbs
 javac -sourcepath src -d script --release 10 -Werror "$@" src/**/*.java
