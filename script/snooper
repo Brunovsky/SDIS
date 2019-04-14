@@ -5,4 +5,4 @@ mdb="230.0.0.1:29502"
 mdr="230.0.0.1:29503"
 file="snooper.log"
 
-java -jar McastSnooper.jar $file 230.0.0.1:29501 230.0.0.1:29502 230.0.0.1:29503
+java -jar McastSnooper.jar $file $mc $mdb $mdr
