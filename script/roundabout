@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./compile && rm -rf /tmp/dbs
+./compile
 echo "Ready..."
 read
 

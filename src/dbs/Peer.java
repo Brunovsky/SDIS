@@ -2,7 +2,6 @@ package dbs;
 
 import dbs.files.FileInfoManager;
 import dbs.message.Message;
-import dbs.message.MessageException;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
@@ -107,12 +106,12 @@ public class Peer implements ClientInterface {
 
     // parse protocol version
     Configuration.version = args[0];
-    try {
-      Message.validateVersion(args[0]);
-    } catch (MessageException e) {
+    if (!Utils.validVersion(args[0])) {
       System.err.println("Invalid protocol version: " + args[0]);
-      throw e;
+      throw new IllegalArgumentException("Invalid protocol version");
     }
+
+    if (!Configuration.version.equals("1.0")) Configuration.enhancedPeer = true;
 
     // parse id
     long id;

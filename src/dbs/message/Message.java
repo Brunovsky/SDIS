@@ -489,7 +489,7 @@ public class Message {
         base = "GETCHUNK(" + fileId.substring(0, 10) + ',' + chunkNo + ')';
         break;
       case DELETED:
-        base = "PUTCHUNK(" + fileId.substring(0, 10) + ')';
+        base = "DELETED(" + fileId.substring(0, 10) + ')';
         break;
     }
     return base;

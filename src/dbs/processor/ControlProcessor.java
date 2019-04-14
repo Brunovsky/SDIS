@@ -74,7 +74,7 @@ public class ControlProcessor implements Multicaster.Processor {
     private void processDeleteMessage(Message m) {
       String fileId = m.getFileId();
       boolean sendDeletedMessage = FileInfoManager.getInstance().hasOtherFileInfo(fileId);
-      FileInfoManager.getInstance().deleteOtherFileInfo(fileId);
+      FileInfoManager.getInstance().deleteOtherFile(fileId);
       if(sendDeletedMessage) this.sendDeletedMessage(fileId, Configuration.version);
     }
 
@@ -85,6 +85,7 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void sendDeletedMessage(String fileId, String version) {
+      if (!Configuration.enhancedPeer) return;
       Message deletedMessage = Message.DELETED(fileId, version);
       Peer.log("Going to send deleted message for the file with id " + fileId, Level.INFO);
       Peer.getInstance().send(deletedMessage);

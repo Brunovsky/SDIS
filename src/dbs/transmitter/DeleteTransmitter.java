@@ -93,7 +93,6 @@ public class DeleteTransmitter implements Runnable {
     else {
       Peer.log("All peers have deleted the file with id " + fileId, Level.INFO);
       FileInfoManager.getInstance().deleteOwnFileInfo(this.fileId);
-      return;
     }
   }
 }

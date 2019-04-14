@@ -5,6 +5,9 @@ public class Configuration {
   // Which protocol version does this peer use?
   public static String version = "1.0";
 
+  // Set this to true if the version is not 1.0
+  public static boolean enhancedPeer = false;
+
   // Folder where each peer root directory is stored. Please use an absolute path.
   public static String allPeersRootDir = "/tmp/dbs";
 

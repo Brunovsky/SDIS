@@ -246,7 +246,13 @@ public class FileInfoManager {
     }
   }
 
-  public void deleteOtherFileInfo(String fileId) {
+  public void deleteOtherFile(String fileId) {
+    FileInfo info = otherFilesInfo.get(fileId);
+    if (info == null) return;
+
+    for (ChunkInfo chunkInfo : info.fileChunks.values()) {
+      deleteChunk(fileId, chunkInfo.getChunkNumber());
+    }
     otherFilesInfo.remove(fileId);
     FilesManager.getInstance().deleteBackupFile(fileId);
   }
@@ -265,7 +271,7 @@ public class FileInfoManager {
   }
 
   /**
-   * Stores a new chunk. If another chunk with the same name exists, we overwrite it.
+   * Stores a new chunk. If the chunk already exists, we continue.
    *
    * @param fileId      The file's id
    * @param chunkNumber The chunk's number
@@ -273,6 +279,8 @@ public class FileInfoManager {
    */
   public boolean storeChunk(String fileId, Integer chunkNumber, byte[] chunk) {
     FileInfo info = this.otherFilesInfo.computeIfAbsent(fileId, FileInfo::new);
+    if (FilesManager.getInstance().hasChunk(fileId, chunkNumber)) return true;
+
     // NOTE: Annoying race here... ...
     long size = FilesManager.getInstance().backupChunkTotalSpace(fileId, chunkNumber);
     long increment = chunk.length - (size == -1 ? 0 : size);

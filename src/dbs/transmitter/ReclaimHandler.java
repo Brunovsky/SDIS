@@ -96,6 +96,7 @@ public class ReclaimHandler {
 
     // Need to trim the backup system.
     TreeSet<ChunkKey> removeTree = FileInfoManager.getInstance().trimBackup();
+    if (removeTree == null) return;
 
     for (ChunkKey key : removeTree) {
       FileInfoManager.getInstance().deleteChunk(key.getFileId(), key.getChunkNo());

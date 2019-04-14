@@ -49,7 +49,7 @@ public class BackupHandler {
 
     // Exit immediately if this is our chunk.
     if (FileInfoManager.getInstance().hasOwnFileInfo(fileId)) return;
-    
+
     int chunkNumber = message.getChunkNo();
     int desiredReplicationDegree = message.getReplication();
     byte[] chunk = message.getBody();
