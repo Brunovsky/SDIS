@@ -238,10 +238,8 @@ public class Message {
   /**
    * [SEND] Construct a message given all fields.
    */
-  private Message(MessageType type, String version,
-                  String fileId, int chunkNo, int replication,
-                  String[] more,
-                  byte[] body) throws MessageError {
+  private Message(MessageType type, String version, String fileId, int chunkNo,
+                  int replication, String[] more, byte[] body) throws MessageError {
     try {
       this.messageType = type;
 

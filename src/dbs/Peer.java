@@ -247,7 +247,7 @@ public class Peer implements ClientInterface {
   }
 
   public static void log(String msg, Throwable e, Level level) {
-    LOGGER.log(level, msg + ".\n" + e.getMessage());
+    LOGGER.log(level, msg + ".\n" + e.getMessage() + "\n");
   }
 
   public long getId() {
