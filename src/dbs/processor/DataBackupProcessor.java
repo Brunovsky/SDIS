@@ -25,7 +25,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
         Message m = new Message(packet);
         String senderId = Long.toString(Peer.getInstance().getId());
         if (senderId.equals(m.getSenderId())) return;
-        Peer.log("Received " + m.shortFrom(), Level.INFO);
+        Peer.log("Received " + m.shortFrom() + " on MDB", Level.INFO);
         this.processMessage(m);
       } catch (MessageException e) {
         Peer.log("Dropped message from channel MDB", e, Level.INFO);

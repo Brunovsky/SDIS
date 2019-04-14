@@ -1,19 +1,21 @@
 #!/bin/bash
 
 ./compile
-echo "Ready..."
+echo "Ready. Please launch peers {1,2,3,4}"
 read
 
-# Backup 500KB file
-fallocate -l 500000 r.txt
+echo "Backup 500KB file"
+./randomfile 500000 r.txt
 java -cp . dbs.TestApp 1 BACKUP r.txt 3
 sleep 2
-echo "Ready..."
+echo "Ready. Proceed when finished"
 read
 
-# Reclaim 200KB from peer 2, initiating PUTCHUNK for each chunk.
+echo "Reclaim 200KB from peer 2, initiating PUTCHUNK for each chunk."
 java -cp . dbs.TestApp 2 RECLAIM 200
 
-# The first few PUTCHUNKs will fail, but after this they will succeed.
+echo "The first few PUTCHUNKs will fail, but after this they will succeed."
 sleep 1.5
+
+echo "Increasing peer 2 allowance to 5000"
 java -cp . dbs.TestApp 2 RECLAIM 5000

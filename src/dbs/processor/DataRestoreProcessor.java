@@ -25,7 +25,7 @@ public class DataRestoreProcessor implements Multicaster.Processor {
         Message m = new Message(packet);
         String senderId = Long.toString(Peer.getInstance().getId());
         if (senderId.equals(m.getSenderId())) return;
-        Peer.log("Received " + m.shortFrom(), Level.INFO);
+        Peer.log("Received " + m.shortFrom() + " on MDR", Level.INFO);
         this.processMessage(m);
       } catch (MessageException e) {
         Peer.log("Dropped message from channel MDR", e, Level.INFO);

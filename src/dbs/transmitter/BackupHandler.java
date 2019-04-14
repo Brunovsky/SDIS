@@ -25,7 +25,7 @@ public class BackupHandler {
     return handler == null ? (handler = new BackupHandler()) : handler;
   }
 
-  final ConcurrentHashMap<ChunkKey,Putchunker> putchunkers;
+  final ConcurrentHashMap<ChunkKey,PutchunkTransmitter> putchunkers;
 
   final ConcurrentHashMap<ChunkKey,StoredTransmitter> storers;
 
@@ -122,7 +122,7 @@ public class BackupHandler {
 
         System.out.println("Read: " + numberBytesRead);
 
-        // Launch the Putchunker only if the perceived replication degree is lower than
+        // Launch the PutchunkTransmitter only if the perceived replication degree is lower than
         // the desired replication degree, and don't create a second one for the same
         // chunk if one is already running.
         if (currentReplicationDegree < replicationDegree) {
@@ -130,7 +130,7 @@ public class BackupHandler {
           byte[] trimmed = new byte[len];
           System.arraycopy(chunk, 0, trimmed, 0, len);
           putchunkers.computeIfAbsent(key,
-              k -> new Putchunker(key, replicationDegree, trimmed));
+              k -> new PutchunkTransmitter(key, replicationDegree, trimmed));
         }
 
         chunkNumber++;

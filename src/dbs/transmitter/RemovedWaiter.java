@@ -91,7 +91,7 @@ public class RemovedWaiter implements Runnable {
     if (done.get()) return;
     if (perce < expec) {
       BackupHandler.getInstance().putchunkers.computeIfAbsent(key,
-          k -> new Putchunker(key, expec, chunk));
+          k -> new PutchunkTransmitter(key, expec, chunk));
     }
     end();
   }

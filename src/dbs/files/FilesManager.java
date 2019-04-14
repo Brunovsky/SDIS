@@ -442,6 +442,7 @@ public final class FilesManager {
     }
   }
 
+  @SuppressWarnings("unchecked")
   ConcurrentHashMap<String,OwnFileInfo> readOwnFilesInfo() throws IOException {
     Path path = filesinfoDir.resolve(Configuration.ownFilesinfo);
     File file = path.toFile();
@@ -450,6 +451,7 @@ public final class FilesManager {
     return (ConcurrentHashMap<String,OwnFileInfo>) this.readObject(file);
   }
 
+  @SuppressWarnings("unchecked")
   ConcurrentHashMap<String,FileInfo> readOtherFilesInfo() throws IOException {
     Path path = filesinfoDir.resolve(Configuration.otherFilesinfo);
     File file = path.toFile();

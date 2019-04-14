@@ -23,7 +23,7 @@ public final class PeerSocket implements Runnable {
   }
 
   PeerSocket(int port) throws IOException {
-    this.socket = new DatagramSocket();
+    this.socket = new DatagramSocket(port);
     this.queue = new LinkedBlockingDeque<>(Configuration.socketQueueCapacity);
   }
 

@@ -11,7 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
-public class Putchunker implements Runnable {
+public class PutchunkTransmitter implements Runnable {
 
   private final ChunkKey key;
   private final String fileId;
@@ -23,7 +23,7 @@ public class Putchunker implements Runnable {
   private Future task;
   private final AtomicBoolean done = new AtomicBoolean(false);
 
-  Putchunker(ChunkKey key, int replication, byte[] chunk) {
+  PutchunkTransmitter(ChunkKey key, int replication, byte[] chunk) {
     fileId = key.getFileId();
     chunkNo = key.getChunkNo();
 
@@ -83,7 +83,7 @@ public class Putchunker implements Runnable {
       try {
         sleep();
       } catch (InterruptedException ignored) {
-        Peer.log("Putchunker interrupted while sleeping", Level.WARNING);
+        Peer.log("PutchunkTransmitter interrupted while sleeping", Level.WARNING);
       }
       if (verify()) {
         succeed();
