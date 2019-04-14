@@ -148,14 +148,14 @@ public class FileInfoManager {
     this.otherFilesInfo.computeIfAbsent(fileId, k -> new FileInfo(fileId, desired));
   }
 
-  public void deleteOwnFile(String fileId) {
+  public void deleteOwnFileInfo(String fileId) {
     synchronized (pathnameMap) {
       OwnFileInfo info = this.ownFilesInfo.remove(fileId);
       if (info != null) pathnameMap.remove(info.getPathname());
     }
   }
 
-  public void deleteOtherFile(String fileId) {
+  public void deleteOtherFileInfo(String fileId) {
     otherFilesInfo.remove(fileId);
     FilesManager.getInstance().deleteBackupFile(fileId);
   }
@@ -398,7 +398,8 @@ public class FileInfoManager {
       string.append(entry.getValue().toString());
     }
     long space = FilesManager.getInstance().backupTotalSpace();
-    string.append("Total used backup space: ").append(space).append('\n');
+    string.append("Total used backup space: ");
+    string.append(space / 1000).append(" KB\n");
     return string.toString();
   }
 }

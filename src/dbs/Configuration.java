@@ -45,18 +45,18 @@ public class Configuration {
 
     // Thread pool sizes (core pool sizes)
     public static int peerThreadPoolSize = 8;
-    public static int putchunkPoolSize = 10;
-    public static int storedPoolSize = 25;
-    public static int chunkPoolSize = 35;
-    public static int getChunkPoolSize = 15;
+    public static int putchunkPoolSize = 8;
+    public static int storedPoolSize = 20;
+    public static int chunkPoolSize = 30;
+    public static int getchunkPoolSize = 8;
     public static int restorerPoolSize = 5;
     public static int removedPoolSize = 25;
 
     // Maximum number of allowed PUTCHUNKs for each chunk before the backup gives up
-    public static int maxPutchunkAttempts = 2;
+    public static int maxPutchunkAttempts = 5;
 
     // Maximum number of allowed GETCHUNKs for each chunk before the restore gives up
-    public static int maxGetchunkAttempts = 2;
+    public static int maxGetchunkAttempts = 5;
 
     // Maximum storage capacity for chunks.
     public static long storageCapacity = 40000; // KB ?

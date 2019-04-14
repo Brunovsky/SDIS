@@ -79,16 +79,18 @@ public class ChunkTransmitter implements Runnable {
   @Override
   public void run() {
     if (done.get()) return;
-    end();
 
     String fileId = key.getFileId();
     int chunkNo = key.getChunkNo();
 
     // Get the chunk. Ensure we still have it and no unexpected IO error occurred.
     byte[] chunk = FilesManager.getInstance().getChunk(fileId, chunkNo);
-    if (chunk == null) return;
+    if (chunk == null) { end(); return; }
 
     Message message = Message.CHUNK(fileId, Configuration.version, chunkNo, chunk);
+
+    if (done.get()) return;
     Peer.getInstance().send(message);
+    end();
   }
 }

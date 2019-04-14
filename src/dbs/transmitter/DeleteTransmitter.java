@@ -7,7 +7,6 @@ import dbs.files.FileInfoManager;
 import dbs.files.OwnFileInfo;
 import dbs.message.Message;
 
-import java.io.File;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -37,31 +36,26 @@ public class DeleteTransmitter implements Runnable {
       this.runNotEnhanced();
   }
 
-  private void deleteFile() {
-    if(this.transmissionNumber != 1) return;
+  private boolean deleteFile() {
+    if(this.transmissionNumber != 1) return true;
     // check if the given pathname is valid
-    File fileToDelete;
     OwnFileInfo info = FileInfoManager.getInstance().getPathname(pathname);
     if (info == null) {
-      Peer.log("Could not access the provided file (" + this.pathname + ") for deletion.", Level.SEVERE);
-      return;
+      Peer.log("This peer does not have a record of file " + pathname, Level.WARNING);
+      return false;
     } else {
-      fileToDelete = info.getFile();
       this.fileId = info.getFileId();
-    }
-    // delete file
-    if(!FileInfoManager.getInstance().deleteFile(fileToDelete)) {
-      Peer.log("Could not perform the deletion of the file " + this.pathname, Level.SEVERE);
-      return;
     }
 
     if(!this.runEnhancedVersion)
-      FileInfoManager.getInstance().deleteOwnFile(this.fileId);
+      FileInfoManager.getInstance().deleteOwnFileInfo(this.fileId);
+
+    return true;
   }
 
-  public void runNotEnhanced() {
+  private void runNotEnhanced() {
 
-    this.deleteFile();
+    if (!this.deleteFile()) return;
 
     // send DELETE message
     this.sendDeleteMessage();
@@ -88,7 +82,7 @@ public class DeleteTransmitter implements Runnable {
   }
 
 
-  public void runEnhanced() {
+  private void runEnhanced() {
     this.deleteFile();
     if(FileInfoManager.getInstance().hasBackupPeers(this.fileId))
     {
@@ -98,7 +92,7 @@ public class DeleteTransmitter implements Runnable {
     }
     else {
       Peer.log("All peers have deleted the file with id " + fileId, Level.INFO);
-      FileInfoManager.getInstance().deleteOwnFile(this.fileId);
+      FileInfoManager.getInstance().deleteOwnFileInfo(this.fileId);
       return;
     }
   }

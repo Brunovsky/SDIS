@@ -265,16 +265,37 @@ public class Peer implements ClientInterface {
 
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
+    if (pathname == null) {
+      Peer.log("Null pathname for BACKUP", Level.WARNING);
+      return;
+    }
+
+    if (!Utils.validReplicationDegree(replicationDegree) || replicationDegree == 0) {
+      Peer.log("Invalid replication degree for BACKUP: " + replicationDegree,
+          Level.WARNING);
+      return;
+    }
+
     Peer.log("Received BACKUP request", Level.INFO);
     BackupHandler.getInstance().initBackup(pathname, replicationDegree);
   }
 
   public void restore(String pathname) throws RemoteException {
+    if (pathname == null) {
+      Peer.log("Null pathname for RESTORE", Level.WARNING);
+      return;
+    }
+
     Peer.log("Received RESTORE request for " + pathname, Level.INFO);
     RestoreHandler.getInstance().initRestore(pathname);
   }
 
   public void delete(String pathname, boolean runEnhancedVersion) throws RemoteException {
+    if (pathname == null) {
+      Peer.log("Null pathname for DELETE", Level.WARNING);
+      return;
+    }
+
     Peer.log("Received DELETE request for " + pathname, Level.INFO);
     this.pool.submit(new DeleteTransmitter(pathname, 1, runEnhancedVersion));
   }

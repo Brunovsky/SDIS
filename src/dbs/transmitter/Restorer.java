@@ -55,7 +55,8 @@ public class Restorer implements Runnable {
       getchunker.cancel();
     }
     RestoreHandler.getInstance().restorers.remove(fileId);
-    Peer.log("Failed to restore file " + pathname, Level.WARNING);
+    int no = key.getChunkNo();
+    Peer.log("Failed to restore file " + pathname + " (#" + no + ")", Level.WARNING);
   }
 
   synchronized void assigned(ChunkKey key) {

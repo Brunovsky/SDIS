@@ -74,7 +74,7 @@ public class ControlProcessor implements Multicaster.Processor {
     private void processDeleteMessage(Message m) {
       String fileId = m.getFileId();
       boolean sendDeletedMessage = FileInfoManager.getInstance().hasOtherFileInfo(fileId);
-      FileInfoManager.getInstance().deleteOtherFile(fileId);
+      FileInfoManager.getInstance().deleteOtherFileInfo(fileId);
       if(sendDeletedMessage) this.sendDeletedMessage(fileId, Configuration.version);
     }
 

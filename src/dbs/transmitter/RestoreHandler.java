@@ -3,13 +3,13 @@ package dbs.transmitter;
 import dbs.ChunkKey;
 import dbs.Configuration;
 import dbs.Peer;
-import dbs.Utils;
 import dbs.files.FileInfoManager;
+import dbs.files.OwnFileInfo;
 import dbs.message.Message;
 
-import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.logging.Level;
 
 public class RestoreHandler {
 
@@ -62,7 +62,7 @@ public class RestoreHandler {
     this.getchunkers = new ConcurrentHashMap<>();
     this.restorers = new ConcurrentHashMap<>();
     this.chunkPool = new ScheduledThreadPoolExecutor(Configuration.chunkPoolSize);
-    this.getchunkPool = new ScheduledThreadPoolExecutor(Configuration.getChunkPoolSize);
+    this.getchunkPool = new ScheduledThreadPoolExecutor(Configuration.getchunkPoolSize);
     this.restorerPool = new ScheduledThreadPoolExecutor(Configuration.restorerPoolSize);
   }
 
@@ -110,14 +110,15 @@ public class RestoreHandler {
    * file id. It will create all necessary Getchunkers and wait for all of them.
    */
   public Restorer initRestore(String pathname) {
-    try {
-      File file = new File(pathname);
-      String fileId = Utils.hash(file, Peer.getInstance().getId());
-      int chunksNo = Utils.numberOfChunks(file.length());
-      return restorers.computeIfAbsent(fileId, id -> new Restorer(pathname, id,
-          chunksNo));
-    } catch (Exception e) {
+      OwnFileInfo info = FileInfoManager.getInstance().getPathname(pathname);
+    if (info == null) {
+      Peer.log("We do not track '" + pathname + "', cannot restore this file",
+          Level.WARNING);
       return null;
     }
+    String fileId = info.getFileId();
+    int numberOfChunks = info.getNumberOfChunks();
+    return restorers.computeIfAbsent(fileId,
+        f -> new Restorer(pathname, fileId, numberOfChunks));
   }
 }
