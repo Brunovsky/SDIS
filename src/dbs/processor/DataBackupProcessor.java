@@ -25,9 +25,10 @@ public class DataBackupProcessor implements Multicaster.Processor {
         Message m = new Message(packet);
         String senderId = Long.toString(Peer.getInstance().getId());
         if (senderId.equals(m.getSenderId())) return;
+        Peer.log("Received " + m.shortFrom(), Level.INFO);
         this.processMessage(m);
       } catch (MessageException e) {
-        Peer.log("Dropped message from channel MDB", Level.INFO);
+        Peer.log("Dropped message from channel MDB", e, Level.INFO);
       }
     }
 
@@ -44,7 +45,6 @@ public class DataBackupProcessor implements Multicaster.Processor {
     }
 
     private void processPutchunkMessage(Message m) {
-      Peer.log("Received PUTCHUNK from " + m.getSenderId(), Level.INFO);
       BackupHandler.getInstance().receivePUTCHUNK(m);
     }
   }

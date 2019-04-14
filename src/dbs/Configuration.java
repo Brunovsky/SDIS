@@ -53,10 +53,10 @@ public class Configuration {
     public static int removedPoolSize = 25;
 
     // Maximum number of allowed PUTCHUNKs for each chunk before the backup gives up
-    public static int maxPutchunkAttempts = 5;
+    public static int maxPutchunkAttempts = 2;
 
     // Maximum number of allowed GETCHUNKs for each chunk before the restore gives up
-    public static int maxGetchunkAttempts = 5;
+    public static int maxGetchunkAttempts = 2;
 
     // Maximum storage capacity for chunks.
     public static long storageCapacity = 40000; // KB ?

@@ -61,7 +61,7 @@ public class BackupHandler {
     FileInfoManager.getInstance().setDesiredReplicationDegree(fileId,
         desiredReplicationDegree);
 
-    storers.computeIfAbsent(key, k -> new StoredTransmitter(fileId, chunkNumber));
+    storers.computeIfAbsent(key, StoredTransmitter::new);
   }
 
   public void receiveSTORED(Message message) {
@@ -79,21 +79,22 @@ public class BackupHandler {
       return;
     }
 
-    if (!FileInfoManager.getInstance().hasPathname(pathname)) {
-      try {
-        String fileId = Utils.hash(file, Peer.getInstance().getId());
-        long length = file.length();
-        int numberOfChunks = Utils.numberOfChunks(length);
-        FileInfoManager.getInstance().addOwnFileInfo(pathname, fileId,
-            numberOfChunks, replicationDegree);
-      } catch (Exception e) {
-        Peer.log("Failed to hash file " + pathname, e, Level.SEVERE);
-        return;
-      }
+    try {
+      String fileId = Utils.hash(file, Peer.getInstance().getId());
+      long length = file.length();
+      int numberOfChunks = Utils.numberOfChunks(length);
+      FileInfoManager.getInstance().addOwnFileInfo(pathname, fileId,
+          numberOfChunks, replicationDegree);
+    } catch (Exception e) {
+      Peer.log("Failed to hash file " + pathname, e, Level.SEVERE);
+      return;
     }
 
     OwnFileInfo info = FileInfoManager.getInstance().getPathname(pathname);
-    if (info == null) return; // very annoying race condition
+    if (info == null) {
+      Peer.log("Something went wrong setting up own file info...", Level.SEVERE);
+      return;
+    }
 
     transmitFile(info, replicationDegree, file);
   }
@@ -103,6 +104,8 @@ public class BackupHandler {
     int numberBytesRead;
     int chunkNumber = 0;
     int numberOfChunks = info.getNumberOfChunks();
+
+    System.out.println("Transmitting file...");
 
     // try-with-resources auto-closes fis.
     try (FileInputStream fis = new FileInputStream(fileToBackup)) {
@@ -114,12 +117,18 @@ public class BackupHandler {
 
         numberBytesRead = fis.read(chunk, 0, Protocol.chunkSize);
 
+        System.out.println("Read: " + numberBytesRead);
+
         // Launch the Putchunker only if the perceived replication degree is lower than
         // the desired replication degree, and don't create a second one for the same
         // chunk if one is already running.
-        if (currentReplicationDegree < replicationDegree)
+        if (currentReplicationDegree < replicationDegree) {
+          int len = numberBytesRead < 0 ? 0 : numberBytesRead;
+          byte[] trimmed = new byte[len];
+          System.arraycopy(chunk, 0, trimmed, 0, len);
           putchunkers.computeIfAbsent(key,
-              k -> new Putchunker(key, replicationDegree, chunk));
+              k -> new Putchunker(key, replicationDegree, trimmed));
+        }
 
         chunkNumber++;
       }

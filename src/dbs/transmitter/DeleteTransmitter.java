@@ -92,12 +92,12 @@ public class DeleteTransmitter implements Runnable {
     this.deleteFile();
     if(FileInfoManager.getInstance().hasBackupPeers(this.fileId))
     {
-      Peer.getInstance().log("Not all peers have deleted the file with id " + fileId + ". Sending delete message (attempt " + this.transmissionNumber + ")", Level.INFO);
+      Peer.log("Not all peers have deleted the file with id " + fileId + ". Sending delete message (attempt " + this.transmissionNumber + ")", Level.INFO);
       this.sendDeleteMessage();
       this.scheduleNextDeleteMessage();
     }
     else {
-      Peer.getInstance().log("All peers have deleted the file with id " + fileId, Level.INFO);
+      Peer.log("All peers have deleted the file with id " + fileId, Level.INFO);
       FileInfoManager.getInstance().deleteOwnFile(this.fileId);
       return;
     }

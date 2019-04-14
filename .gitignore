@@ -8,3 +8,4 @@ out/
 *.iml
 peersState/
 script/dbs
+script/*.txt

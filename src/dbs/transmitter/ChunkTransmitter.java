@@ -30,6 +30,7 @@ public class ChunkTransmitter implements Runnable {
    */
   ChunkTransmitter(ChunkKey key) {
     this.key = key;
+
     int wait = Utils.getRandom(Protocol.minDelay, Protocol.maxDelay);
     task = RestoreHandler.getInstance().chunkPool.schedule(this, wait,
         TimeUnit.MILLISECONDS);

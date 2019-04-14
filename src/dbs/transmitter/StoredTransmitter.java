@@ -1,5 +1,6 @@
 package dbs.transmitter;
 
+import dbs.ChunkKey;
 import dbs.Peer;
 import dbs.Protocol;
 import dbs.Utils;
@@ -10,22 +11,23 @@ import java.util.concurrent.TimeUnit;
 
 public class StoredTransmitter implements Runnable {
 
-  private String fileId;
+  private final ChunkKey key;
+  private final Message message;
   private Future scheduled;
-  private Integer chunkNumber;
 
-  public StoredTransmitter(String fileId, Integer chunkNumber) {
-    this.fileId = fileId;
-    this.chunkNumber = chunkNumber;
-    int delay = Utils.getRandom(Protocol.minDelay, Protocol.maxDelay);
-    this.scheduled = BackupHandler.getInstance().storedPool.schedule(this, delay,
+  StoredTransmitter(ChunkKey key) {
+    this.key = key;
+    this.message = Message.STORED(key.getFileId(), key.getChunkNo());
+
+    int wait = Utils.getRandom(Protocol.minDelay, Protocol.maxDelay);
+    this.scheduled = BackupHandler.getInstance().storedPool.schedule(this, wait,
         TimeUnit.MILLISECONDS);
   }
 
   @Override
   public void run() {
     // TODO: Enhancement PUTCHUNK: no-store/[no-response] logic
-    Message message = Message.STORED(this.fileId, this.chunkNumber);
     Peer.getInstance().send(message);
+    BackupHandler.getInstance().storers.remove(key);
   }
 }

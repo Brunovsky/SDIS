@@ -25,9 +25,10 @@ public class DataRestoreProcessor implements Multicaster.Processor {
         Message m = new Message(packet);
         String senderId = Long.toString(Peer.getInstance().getId());
         if (senderId.equals(m.getSenderId())) return;
+        Peer.log("Received " + m.shortFrom(), Level.INFO);
         this.processMessage(m);
       } catch (MessageException e) {
-        Peer.log("Dropped message from channel MDR", Level.INFO);
+        Peer.log("Dropped message from channel MDR", e, Level.INFO);
       }
     }
 
@@ -43,7 +44,6 @@ public class DataRestoreProcessor implements Multicaster.Processor {
     }
 
     private void processChunkMessage(Message m) {
-      Peer.log("Received CHUNK from " + m.getSenderId(), Level.INFO);
       RestoreHandler.getInstance().receiveCHUNK(m);
     }
   }

@@ -178,7 +178,8 @@ class FileInfo implements Serializable {
   public String toString() {
     StringBuilder string = new StringBuilder();
     string.append(' ').append(fileId).append('\n');
-    string.append("   Replication Degree: ").append(desiredReplicationDegree).append('\n');
+    string.append("   Desired Replication Degree: ");
+    string.append(desiredReplicationDegree).append('\n');
     for (Map.Entry<Integer, ChunkInfo> entry : this.fileChunks.entrySet()) {
       string.append("     ").append(entry.getValue().toString()).append('\n');
     }

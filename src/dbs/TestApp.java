@@ -183,6 +183,8 @@ public class TestApp {
 
     } catch (Exception e) {
       LOGGER.warning("Could not invoke the remote object's method. Peer not available.\n");
+      System.err.println(e.getMessage());
+      e.printStackTrace();
     }
   }
 }

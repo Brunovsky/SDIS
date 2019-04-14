@@ -53,7 +53,7 @@ public class OwnFileInfo extends FileInfo implements Serializable {
 
   @Override
   public String toString() {
-    return ' ' + pathname + "\n  Number of chunks: " + numberOfChunks
+    return ' ' + pathname + "\n Number of chunks: " + numberOfChunks
         + '\n' + super.toString();
   }
 }

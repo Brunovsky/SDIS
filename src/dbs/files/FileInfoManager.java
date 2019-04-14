@@ -131,10 +131,11 @@ public class FileInfoManager {
    */
   public void addOwnFileInfo(String pathname, String fileId,
                              int numberOfChunks, int desired) {
+    OwnFileInfo info = new OwnFileInfo(pathname, fileId, numberOfChunks, desired);
+
     synchronized (pathnameMap) {
-      OwnFileInfo info = this.ownFilesInfo.computeIfAbsent(fileId,
-          f -> new OwnFileInfo(pathname, fileId, numberOfChunks, desired));
-      pathnameMap.put(fileId, info);
+      this.ownFilesInfo.put(fileId, info);
+      pathnameMap.put(pathname, info);
     }
   }
 
@@ -397,7 +398,7 @@ public class FileInfoManager {
       string.append(entry.getValue().toString());
     }
     long space = FilesManager.getInstance().backupTotalSpace();
-    string.append("Total used backup space: ").append(space);
+    string.append("Total used backup space: ").append(space).append('\n');
     return string.toString();
   }
 }

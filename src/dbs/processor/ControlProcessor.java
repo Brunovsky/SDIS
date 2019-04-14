@@ -29,9 +29,10 @@ public class ControlProcessor implements Multicaster.Processor {
         Message m = new Message(packet);
         String senderId = Long.toString(Peer.getInstance().getId());
         if (senderId.equals(m.getSenderId())) return;
+        Peer.log("Received " + m.shortFrom(), Level.INFO);
         this.processMessage(m);
       } catch (MessageException e) {
-        Peer.log("Dropped message from channel MC", Level.INFO);
+        Peer.log("Dropped message from channel MC", e, Level.INFO);
       }
     }
 
@@ -59,22 +60,18 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processStoredMessage(Message m) {
-      Peer.log("Received STORED from " + m.getSenderId(), Level.INFO);
       BackupHandler.getInstance().receiveSTORED(m);
     }
 
     private void processGetchunkMessage(Message m) {
-      Peer.log("Received GETCHUNK from " + m.getSenderId(), Level.INFO);
       RestoreHandler.getInstance().receiveGETCHUNK(m);
     }
 
     private void processRemovedMessage(Message m) {
-      Peer.log("Received REMOVED from " + m.getSenderId(), Level.INFO);
       ReclaimHandler.getInstance().receiveREMOVED(m);
     }
 
     private void processDeleteMessage(Message m) {
-      Peer.log("Received DELETE from " + m.getSenderId(), Level.INFO);
       String fileId = m.getFileId();
       boolean sendDeletedMessage = FileInfoManager.getInstance().hasOtherFileInfo(fileId);
       FileInfoManager.getInstance().deleteOtherFile(fileId);
@@ -82,7 +79,6 @@ public class ControlProcessor implements Multicaster.Processor {
     }
 
     private void processDeletedMessage(Message m) {
-      Peer.log("Received DELETED from " + m.getSenderId(), Level.INFO);
       Long senderId = Long.parseLong(m.getSenderId());
       String fileId = m.getFileId();
       FileInfoManager.getInstance().removeBackupPeer(fileId, senderId);

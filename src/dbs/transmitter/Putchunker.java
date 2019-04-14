@@ -29,6 +29,8 @@ public class Putchunker implements Runnable {
     this.desiredReplicationDegree = replication;
     this.chunk = chunk;
     this.message = Message.PUTCHUNK(fileId, chunkNo, replication, chunk);
+
+    task = BackupHandler.getInstance().putchunkPool.submit(this);
   }
 
   private void sleep() throws InterruptedException {
@@ -36,16 +38,12 @@ public class Putchunker implements Runnable {
     Thread.sleep(Protocol.delayPutchunker * (1 << attempts++));
   }
 
-  void submit() {
-    if (done.get() || task != null) return;
-    task = BackupHandler.getInstance().putchunkPool.submit(this);
-  }
-
+  // Return true if the perceived replication degree is satisfactory.
   private boolean verify() {
     String fileId = key.getFileId();
     int no = key.getChunkNo();
     int perceived = FileInfoManager.getInstance().getChunkReplicationDegree(fileId, no);
-    return perceived < desiredReplicationDegree;
+    return perceived >= desiredReplicationDegree;
   }
 
   private void fail() {
@@ -76,7 +74,7 @@ public class Putchunker implements Runnable {
 
   @Override
   public void run() {
-    while (!done.get() && attempts <= Configuration.maxPutchunkAttempts) {
+    while (!done.get() && attempts < Configuration.maxPutchunkAttempts) {
       Peer.getInstance().send(message);
       try {
         sleep();

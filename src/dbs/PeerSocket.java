@@ -72,7 +72,7 @@ public final class PeerSocket implements Runnable {
     if (finished) return;
     String id = Long.toString(Peer.getInstance().getId());
     queue.add(message.getPacket(id, channel.getPort(), channel.getAddress()));
-    Peer.log("Added " + message.getType() + " to out queue", Level.INFO);
+    Peer.log("Sending... " + message.shortText(), Level.INFO);
   }
 
   /**

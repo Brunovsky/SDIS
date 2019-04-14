@@ -207,13 +207,8 @@ public class Message {
 
       if (messageType.hasBody()) {
         body = Arrays.copyOfRange(bytes, index + 4, length);
-
-        if (body.length == 0) {
-          throw new MessageException("Empty body in " + messageType + " message");
-        }
       } else if (index + 4 != length) {
-        throw new MessageException("Non-empty body in " + messageType + " message "
-            + length);
+        throw new MessageException("Non-empty body in " + messageType + length);
       }
 
     } catch (IllegalArgumentException e) {
@@ -470,6 +465,38 @@ public class Message {
 
   public void setPort(int port) {
     this.port = port;
+  }
+
+  public String shortText() {
+    String base = "";
+    switch (messageType) {
+      case PUTCHUNK:
+        base = "PUTCHUNK(" + fileId.substring(0, 10) + ',' + chunkNo + ')';
+        break;
+      case CHUNK:
+        base = "CHUNK(" + fileId.substring(0, 10) + ',' + chunkNo + ')';
+        break;
+      case STORED:
+        base = "STORED(" + fileId.substring(0, 10) + ',' + chunkNo + ')';
+        break;
+      case DELETE:
+        base = "DELETE(" + fileId.substring(0, 10) + ')';
+        break;
+      case REMOVED:
+        base = "REMOVED(" + fileId.substring(0, 10) + ',' + chunkNo + ')';
+        break;
+      case GETCHUNK:
+        base = "GETCHUNK(" + fileId.substring(0, 10) + ',' + chunkNo + ')';
+        break;
+      case DELETED:
+        base = "PUTCHUNK(" + fileId.substring(0, 10) + ')';
+        break;
+    }
+    return base;
+  }
+
+  public String shortFrom() {
+    return shortText() + " from " + senderId;
   }
 
   @Override

@@ -174,8 +174,10 @@ public class Peer implements ClientInterface {
     this.socket.send(message);
   }
 
-  private void initTransmitters() {
+  private void initHandlers() {
+    BackupHandler.createInstance();
     RestoreHandler.createInstance();
+    ReclaimHandler.createInstance();
   }
 
   private void initSocket() throws IOException {
@@ -228,7 +230,7 @@ public class Peer implements ClientInterface {
     initSocket();
     initMulticasters();
     initPool();
-    initTransmitters();
+    initHandlers();
   }
 
   private void init() {

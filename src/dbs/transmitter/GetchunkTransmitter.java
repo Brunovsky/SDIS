@@ -123,7 +123,7 @@ public class GetchunkTransmitter implements Runnable {
    */
   @Override
   public void run() {
-    while (!done.get() && attempts <= Configuration.maxGetchunkAttempts) {
+    while (!done.get() && attempts < Configuration.maxGetchunkAttempts) {
       Peer.getInstance().send(message);
       try {
         sleep();
