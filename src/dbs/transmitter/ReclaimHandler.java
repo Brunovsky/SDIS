@@ -2,7 +2,7 @@ package dbs.transmitter;
 
 import dbs.ChunkKey;
 import dbs.Configuration;
-import dbs.fileInfoManager.FileInfoManager;
+import dbs.files.FileInfoManager;
 import dbs.message.Message;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,5 +69,11 @@ public class ReclaimHandler {
 
   public void initReclaim(long maxDiskSpace) {
     // TODO...
+  }
+
+  void alertPUTCHUNK(Message message) {
+    ChunkKey key = new ChunkKey(message.getFileId(), message.getChunkNo());
+    RemovedWaiter waiter = waiters.get(key);
+    if (waiter != null) waiter.detect();
   }
 }

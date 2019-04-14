@@ -5,11 +5,10 @@ public class Configuration {
     // Which protocol version does this peer use?
     public static String version = "1.0";
 
-    // Folder where each peer root directory is stored.
+    // Folder where each peer root directory is stored. Please use an absolute path.
     public static String allPeersRootDir = "/tmp/dbs";
 
     // Peer's root directory.
-    // TODO: Define a prefix and use "peer-$PEERID/" or use "peer/$PEERID/" ?
     public static String peerRootDirPrefix = "peer-";
 
     // Backup subdirectory, where chunks kept by this peer are kept.
@@ -17,27 +16,23 @@ public class Configuration {
     public static String backupDir = "backup";
 
     // Backup entry prefix
-    // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
     public static String entryPrefix = "file-";
 
     // Chunk file prefix.
-    // TODO: Define a prefix and use "prefix-$CHUNKNO" or use simply $CHUNKNO ?
     public static String chunkPrefix = "chunk-";
 
     // Restore subdirectory, where files restored are kept.
     public static String restoredDir = "restored";
 
-    // My files' id mapping directory
-    public static String idMapDir = "idmap";
-
-    // My files' metadata directory
-    public static String chunkInfoDir = "mine";
-
-    // My file's info (desired replication degree and set of peers which have a backup of those files' chunks)
     public static String filesinfoDir = "filesinfo";
 
-    // My file's desired replication degree file name
-    public static String desiredReplicationDegreeFile = "drd";
+    // My file info (desired replication degree, set of peers which have a backup of those
+    // files' chunks, pathname and chunk count)
+    public static String ownFilesinfo = "ownfiles-metadata";
+
+    // Others' files info (desired replication degree and set of peers which have a
+    // backup of those files)
+    public static String otherFilesinfo = "otherfiles-metadata";
 
     // Multicaster's timeout for reading from multicast socket
     public static int multicastTimeout = 300; // milliseconds
@@ -57,7 +52,10 @@ public class Configuration {
     public static int restorerPoolSize = 5;
     public static int removedPoolSize = 25;
 
-    // Maximum number of allowed GETCHUNK for each chunk before the restore gives up
+    // Maximum number of allowed PUTCHUNKs for each chunk before the backup gives up
+    public static int maxPutchunkAttempts = 5;
+
+    // Maximum number of allowed GETCHUNKs for each chunk before the restore gives up
     public static int maxGetchunkAttempts = 5;
 
     // Maximum storage capacity for chunks.

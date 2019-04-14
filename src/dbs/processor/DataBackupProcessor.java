@@ -2,16 +2,12 @@ package dbs.processor;
 
 import dbs.Multicaster;
 import dbs.Peer;
-import dbs.Protocol;
-import dbs.Utils;
-import dbs.fileInfoManager.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.message.MessageType;
-import dbs.transmitter.StoredTransmitter;
+import dbs.transmitter.BackupHandler;
 
 import java.net.DatagramPacket;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class DataBackupProcessor implements Multicaster.Processor {
@@ -41,6 +37,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
         case PUTCHUNK:
           this.processPutchunkMessage(m);
           break;
+          // ...
         default:
           Peer.log("Dropped message from channel MDB", Level.INFO);
       }
@@ -48,49 +45,7 @@ public class DataBackupProcessor implements Multicaster.Processor {
 
     private void processPutchunkMessage(Message m) {
       Peer.log("Received PUTCHUNK from " + m.getSenderId(), Level.INFO);
-      String fileId = m.getFileId();
-      int chunkNumber = m.getChunkNo();
-      Long senderId = Long.parseLong(m.getSenderId());
-      int desiredReplicationDegree = m.getReplication();
-      String version = m.getVersion();
-      byte[] chunk;
-
-      try {
-        chunk = m.getBody();
-      } catch (IllegalStateException e) {
-        Peer.log("Could not process the chunk content in the PUTCHUNK message",
-            Level.SEVERE);
-        return;
-      }
-
-      // the same peer has the one processing the message
-      if (senderId == Peer.getInstance().getId())
-        return;
-
-      int replicationDegree =
-          FileInfoManager.getInstance().getChunkReplicationDegree(fileId,
-              chunkNumber);
-      if (replicationDegree >= desiredReplicationDegree)
-        return;
-
-      storeChunk(fileId, chunkNumber, chunk);
-      sendStoredMessage(version, fileId, chunkNumber);
-      FileInfoManager.getInstance().addBackupPeer(fileId, chunkNumber,
-          Peer.getInstance().getId());
-      FileInfoManager.getInstance().setDesiredReplicationDegree(fileId,
-          desiredReplicationDegree);
-    }
-
-    private void storeChunk(String fileId, int chunkNumber, byte[] chunk) {
-      FileInfoManager.getInstance().storeChunk(fileId, chunkNumber, chunk);
-    }
-
-    private void sendStoredMessage(String version, String fileId, int chunkNumber) {
-      Peer.getInstance().getPool().schedule(new StoredTransmitter(version,
-              fileId,
-              chunkNumber),
-          Utils.getRandom(Protocol.minDelay, Protocol.maxDelay),
-          TimeUnit.MILLISECONDS);
+      BackupHandler.getInstance().receivePUTCHUNK(m);
     }
   }
 

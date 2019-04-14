@@ -1,7 +1,7 @@
 package dbs.transmitter;
 
 import dbs.*;
-import dbs.fileInfoManager.FileInfoManager;
+import dbs.files.FilesManager;
 import dbs.message.Message;
 
 import java.util.concurrent.Future;
@@ -84,7 +84,7 @@ public class ChunkTransmitter implements Runnable {
     int chunkNo = key.getChunkNo();
 
     // Get the chunk. Ensure we still have it and no unexpected IO error occurred.
-    byte[] chunk = FileInfoManager.getInstance().getChunk(fileId, chunkNo);
+    byte[] chunk = FilesManager.getInstance().getChunk(fileId, chunkNo);
     if (chunk == null) return;
 
     Message message = Message.CHUNK(fileId, Configuration.version, chunkNo, chunk);

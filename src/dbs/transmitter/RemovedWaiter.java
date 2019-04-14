@@ -4,7 +4,8 @@ package dbs.transmitter;
 import dbs.ChunkKey;
 import dbs.Protocol;
 import dbs.Utils;
-import dbs.fileInfoManager.FileInfoManager;
+import dbs.files.FileInfoManager;
+import dbs.files.FilesManager;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +79,7 @@ public class RemovedWaiter implements Runnable {
     int chunkNo = key.getChunkNo();
 
     // Get the chunk. Ensure we still have it and no unexpected IO error occurred.
-    byte[] chunk = FileInfoManager.getInstance().getChunk(fileId, chunkNo);
+    byte[] chunk = FilesManager.getInstance().getChunk(fileId, chunkNo);
     if (chunk == null) return;
 
     // Get the replication degree. Ensure we still have it

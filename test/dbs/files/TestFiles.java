@@ -4,20 +4,16 @@ import dbs.Configuration;
 import dbs.MulticastChannel;
 import dbs.Peer;
 import dbs.Protocol;
-import dbs.fileInfoManager.ChunkInfo;
-import dbs.fileInfoManager.FileInfo;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -77,8 +73,6 @@ public class TestFiles {
     String peer1000 = "/tmp/dbs/peer-1000/";
     assertTrue(Files.deleteIfExists(Paths.get(peer1000 + Configuration.backupDir)));
     assertTrue(Files.deleteIfExists(Paths.get(peer1000 + Configuration.restoredDir)));
-    assertTrue(Files.deleteIfExists(Paths.get(peer1000 + Configuration.chunkInfoDir)));
-    assertTrue(Files.deleteIfExists(Paths.get(peer1000 + Configuration.idMapDir)));
     assertTrue(Files.deleteIfExists(Paths.get(peer1000 + Configuration.filesinfoDir)));
     assertTrue(Files.deleteIfExists(Paths.get("/tmp/dbs/peer-1000")));
 
@@ -212,52 +206,5 @@ public class TestFiles {
     map.put(hash4, chunks4);
 
     assertEquals(map, FilesManager.getInstance().backupAllChunksMap());
-  }
-
-  @Test
-  void writeChunkInfo() throws Exception {
-    config();
-
-    String peerId = Long.toString(PEERID);
-    Peer.createInstance(PEERID, ACCESSPOINT);
-    FilesManager.createInstance();
-
-    int chunkNumber = 1;
-    String chunkInfoDir = "/tmp/dbs/peer-" + peerId + "/" + Configuration.filesinfoDir + "/" + hash1;
-    String backupPeer1 = "1";
-    String backupPeer2 = "4";
-    Integer desiredReplicationDegree = 2;
-
-    ChunkInfo chunkInfo = new ChunkInfo();
-    chunkInfo.addBackupPeer(Long.parseLong(backupPeer1));
-    chunkInfo.addBackupPeer(Long.parseLong(backupPeer2));
-
-    FilesManager.getInstance().writeChunkInfo(hash1, chunkNumber, chunkInfo);
-    FilesManager.getInstance().writeFileDesiredReplicationDegree(hash1, desiredReplicationDegree);
-    Path chunkInfoPath = Paths.get(chunkInfoDir).resolve(Integer.toString(chunkNumber));
-    Path desiredReplicationDegreePath = Paths.get(chunkInfoDir).resolve(Configuration.desiredReplicationDegreeFile);
-    assertTrue(Files.exists(chunkInfoPath));
-    assertTrue(Files.exists(desiredReplicationDegreePath));
-    FilesManager.getInstance().readChunkInfo(chunkInfoPath.toFile());
-  }
-
-  @Test
-  void initFilesInfo() throws Exception {
-    config();
-    writeChunkInfo();
-
-    Peer.createInstance(PEERID, ACCESSPOINT);
-    FilesManager.createInstance();
-
-    int chunkNumber = 1;
-    ConcurrentHashMap<String, FileInfo> map = FilesManager.getInstance().initFilesInfo();
-    String backupPeer1 = "1";
-    String backupPeer2 = "4";
-
-    assertTrue(map.containsKey(hash1));
-    assertTrue(map.get(hash1).hasBackupPeer(chunkNumber,Long.parseLong(backupPeer1)));
-    assertTrue(map.get(hash1).hasBackupPeer(chunkNumber,Long.parseLong(backupPeer2)));
-    assertEquals(2, map.get(hash1).getChunkReplicationDegree(chunkNumber));
-    assertEquals(2, map.get(hash1).getDesiredReplicationDegree());
   }
 }

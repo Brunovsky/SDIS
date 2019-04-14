@@ -1,13 +1,13 @@
 package dbs;
 
-import dbs.fileInfoManager.FileInfoManager;
+import dbs.files.FileInfoManager;
 import dbs.message.Message;
 import dbs.message.MessageException;
 import dbs.processor.ControlProcessor;
 import dbs.processor.DataBackupProcessor;
 import dbs.processor.DataRestoreProcessor;
+import dbs.transmitter.BackupHandler;
 import dbs.transmitter.DeleteTransmitter;
-import dbs.transmitter.PutchunkTransmitter;
 import dbs.transmitter.ReclaimHandler;
 import dbs.transmitter.RestoreHandler;
 
@@ -264,7 +264,7 @@ public class Peer implements ClientInterface {
   /********* Interface Implementation **********/
   public void backup(String pathname, int replicationDegree) {
     Peer.log("Received BACKUP request", Level.INFO);
-    this.pool.submit(new PutchunkTransmitter(pathname, replicationDegree, 1));
+    BackupHandler.getInstance().initBackup(pathname, replicationDegree);
   }
 
   public void restore(String pathname) throws RemoteException {

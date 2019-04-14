@@ -4,7 +4,7 @@ import dbs.ChunkKey;
 import dbs.Configuration;
 import dbs.Peer;
 import dbs.Utils;
-import dbs.fileInfoManager.FileInfoManager;
+import dbs.files.FileInfoManager;
 import dbs.message.Message;
 
 import java.io.File;
@@ -94,14 +94,11 @@ public class RestoreHandler {
    * @param message The CHUNK message received. Presumed valid CHUNK message.
    */
   public void receiveCHUNK(Message message) {
-    String fileId = message.getFileId();
-    int chunkNo = message.getChunkNo();
-    byte[] bytes = message.getBody();
-    ChunkKey key = new ChunkKey(fileId, chunkNo);
+    ChunkKey key = new ChunkKey(message.getFileId(), message.getChunkNo());
 
     // Update Getchunker
     GetchunkTransmitter getchunker = getchunkers.get(key);
-    if (getchunker != null) getchunker.assign(bytes);
+    if (getchunker != null) getchunker.assign(message.getBody());
 
     // Update Chunker
     ChunkTransmitter chunker = chunkers.get(key);

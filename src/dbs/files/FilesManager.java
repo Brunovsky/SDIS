@@ -2,9 +2,6 @@ package dbs.files;
 
 import dbs.Configuration;
 import dbs.Peer;
-import dbs.Utils;
-import dbs.fileInfoManager.ChunkInfo;
-import dbs.fileInfoManager.FileInfo;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -16,19 +13,15 @@ import java.util.HashSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class FilesManager {
-  private static final Logger LOGGER = Logger.getLogger(FilesManager.class.getName());
 
   private static FilesManager manager;
 
   private final Path backupDir;
   private final Path restoredDir;
-  private final Path mineDir;
-  private final Path idMapDir;
   private final Path filesinfoDir;
   private final Pattern backupPattern;
   private final Pattern chunkPattern;
@@ -65,6 +58,7 @@ public final class FilesManager {
   }
 
   public static boolean deleteRecursive(File file) {
+    if (file == null) return true;
     if (file.isDirectory()) {
       File[] subfiles = file.listFiles();
       if (subfiles != null) {
@@ -76,7 +70,8 @@ public final class FilesManager {
     return file.delete();
   }
 
-  public static boolean deleteDirectory(File directory) {
+  private static boolean deleteDirectory(File directory) {
+    if (directory == null) return true;
     if (!directory.isDirectory()) return false;
     File[] files = directory.listFiles();
     if (files != null) {
@@ -85,38 +80,6 @@ public final class FilesManager {
       }
     }
     return directory.delete();
-  }
-
-  /**
-   * Returns information with respects to the given file path.
-   *
-   * @param pathname The name of the file's path.
-   * @param peerId   The id of the peer which owns the file.
-   * @return The information regarding that file if it was successfully retrieved and
-   * null otherwise.
-   */
-  public static FileRequest retrieveFileInfo(String pathname, Long peerId) {
-    File file = new File(pathname);
-
-    // check if path name corresponds to a valid file
-    if (!file.exists() || file.isDirectory()) {
-      Peer.log("Invalid path name", Level.SEVERE);
-      return null;
-    }
-
-    // hash the pathname
-    String fileId;
-    try {
-      fileId = Utils.hash(file, peerId);
-    } catch (Exception e) {
-      Peer.log("Could not retrieve a file id for the path name " + pathname,
-          Level.SEVERE);
-      return null;
-    }
-
-    long filesize = file.length();
-    Integer numberChunks = Utils.numberOfChunks(filesize);
-    return new FileRequest(file, fileId, numberChunks);
   }
 
   private String makeBackupEntry(String fileId) {
@@ -174,24 +137,19 @@ public final class FilesManager {
     path = peerDir.resolve(Configuration.restoredDir);
     restoredDir = Files.createDirectories(path);
 
-    // dbs/peer-ID/idmap/
-    path = peerDir.resolve(Configuration.idMapDir);
-    idMapDir = Files.createDirectories(path);
-
-    // dbs/peer-ID/mine/
-    path = peerDir.resolve(Configuration.chunkInfoDir);
-    mineDir = Files.createDirectories(path);
-
     // dbs/peer-ID/filesinfo/
     path = peerDir.resolve(Configuration.filesinfoDir);
     filesinfoDir = Files.createDirectories(path);
 
     // prefix[FILEID]
-    backupPattern = Pattern.compile(Pattern.quote(Configuration.entryPrefix) + "([0-9a" +
-        "-f]{64})");
+    String backupStr = Pattern.quote(Configuration.entryPrefix) + "([0-9a-fA-F]{64})";
+    backupPattern = Pattern.compile(backupStr);
 
     // prefix[CHUNKNO]
-    chunkPattern = Pattern.compile(Pattern.quote(Configuration.chunkPrefix) + "([0-9]+)");
+    String chunkStr = Pattern.quote(Configuration.chunkPrefix) + "([0-9]+)";
+    chunkPattern = Pattern.compile(chunkStr);
+
+    //backupSpace = (backupTotalSpace());
   }
 
   /**
@@ -246,7 +204,7 @@ public final class FilesManager {
       if (Files.notExists(chunkpath)) return null;
       return Files.readAllBytes(chunkpath);
     } catch (IOException e) {
-      LOGGER.warning("Failed to get " + chk(fileId, chunkNo) + "\n" + e.getMessage());
+      Peer.log("Failed to get " + chk(fileId, chunkNo), e, Level.WARNING);
       return null;
     }
   }
@@ -268,7 +226,7 @@ public final class FilesManager {
       Files.write(chunkpath, chunk);
       return true;
     } catch (IOException e) {
-      LOGGER.warning("Failed to put " + chk(fileId, chunkNo) + "\n" + e.getMessage());
+      Peer.log("Failed to put " + chk(fileId, chunkNo), e, Level.WARNING);
       return false;
     }
   }
@@ -288,7 +246,7 @@ public final class FilesManager {
       Files.deleteIfExists(chunkpath);
       return true;
     } catch (IOException e) {
-      LOGGER.warning("Failed to delete " + chk(fileId, chunkNo) + "\n" + e.getMessage());
+      Peer.log("Failed to delete " + chk(fileId, chunkNo), e, Level.WARNING);
       return false;
     }
   }
@@ -317,7 +275,7 @@ public final class FilesManager {
       if (Files.notExists(filepath)) return null;
       return Files.readAllBytes(filepath);
     } catch (IOException e) {
-      LOGGER.warning("Failed to read restore file " + filename + "\n" + e.getMessage());
+      Peer.log("Failed to read restore file " + filename, e, Level.WARNING);
       return null;
     }
   }
@@ -330,14 +288,13 @@ public final class FilesManager {
    * @param chunks   The various chunks composing the file
    * @return true if the file was successfully written, false otherwise
    */
-  public boolean putRestore(String filename,
-                            byte[][] chunks) {
+  public boolean putRestore(String filename, byte[][] chunks) {
     try {
       Path filepath = restoredDir.resolve(filename);
       Files.write(filepath, concatenateChunks(chunks));
       return true;
     } catch (IOException e) {
-      LOGGER.warning("Failed to restore file " + filename + "\n" + e.getMessage());
+      Peer.log("Failed to restore file " + filename, e, Level.WARNING);
       return false;
     }
   }
@@ -451,74 +408,63 @@ public final class FilesManager {
     return total;
   }
 
-  public void writeObject(Object object, String objectPathName) throws IOException {
-    FileOutputStream fileOutputStream = new FileOutputStream(objectPathName, false);
-    ObjectOutputStream out = new ObjectOutputStream(fileOutputStream);
-    out.writeObject(object);
-    out.close();
-    fileOutputStream.close();
-  }
-
-  public void writeChunkInfo(String fileId, Integer chunkNumber, ChunkInfo chunkInfo) throws IOException {
-    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
-    Path chunkInfoPath = fileInfoDir.resolve(chunkNumber.toString());
-    Files.createDirectories(fileInfoDir);
-    this.writeObject(chunkInfo, chunkInfoPath.toString());
-  }
-
-  public void writeFileDesiredReplicationDegree(String fileId,
-                                                Integer desiredReplicationDegree) throws IOException {
-    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
-    Files.createDirectories(fileInfoDir);
-    Path chunkInfoPath = fileInfoDir.resolve(Configuration.desiredReplicationDegreeFile);
-    this.writeObject(desiredReplicationDegree, chunkInfoPath.toString());
-  }
-
-  public boolean deleteFileInfo(String fileId) {
-    Path fileInfoDir = this.filesinfoDir.resolve(fileId);
-    File file = fileInfoDir.toFile();
-    return FilesManager.deleteRecursive(file);
-  }
-
-  public Object readObject(File objectFile) throws Exception {
-    FileInputStream fis = new FileInputStream(objectFile);
-    ObjectInputStream ois = new ObjectInputStream(fis);
-    Object object = ois.readObject();
-    fis.close();
-    ois.close();
-    return object;
-  }
-
-  public ChunkInfo readChunkInfo(File chunkInfoFile) throws Exception {
-    return (ChunkInfo) this.readObject(chunkInfoFile);
-  }
-
-  public Integer readDesiredReplicationDegree(File desiredReplicationDegreeFile) throws Exception {
-    return (Integer) this.readObject(desiredReplicationDegreeFile);
-  }
-
-  public ConcurrentHashMap<String,FileInfo> initFilesInfo() throws Exception {
-    ConcurrentHashMap<String,FileInfo> fileInfoHashMap = new ConcurrentHashMap<>();
-    File filesInfoDir = this.filesinfoDir.toFile();
-
-    for (File fileinfoDir : filesInfoDir.listFiles()) {
-      if (fileinfoDir.isDirectory()) {
-        String fileId = fileinfoDir.getName();
-        Path desiredRDFilename =
-            fileinfoDir.toPath().resolve(Configuration.desiredReplicationDegreeFile);
-        Integer fileDesiredReplicationDegree =
-            (Integer) this.readObject(desiredRDFilename.toFile());
-        fileInfoHashMap.put(fileId, new FileInfo(fileDesiredReplicationDegree));
-        for (File chunkInfoFile : fileinfoDir.listFiles()) {
-          if (chunkInfoFile.getName().equals(Configuration.desiredReplicationDegreeFile))
-            continue;
-          Integer chunkNumber = Integer.parseInt(chunkInfoFile.getName());
-          ChunkInfo chunkInfo = this.readChunkInfo(chunkInfoFile);
-          fileInfoHashMap.get(fileId).addFileChunk(chunkNumber, chunkInfo);
-        }
-      }
+  public void writeObject(Object object, File objectFile) throws IOException {
+    // Note: try-with-resources guarantees if there is an error writing to the streams,
+    // they are still correctly closed.
+    // https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html
+    try (FileOutputStream fis = new FileOutputStream(objectFile);
+         ObjectOutputStream ois = new ObjectOutputStream(fis)) {
+      ois.writeObject(object);
+    } catch (IOException e) {
+      Peer.log("Failed to write object data from " + objectFile, e, Level.SEVERE);
+      throw e;
     }
+  }
 
-    return fileInfoHashMap;
+  public Object readObject(File objectFile) throws IOException {
+    // Note: try-with-resources guarantees if there is an error reading from the streams,
+    // they are still correctly closed.
+    // https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html
+    try (FileInputStream fis = new FileInputStream(objectFile);
+         ObjectInputStream ois = new ObjectInputStream(fis)) {
+      return ois.readObject();
+    } catch (IOException | ClassNotFoundException e) {
+      Peer.log("Failed to read object data from " + objectFile, e, Level.SEVERE);
+      throw new IOException(e);
+    }
+  }
+
+  ConcurrentHashMap<String,OwnFileInfo> readOwnFilesInfo() throws IOException {
+    Path path = filesinfoDir.resolve(Configuration.ownFilesinfo);
+    File file = path.toFile();
+    if (!file.exists() || !file.isFile()) return null;
+
+    return (ConcurrentHashMap<String,OwnFileInfo>) this.readObject(file);
+  }
+
+  ConcurrentHashMap<String,FileInfo> readOtherFilesInfo() throws IOException {
+    Path path = filesinfoDir.resolve(Configuration.otherFilesinfo);
+    File file = path.toFile();
+    if (!file.exists() || !file.isFile()) return null;
+
+    return (ConcurrentHashMap<String,FileInfo>) this.readObject(file);
+  }
+
+  void writeOwnFilesInfo(ConcurrentHashMap<String,OwnFileInfo> map) {
+    File file = filesinfoDir.resolve(Configuration.ownFilesinfo).toFile();
+    try {
+      writeObject(map, file);
+    } catch (IOException e) {
+      Peer.log("Failed to store own files info map at " + file, Level.SEVERE);
+    }
+  }
+
+  void writeOtherFilesInfo(ConcurrentHashMap<String,FileInfo> map) {
+    File file = filesinfoDir.resolve(Configuration.otherFilesinfo).toFile();
+    try {
+      writeObject(map, file);
+    } catch (IOException e) {
+      Peer.log("Failed to store others files info map at " + file, Level.SEVERE);
+    }
   }
 }

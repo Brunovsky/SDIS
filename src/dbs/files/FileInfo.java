@@ -1,18 +1,20 @@
-package dbs.fileInfoManager;
+package dbs.files;
 
-import dbs.ChunkKey;
-
+import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FileInfo {
+class FileInfo implements Serializable {
+
+  private final String fileId;
 
   /**
    * Maps the number of a file's chunk (greater or equal to 0) to the information of
    * that chunk.
    */
-  private ConcurrentHashMap<Integer,ChunkInfo> fileChunks;
+  private final ConcurrentHashMap<Integer,ChunkInfo> fileChunks;
+
   /**
    * The desired replication degree of that file.
    */
@@ -21,7 +23,8 @@ public class FileInfo {
   /**
    * Constructs a new object of the FileInfo class.
    */
-  public FileInfo() {
+  FileInfo(String fileId) {
+    this.fileId = fileId;
     this.fileChunks = new ConcurrentHashMap<>();
     this.desiredReplicationDegree = 0;
   }
@@ -32,22 +35,10 @@ public class FileInfo {
    *
    * @param desiredReplicationDegree The desired replication degree for that file.
    */
-  public FileInfo(Integer desiredReplicationDegree) {
+  FileInfo(String fileId, Integer desiredReplicationDegree) {
+    this.fileId = fileId;
     this.fileChunks = new ConcurrentHashMap<>();
     this.desiredReplicationDegree = desiredReplicationDegree;
-  }
-
-  /**
-   * Constructs a new object of the FileInfo class, given the number of chunks of that
-   * file.
-   *
-   * @param numberOfChunks The number of chunks of that file.
-   */
-  public FileInfo(int numberOfChunks, Integer desiredReplicationDegree) {
-    this();
-    this.desiredReplicationDegree = desiredReplicationDegree;
-    for (int i = 0; i < numberOfChunks; i++)
-      this.fileChunks.put(i, new ChunkInfo());
   }
 
   /**
@@ -56,7 +47,7 @@ public class FileInfo {
    * @param chunkNumber The chunk's number.
    * @return True if the map contains an entry for the given chunk and false otherwise.
    */
-  private boolean hasChunk(Integer chunkNumber) {
+  public boolean hasChunk(Integer chunkNumber) {
     return this.fileChunks.containsKey(chunkNumber);
   }
 
@@ -67,7 +58,7 @@ public class FileInfo {
    * @return The information regarding the specified chunk or null if that information
    * doesn't exist.
    */
-  public ChunkInfo getChunkInfo(Integer chunkNumber) {
+  ChunkInfo getChunkInfo(Integer chunkNumber) {
     return this.fileChunks.get(chunkNumber);
   }
 
@@ -76,20 +67,8 @@ public class FileInfo {
    *
    * @param chunkNumber The number of the new chunk of that file.
    */
-  public void addFileChunk(Integer chunkNumber) {
-    if (!this.hasChunk(chunkNumber))
-      this.fileChunks.put(chunkNumber, new ChunkInfo());
-  }
-
-  /**
-   * Adds a new entry to the fileChunks map if it doesn't exist yet.
-   *
-   * @param chunkNumber The number of the new chunk of that file.
-   * @param chunkInfo   The information regarding that chunk.
-   */
-  public void addFileChunk(Integer chunkNumber, ChunkInfo chunkInfo) {
-    if (!this.hasChunk(chunkNumber))
-      this.fileChunks.put(chunkNumber, chunkInfo);
+  ChunkInfo addChunkInfo(Integer chunkNumber) {
+    return this.fileChunks.computeIfAbsent(chunkNumber, ChunkInfo::new);
   }
 
   /**
@@ -97,34 +76,34 @@ public class FileInfo {
    *
    * @param chunkNumber The number of the chunk being backed up.
    * @param peerId      The id of the new peer to backup that chunk.
+   * @return the new perceived replication degree of the chunk.
    */
-  public void addBackupPeer(Integer chunkNumber, Long peerId) {
-    if (!this.hasChunk(chunkNumber))
-      this.addFileChunk(chunkNumber);
-    this.getChunkInfo(chunkNumber).addBackupPeer(peerId);
+  void addBackupPeer(Integer chunkNumber, Long peerId) {
+    this.addChunkInfo(chunkNumber).addBackupPeer(peerId);
   }
 
   /**
    * Removes the id of the peer which could have had a backup of that chunk.
    *
-   * @param chunkNumber The if of the chunk that is no longer being backed up by the
+   * @param chunkNumber The number of the chunk that is no longer being backed up by the
    *                    given peer.
-   * @param peerId      The id of the peer which could have had a backup of that chunk.
+   * @param peerId      The id of the removing peer.
+   * @return the new perceived replication degree of the chunk.
    */
-  public void removeBackupPeer(Integer chunkNumber, Long peerId) {
-    if (!this.hasChunk(chunkNumber)) return;
+  void removeBackupPeer(Integer chunkNumber, Long peerId) {
     this.getChunkInfo(chunkNumber).removeBackupPeer(peerId);
   }
 
   /**
    * Removes the id of the peer which could have had a backup of a chunk of the given file
-   * @param peerId The id of the peer which could have had a backup of a chunk of the given file
+   *
+   * @param peerId The id of the peer which could have had a backup of a chunk of the
+   *               given file
    */
-  public void removeBackupPeer(Long peerId) {
-    Iterator it = this.fileChunks.entrySet().iterator();
-    while(it.hasNext()) {
-      Map.Entry pair = (Map.Entry)it.next();
-      this.removeBackupPeer((Integer)pair.getKey(), peerId);
+  void removeBackupPeer(Long peerId) {
+    for (Map.Entry<Integer,ChunkInfo> integerChunkInfoEntry :
+        this.fileChunks.entrySet()) {
+      this.removeBackupPeer(integerChunkInfoEntry.getKey(), peerId);
     }
   }
 
@@ -136,19 +115,21 @@ public class FileInfo {
    * @return True if the given peer has a backup of that chunk and false otherwise.
    */
   public boolean hasBackupPeer(Integer chunkNumber, Long peerId) {
-    if (!this.hasChunk(chunkNumber)) return false;
-    return this.getChunkInfo(chunkNumber).hasBackupPeer(peerId);
+    ChunkInfo chunkInfo = this.getChunkInfo(chunkNumber);
+    return chunkInfo != null && chunkInfo.hasBackupPeer(peerId);
   }
 
   /**
    * Checks if any of the file's chunks has a backup on other peers
-   * @return True if any of the file's chunks has a backup on other peers and false otherwise.
+   *
+   * @return True if any of the file's chunks has a backup on other peers and false
+   * otherwise.
    */
   public boolean hasBackupPeers() {
     Iterator it = this.fileChunks.entrySet().iterator();
-    while(it.hasNext()) {
-      Map.Entry pair = (Map.Entry)it.next();
-      if(((ChunkInfo)pair.getValue()).hasBackupPeers())
+    while (it.hasNext()) {
+      Map.Entry pair = (Map.Entry) it.next();
+      if (((ChunkInfo) pair.getValue()).hasBackupPeers())
         return true;
     }
     return false;
@@ -163,8 +144,8 @@ public class FileInfo {
    * replication degree of the chunk).
    */
   public int getChunkReplicationDegree(Integer chunkNumber) {
-    if (!this.hasChunk(chunkNumber)) return 0;
-    return this.getChunkInfo(chunkNumber).getReplicationDegree();
+    ChunkInfo chunkInfo = this.getChunkInfo(chunkNumber);
+    return chunkInfo == null ? 0 : chunkInfo.getReplicationDegree();
   }
 
   /**
@@ -172,7 +153,7 @@ public class FileInfo {
    *
    * @return The desired replication degree of that file.
    */
-  public Integer getDesiredReplicationDegree() {
+  public int getDesiredReplicationDegree() {
     return desiredReplicationDegree;
   }
 
@@ -185,14 +166,21 @@ public class FileInfo {
     this.desiredReplicationDegree = desiredReplicationDegree;
   }
 
+  /**
+   * Get this file's id
+   * @return this file's id
+   */
+  public String getFileId() {
+    return this.fileId;
+  }
+
   @Override
   public String toString() {
     StringBuilder string = new StringBuilder();
-    string.append("  Replication Degree: ").append(desiredReplicationDegree).append('\n');
-    for (Integer chunkNumber : fileChunks.keySet()) {
-      ChunkInfo chunkinfo = fileChunks.get(chunkNumber);
-      string.append("   Chunk ").append(chunkNumber).append(": ");
-      string.append(chunkinfo.toString()).append('\n');
+    string.append(' ').append(fileId).append('\n');
+    string.append("   Replication Degree: ").append(desiredReplicationDegree).append('\n');
+    for (Map.Entry<Integer, ChunkInfo> entry : this.fileChunks.entrySet()) {
+      string.append("     ").append(entry.getValue().toString()).append('\n');
     }
     return string.toString();
   }

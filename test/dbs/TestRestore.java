@@ -1,6 +1,6 @@
 package dbs;
 
-import dbs.fileInfoManager.FileInfoManager;
+import dbs.files.FileInfoManager;
 import dbs.files.FilesManager;
 import dbs.message.Message;
 import dbs.transmitter.ChunkTransmitter;

@@ -11,10 +11,10 @@ public final class Protocol {
   // maximum delay time (for the schedule of new threads) - ms
   public static int maxDelay = 400;
 
-  // time interval for a putchunker to collect the STORED messages, on a first attempt - s
-  public static int delayReceiveStored = 1;
+  // time interval for a putchunker to wait for a CHUNK message before retrying
+  public static int delayPutchunker = 500;
 
-  // time internal for a getchunker to wait for a CHUNK message before retrying
+  // time interval for a getchunker to wait for a CHUNK message before retrying
   public static int delayGetchunker = 500;
 
   // number of times the DELETE message is sent

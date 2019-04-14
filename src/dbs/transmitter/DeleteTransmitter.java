@@ -3,9 +3,8 @@ package dbs.transmitter;
 import dbs.Configuration;
 import dbs.Peer;
 import dbs.Protocol;
-import dbs.fileInfoManager.FileInfoManager;
-import dbs.files.FileRequest;
-import dbs.files.FilesManager;
+import dbs.files.FileInfoManager;
+import dbs.files.OwnFileInfo;
 import dbs.message.Message;
 
 import java.io.File;
@@ -42,13 +41,13 @@ public class DeleteTransmitter implements Runnable {
     if(this.transmissionNumber != 1) return;
     // check if the given pathname is valid
     File fileToDelete;
-    FileRequest fileRequest = FilesManager.retrieveFileInfo(pathname, Peer.getInstance().getId());
-    if (fileRequest == null) {
+    OwnFileInfo info = FileInfoManager.getInstance().getPathname(pathname);
+    if (info == null) {
       Peer.log("Could not access the provided file (" + this.pathname + ") for deletion.", Level.SEVERE);
       return;
     } else {
-      fileToDelete = fileRequest.getFile();
-      this.fileId = fileRequest.getFileId();
+      fileToDelete = info.getFile();
+      this.fileId = info.getFileId();
     }
     // delete file
     if(!FileInfoManager.getInstance().deleteFile(fileToDelete)) {
@@ -57,7 +56,7 @@ public class DeleteTransmitter implements Runnable {
     }
 
     if(!this.runEnhancedVersion)
-      FileInfoManager.getInstance().deleteFileInfo(this.fileId);
+      FileInfoManager.getInstance().deleteOwnFile(this.fileId);
   }
 
   public void runNotEnhanced() {
@@ -99,7 +98,7 @@ public class DeleteTransmitter implements Runnable {
     }
     else {
       Peer.getInstance().log("All peers have deleted the file with id " + fileId, Level.INFO);
-      FileInfoManager.getInstance().deleteFileInfo(this.fileId);
+      FileInfoManager.getInstance().deleteOwnFile(this.fileId);
       return;
     }
   }
