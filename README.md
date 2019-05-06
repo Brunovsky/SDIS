@@ -23,8 +23,11 @@ Shortcuts of TestApp invocations:
     ./restore ID FILE
     ./reclaim ID AMOUNT
     ./delete ID FILE
+    ./delete ID FILE -o
     ./state ID
-    
+
+> The -o option of the _delete_ command is used to request the enhanced version of the _File Deletion_ sub-protocol
+
 ### RMI registry
 
 The rmiregistry must be started outside the application. One way is to run
@@ -50,7 +53,7 @@ is raised back to 5000KB, meaning it can once more store the multicasted chunks:
     ./roundabout
 
 #### Pipeline
-    
+
 For 5 peers, performs a pipeline of 5 backups, then 5 restores, then 5 deletes, and ensures each peer
 reconstructed its file correctly and ended up with 0 backup space utilized. For the reclaim parameters
 given, and depending on which chunks the peers choose to store, it may be that some chunks will not reach
