@@ -1,5 +1,11 @@
 # SDIS
 
+Project partners:
+* [Bruno Carvalho](https://github.com/Brunovsky)
+* [Sofia Martins](https://github.com/SofiaCardosoMartins)
+
+---
+
 We recommend testing the application inside the script/ folder.
 Simply enter the script/ folder and run
 
